@@ -15,8 +15,8 @@ A comprehensive RFID-based evidence tracking system built with Node.js, TypeScri
 ### Installation
 ```bash
 # Clone the repository
-git clone https://github.com/GABRIELS562/Docket-Tracking.git
-cd Docket-Tracking
+git clone https://github.com/GABRIELS562/Docket-Tracking-.git
+cd Docket-Tracking-
 
 # Install backend dependencies
 cd backend
