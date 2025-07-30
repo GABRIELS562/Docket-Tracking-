@@ -15,8 +15,8 @@ A comprehensive RFID-based evidence tracking system built with Node.js, TypeScri
 ### Installation
 ```bash
 # Clone the repository
-git clone <repository-url>
-cd rfid-evidence-system
+git clone https://github.com/GABRIELS562/Docket-Tracking.git
+cd Docket-Tracking
 
 # Install backend dependencies
 cd backend
@@ -89,32 +89,6 @@ npm run dev
                         └─────────────────┘
 ```
 
-## 📊 Business Model
-
-### Revenue Streams
-- Software licensing for government departments
-- Complete solutions including hardware integration  
-- Document storage and archival services
-- Support and maintenance contracts
-
-### Target Market
-- Criminal investigation units
-- Forensic laboratories
-- Government evidence rooms
-- Private security companies
-- Legal compliance organizations
-
-## 📅 Development Timeline
-
-| Phase | Weeks | Focus | Deliverable |
-|-------|-------|-------|-------------|
-| **1** | 1-2 | **Foundation** | Node.js + TypeScript backend, PostgreSQL, Auth |
-| **2** | 3-4 | **Evidence Management** | Complete CRUD, Chain of custody, Search |
-| **3** | 5-6 | **RFID Integration** | Real-time events, WebSocket, Simulation |
-| **4** | 7-8 | **React Dashboard** | Professional UI, Mobile responsive |
-| **5** | 9-10 | **Bulk Import** | 300k record processing, Data validation |
-| **6** | 11-12 | **Production** | Security, Deployment, Documentation |
-
 ## 🚀 Features
 
 ### Core Features
@@ -147,6 +121,17 @@ npm run dev
 - ✅ Audit trail reporting
 - ✅ Compliance documentation
 - ✅ Mobile-responsive interface
+
+## 📅 Development Timeline
+
+| Phase | Weeks | Focus | Deliverable |
+|-------|-------|-------|-------------|
+| **1** | 1-2 | **Foundation** | Node.js + TypeScript backend, PostgreSQL, Auth |
+| **2** | 3-4 | **Evidence Management** | Complete CRUD, Chain of custody, Search |
+| **3** | 5-6 | **RFID Integration** | Real-time events, WebSocket, Simulation |
+| **4** | 7-8 | **React Dashboard** | Professional UI, Mobile responsive |
+| **5** | 9-10 | **Bulk Import** | 300k record processing, Data validation |
+| **6** | 11-12 | **Production** | Security, Deployment, Documentation |
 
 ## 🔧 Development
 
@@ -272,6 +257,18 @@ cd frontend && npm start     # React app
 5. **Setup React Frontend**
 
 Follow the [PROJECT_MASTER_PLAN.md](./PROJECT_MASTER_PLAN.md) for detailed week-by-week instructions.
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
