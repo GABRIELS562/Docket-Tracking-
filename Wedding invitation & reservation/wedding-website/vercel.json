@@ -1,0 +1,98 @@
+{
+  "version": 2,
+  "name": "wedding-website",
+  "alias": ["sarah-michael-wedding.com", "www.sarah-michael-wedding.com"],
+  "build": {
+    "env": {
+      "NODE_ENV": "production"
+    }
+  },
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm ci",
+  "devCommand": "npm run dev",
+  "framework": "vite",
+  "functions": {
+    "app/api/**/*.ts": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=()"
+        }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/(.*\\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot))",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/rsvp",
+      "destination": "/#rsvp",
+      "permanent": false
+    },
+    {
+      "source": "/details",
+      "destination": "/#details", 
+      "permanent": false
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/guest/:token",
+      "destination": "/?guest=:token"
+    }
+  ],
+  "env": {
+    "VITE_APP_URL": "https://sarah-michael-wedding.com",
+    "VITE_VERCEL_ENV": "@vercel-env"
+  },
+  "regions": ["iad1"],
+  "images": {
+    "formats": ["image/avif", "image/webp"],
+    "minimumCacheTTL": 31536000,
+    "domains": [
+      "images.unsplash.com",
+      "cdn.wedding-photos.com"
+    ],
+    "deviceSizes": [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    "imageSizes": [16, 32, 48, 64, 96, 128, 256, 384]
+  }
+}
