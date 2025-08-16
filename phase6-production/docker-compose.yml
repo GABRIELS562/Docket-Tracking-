@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: phase1_postgres
+    environment:
+      POSTGRES_DB: docket_tracking
+      POSTGRES_USER: docket_user
+      POSTGRES_PASSWORD: docket_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - phase1_postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docket_user -d docket_tracking"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  phase1_postgres_data:
+    driver: local

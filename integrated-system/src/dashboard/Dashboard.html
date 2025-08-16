@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RFID Docket Tracking Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .dashboard {
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: #1a202c;
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .notification-bell {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+
+        /* Navigation */
+        .nav {
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 0 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .nav-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-item {
+            padding: 1rem 0;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            color: #4b5563;
+        }
+
+        .nav-item.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: 500;
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Quick Search Bar */
+        .search-bar {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+        }
+
+        .search-input-group {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .search-btn {
+            padding: 0.75rem 2rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Metrics Cards */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .metric-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .metric-icon.blue { background: rgba(102, 126, 234, 0.1); }
+        .metric-icon.green { background: rgba(16, 185, 129, 0.1); }
+        .metric-icon.purple { background: rgba(139, 92, 246, 0.1); }
+        .metric-icon.orange { background: rgba(251, 146, 60, 0.1); }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1a202c;
+            margin-bottom: 0.25rem;
+        }
+
+        .metric-label {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
+        .metric-change {
+            font-size: 0.875rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .metric-change.positive { color: #10b981; }
+        .metric-change.negative { color: #ef4444; }
+
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .dashboard-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1a202c;
+        }
+
+        /* Live Activity Feed */
+        .activity-feed {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            background: #f9fafb;
+            transition: background 0.3s;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .activity-item:hover {
+            background: #f3f4f6;
+        }
+
+        .activity-time {
+            color: #6b7280;
+            font-size: 0.875rem;
+            min-width: 60px;
+        }
+
+        .activity-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin: 0 0.5rem;
+        }
+
+        .badge-entry { background: #dbeafe; color: #1e40af; }
+        .badge-exit { background: #fce7f3; color: #be185d; }
+        .badge-storage { background: #ede9fe; color: #7c3aed; }
+        .badge-retrieval { background: #fed7aa; color: #ea580c; }
+
+        /* Storage Utilization */
+        .storage-zones {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .zone-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .zone-name {
+            min-width: 80px;
+            font-weight: 500;
+            color: #4b5563;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 24px;
+            background: #e5e7eb;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 12px;
+            transition: width 1s ease;
+            position: relative;
+        }
+
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        /* Pending Requests */
+        .request-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .request-item {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border-left: 4px solid #e5e7eb;
+            transition: all 0.3s;
+        }
+
+        .request-item.urgent {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+
+        .request-item:hover {
+            transform: translateX(4px);
+        }
+
+        .request-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .request-id {
+            font-weight: 600;
+            color: #1a202c;
+        }
+
+        .urgency-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .urgency-badge.urgent {
+            background: #ef4444;
+            color: white;
+        }
+
+        .urgency-badge.normal {
+            background: #6b7280;
+            color: white;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .action-btn {
+            padding: 1rem;
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .action-btn:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+
+        .action-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .action-label {
+            color: #4b5563;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        /* Real-time indicator */
+        .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            background: #dcfce7;
+            color: #166534;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">📦</div>
+                    <div>
+                        <h1 style="font-size: 1.25rem; font-weight: 600;">Docket Tracking System</h1>
+                        <p style="font-size: 0.875rem; color: #9ca3af;">Managed Storage Service</p>
+                    </div>
+                </div>
+                <div class="user-menu">
+                    <div class="notification-bell">
+                        🔔
+                        <span class="notification-badge">5</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <div style="text-align: right;">
+                            <div style="font-weight: 500;">Admin User</div>
+                            <div style="font-size: 0.875rem; color: #9ca3af;">System Administrator</div>
+                        </div>
+                        <div style="width: 40px; height: 40px; background: #4b5563; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            👤
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="nav">
+            <div class="nav-content">
+                <div class="nav-item active">Dashboard</div>
+                <div class="nav-item">Docket Search</div>
+                <div class="nav-item">Storage Management</div>
+                <div class="nav-item">RFID Tracking</div>
+                <div class="nav-item">Reports</div>
+                <div class="nav-item">Billing</div>
+                <div class="nav-item">Settings</div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Quick Search Bar -->
+            <div class="search-bar">
+                <h2 style="margin-bottom: 1rem; color: #1a202c;">Quick Docket Search</h2>
+                <div class="search-input-group">
+                    <input type="text" class="search-input" placeholder="Enter docket number, case number, or scan barcode..." id="searchInput">
+                    <button class="search-btn" onclick="searchDocket()">🔍 Find Docket</button>
+                </div>
+                <div id="searchResult" style="margin-top: 1rem; display: none;">
+                    <!-- Search results will appear here -->
+                </div>
+            </div>
+
+            <!-- Metrics Cards -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <div>
+                            <div class="metric-value" id="totalDockets">487,234</div>
+                            <div class="metric-label">Total Dockets</div>
+                        </div>
+                        <div class="metric-icon blue">📁</div>
+                    </div>
+                    <div class="metric-change positive">
+                        ↑ 2.3% from last month
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <div>
+                            <div class="metric-value" id="storageBoxes">4,872</div>
+                            <div class="metric-label">Active Storage Boxes</div>
+                        </div>
+                        <div class="metric-icon green">📦</div>
+                    </div>
+                    <div class="metric-change positive">
+                        ↑ 73% utilization
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <div>
+                            <div class="metric-value" id="monthlyRevenue">R194,880</div>
+                            <div class="metric-label">Monthly Revenue</div>
+                        </div>
+                        <div class="metric-icon purple">💰</div>
+                    </div>
+                    <div class="metric-change positive">
+                        ↑ 8.5% growth
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <div>
+                            <div class="metric-value" id="activeRetrievals">23</div>
+                            <div class="metric-label">Active Retrievals</div>
+                        </div>
+                        <div class="metric-icon orange">🔄</div>
+                    </div>
+                    <div class="metric-change negative">
+                        5 urgent pending
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Grid -->
+            <div class="dashboard-grid">
+                <!-- Live RFID Activity -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3 class="card-title">Live RFID Activity</h3>
+                        <span class="live-indicator">
+                            <span class="live-dot"></span>
+                            LIVE
+                        </span>
+                    </div>
+                    <div class="activity-feed" id="activityFeed">
+                        <!-- Activity items will be dynamically added here -->
+                    </div>
+                </div>
+
+                <!-- Storage Utilization -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3 class="card-title">Storage Zone Utilization</h3>
+                        <span style="color: #6b7280; font-size: 0.875rem;">Real-time</span>
+                    </div>
+                    <div class="storage-zones">
+                        <div class="zone-item">
+                            <span class="zone-name">Zone A</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 85%;">
+                                    <span class="progress-text">85%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="zone-item">
+                            <span class="zone-name">Zone B</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 72%;">
+                                    <span class="progress-text">72%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="zone-item">
+                            <span class="zone-name">Zone C</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 68%;">
+                                    <span class="progress-text">68%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="zone-item">
+                            <span class="zone-name">Forensics</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 91%;">
+                                    <span class="progress-text">91%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pending Requests -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3 class="card-title">Pending Storage Requests</h3>
+                        <span style="color: #ef4444; font-weight: 500;">5 Urgent</span>
+                    </div>
+                    <div class="request-list" id="requestList">
+                        <!-- Request items will be added here -->
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3 class="card-title">Quick Actions</h3>
+                    </div>
+                    <div class="quick-actions">
+                        <button class="action-btn" onclick="findDocket()">
+                            <div class="action-icon">🔍</div>
+                            <div class="action-label">Find Docket</div>
+                        </button>
+                        <button class="action-btn" onclick="createBox()">
+                            <div class="action-icon">📦</div>
+                            <div class="action-label">Create Box</div>
+                        </button>
+                        <button class="action-btn" onclick="requestRetrieval()">
+                            <div class="action-icon">📤</div>
+                            <div class="action-label">Request Retrieval</div>
+                        </button>
+                        <button class="action-btn" onclick="generateReport()">
+                            <div class="action-icon">📊</div>
+                            <div class="action-label">Generate Report</div>
+                        </button>
+                        <button class="action-btn" onclick="scanBarcode()">
+                            <div class="action-icon">📷</div>
+                            <div class="action-label">Scan Barcode</div>
+                        </button>
+                        <button class="action-btn" onclick="bulkImport()">
+                            <div class="action-icon">📥</div>
+                            <div class="action-label">Bulk Import</div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Simulated WebSocket connection for real-time updates
+        let activityCount = 0;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboardData();
+            startRealTimeUpdates();
+            loadPendingRequests();
+        });
+
+        // Load dashboard data from API
+        async function loadDashboardData() {
+            try {
+                // In production, this would fetch from your actual API
+                // const response = await fetch('/api/storage/dashboard');
+                // const data = await response.json();
+                
+                // Simulated data
+                updateMetrics();
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+
+        // Update metrics with animation
+        function updateMetrics() {
+            animateNumber('totalDockets', 487234, 500000);
+            animateNumber('storageBoxes', 4872, 4900);
+            // Revenue stays as text
+        }
+
+        // Animate number changes
+        function animateNumber(elementId, start, end) {
+            const element = document.getElementById(elementId);
+            const duration = 2000;
+            const step = (end - start) / (duration / 16);
+            let current = start;
+            
+            const timer = setInterval(() => {
+                current += step;
+                if (current >= end) {
+                    current = end;
+                    clearInterval(timer);
+                }
+                element.textContent = Math.floor(current).toLocaleString();
+            }, 16);
+        }
+
+        // Start real-time activity updates
+        function startRealTimeUpdates() {
+            // Simulate WebSocket messages
+            setInterval(() => {
+                addActivityItem();
+            }, 3000 + Math.random() * 4000);
+        }
+
+        // Add activity item to feed
+        function addActivityItem() {
+            const activities = [
+                { type: 'entry', docket: 'DOCKET-2024-' + Math.floor(Math.random() * 9999), location: 'Evidence Room', action: 'Entered' },
+                { type: 'exit', docket: 'DOCKET-2024-' + Math.floor(Math.random() * 9999), location: 'Court Transfer', action: 'Exited' },
+                { type: 'storage', box: 'BOX-2024-' + Math.floor(Math.random() * 999), location: 'Zone A, Shelf 15', action: 'Stored' },
+                { type: 'retrieval', docket: 'DOCKET-2024-' + Math.floor(Math.random() * 9999), location: 'Storage Box 234', action: 'Retrieved' }
+            ];
+            
+            const activity = activities[Math.floor(Math.random() * activities.length)];
+            const feed = document.getElementById('activityFeed');
+            
+            const item = document.createElement('div');
+            item.className = 'activity-item';
+            
+            const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            
+            let badgeClass = 'badge-' + activity.type;
+            let badgeText = activity.action.toUpperCase();
+            
+            item.innerHTML = `
+                <span class="activity-time">${time}</span>
+                <span class="activity-badge ${badgeClass}">${badgeText}</span>
+                <span style="flex: 1;">${activity.docket || activity.box}</span>
+                <span style="color: #6b7280;">${activity.location}</span>
+            `;
+            
+            feed.insertBefore(item, feed.firstChild);
+            
+            // Keep only last 10 items
+            while (feed.children.length > 10) {
+                feed.removeChild(feed.lastChild);
+            }
+            
+            activityCount++;
+        }
+
+        // Load pending requests
+        function loadPendingRequests() {
+            const requests = [
+                { id: 'REQ-20240115-001', urgent: true, dockets: 5, client: 'Legal Department', time: '15 minutes' },
+                { id: 'REQ-20240115-002', urgent: false, dockets: 12, client: 'Archive Review', time: '2 hours' },
+                { id: 'REQ-20240115-003', urgent: true, dockets: 3, client: 'Court Preparation', time: '30 minutes' },
+                { id: 'REQ-20240115-004', urgent: false, dockets: 8, client: 'Audit Team', time: '4 hours' }
+            ];
+            
+            const list = document.getElementById('requestList');
+            list.innerHTML = '';
+            
+            requests.forEach(request => {
+                const item = document.createElement('div');
+                item.className = `request-item ${request.urgent ? 'urgent' : ''}`;
+                item.innerHTML = `
+                    <div class="request-header">
+                        <span class="request-id">${request.id}</span>
+                        <span class="urgency-badge ${request.urgent ? 'urgent' : 'normal'}">
+                            ${request.urgent ? 'URGENT' : 'NORMAL'}
+                        </span>
+                    </div>
+                    <div style="color: #6b7280; font-size: 0.875rem; margin-bottom: 0.5rem;">
+                        ${request.dockets} dockets requested by ${request.client}
+                    </div>
+                    <div style="color: #ef4444; font-size: 0.875rem; font-weight: 500;">
+                        Due in ${request.time}
+                    </div>
+                    <button style="margin-top: 0.75rem; padding: 0.5rem 1rem; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer;" 
+                            onclick="processRequest('${request.id}')">
+                        Process Request
+                    </button>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        // Search docket function
+        function searchDocket() {
+            const input = document.getElementById('searchInput').value;
+            const resultDiv = document.getElementById('searchResult');
+            
+            if (!input) {
+                alert('Please enter a docket number');
+                return;
+            }
+            
+            // Simulate search
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = `
+                <div style="padding: 1rem; background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-weight: 600; color: #166534;">Found: ${input}</div>
+                            <div style="color: #15803d; margin-top: 0.25rem;">Location: Forensics Zone B, Storage Box 234</div>
+                            <div style="color: #15803d; font-size: 0.875rem;">Last accessed: 2 hours ago</div>
+                        </div>
+                        <button style="padding: 0.5rem 1rem; background: #22c55e; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                            Track Location
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                resultDiv.style.display = 'none';
+            }, 10000);
+        }
+
+        // Quick action functions
+        function findDocket() {
+            const docketNumber = prompt('Enter docket number:');
+            if (docketNumber) {
+                document.getElementById('searchInput').value = docketNumber;
+                searchDocket();
+            }
+        }
+
+        function createBox() {
+            alert('Opening storage box creation form...\n\nBox Type: Standard\nCapacity: 100 dockets\nMonthly Rate: R40');
+        }
+
+        function requestRetrieval() {
+            const docketNumbers = prompt('Enter docket numbers (comma separated):');
+            if (docketNumbers) {
+                const urgent = confirm('Is this an urgent request?\n\nUrgent: R100 (30 minutes)\nNormal: R0 (2 hours)');
+                alert(`Retrieval request created!\n\nDockets: ${docketNumbers}\nPriority: ${urgent ? 'URGENT' : 'NORMAL'}\nEstimated time: ${urgent ? '30 minutes' : '2 hours'}`);
+                loadPendingRequests(); // Refresh the list
+            }
+        }
+
+        function generateReport() {
+            alert('Select report type:\n\n1. Monthly Storage Report\n2. Retrieval Analytics\n3. Revenue Summary\n4. Docket Movement History\n5. Client Billing Statement');
+        }
+
+        function scanBarcode() {
+            alert('Barcode scanner activated...\n\nPlace barcode in front of camera\nOr enter barcode manually');
+        }
+
+        function bulkImport() {
+            alert('Bulk Import Options:\n\n1. Upload CSV file\n2. Upload Excel file\n3. Scan multiple barcodes\n4. Import from external system');
+        }
+
+        function processRequest(requestId) {
+            if (confirm(`Process request ${requestId}?\n\nThis will mark the items for retrieval and notify the requester.`)) {
+                alert(`Request ${requestId} is being processed...\n\nItems will be ready for collection in the designated timeframe.`);
+                loadPendingRequests(); // Refresh the list
+            }
+        }
+
+        // Auto-refresh dashboard every 30 seconds
+        setInterval(() => {
+            loadDashboardData();
+        }, 30000);
+    </script>
+</body>
+</html>

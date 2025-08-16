@@ -42,7 +42,7 @@ npm run dev
 - **Universal Tracking:** Handle evidence, dockets, equipment, files, tools
 - **Massive Scale:** Process 1,000,000+ existing objects via optimized bulk import
 - **Real-time RFID:** Live object location and movement tracking
-- **Hardware Integration:** Zebra FX9600 fixed readers + Nordic ID AR82 handhelds
+- **Hardware Integration:** Zebra FX9600 fixed readers for comprehensive docket tracking
 - **Criminal Lab Ready:** Chain of custody compliance and forensic audit trails
 - **Enterprise Scale:** Support massive facilities and 200+ concurrent users with distributed architecture
 
@@ -101,7 +101,6 @@ npm run dev
 
 ### RFID Integration
 - ✅ Zebra FX9600 fixed reader support
-- ✅ Nordic ID AR82 handheld integration
 - ✅ Real-time tag event processing
 - ✅ Multiple reader coordination
 - ✅ RFID simulation for development

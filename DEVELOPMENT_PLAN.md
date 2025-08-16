@@ -22,7 +22,6 @@ Building a comprehensive RFID object tracking system for laboratory and criminal
 
 ### RFID Hardware Integration
 - **Zebra FX9600** - Fixed readers (3-18 units depending on coverage)
-- **Nordic ID AR82** - Handheld readers (2-6 units)
 - **UHF RFID Tags** - Passive tags (100k-300k units)
 - **Network Infrastructure** - Enterprise WiFi mesh
 
@@ -283,7 +282,6 @@ GET    /api/reports/audit      - Audit trail reports
 
 #### RFID Hardware Integration:
 - [ ] Zebra FX9600 fixed reader integration
-- [ ] Nordic ID AR82 handheld reader integration
 - [ ] MQTT/TCP protocol implementation
 - [ ] Real-time tag event processing
 - [ ] Multiple reader coordination
@@ -362,26 +360,24 @@ GET    /api/reports/audit      - Audit trail reports
 ## Hardware Investment & ROI
 
 ### Small Lab (100m², 100k objects):
-- **Initial Investment:** R770,000
+- **Initial Investment:** R650,000
 - **Annual Operating:** R140,750
 - **Annual Benefits:** R550,000
 - **Break-even:** 1.4 years
 - **5-year ROI:** +185%
 
 ### Large Facility (2000m², 300k objects):
-- **Initial Investment:** R2,125,000
+- **Initial Investment:** R1,911,000
 - **Annual Operating:** R320,000
 - **Annual Benefits:** R1,650,000 (scaled)
 - **Break-even:** 1.3 years
 - **5-year ROI:** +310%
 
 ### Cost Breakdown (300k objects):
-1. **RFID Tags:** R825,000 (39%) - Largest cost
-2. **Fixed Readers:** R666,000 (31%)
-3. **Software Platform:** R280,000 (13%)
-4. **Handheld Readers:** R198,000 (9%)
-5. **Installation:** R140,000 (7%)
-6. **Other Hardware:** R216,000 (10%)
+1. **RFID Tags:** R825,000 (43%) - Largest cost
+2. **Fixed Readers:** R666,000 (35%)
+3. **Software Platform:** R280,000 (15%)
+4. **Installation:** R140,000 (7%)
 
 ### Development Cost Optimization:
 - **Open source stack:** Node.js, React, PostgreSQL
@@ -393,7 +389,6 @@ GET    /api/reports/audit      - Audit trail reports
 
 ### RFID Hardware (Future):
 - Zebra FX9600 fixed readers
-- Nordic ID AR82 handheld readers
 - UHF RFID tags (100,000 units)
 
 ### Integration Points:
@@ -500,13 +495,13 @@ rfid-object-tracking/
 This updated plan provides a roadmap to build a **production-ready RFID universal object tracking system** that can:
 
 ✅ **Handle 100k-300k objects** of any type (dockets, evidence, equipment, files)
-✅ **Real-time RFID tracking** with Zebra FX9600 and Nordic ID AR82 readers  
+✅ **Real-time RFID tracking** with Zebra FX9600 fixed readers for comprehensive docket tracking  
 ✅ **Criminal lab compliance** with chain of custody and audit trails
 ✅ **Scalable architecture** from small labs to large facilities
 ✅ **Cost-effective development** with simulation capabilities
 ✅ **Enterprise-grade performance** supporting 50+ concurrent users
 
-**Investment:** R770k-R2.1M depending on scale
+**Investment:** R650k-R1.9M depending on scale
 **ROI:** 185-310% over 5 years
 **Break-even:** 1.3-1.4 years
 

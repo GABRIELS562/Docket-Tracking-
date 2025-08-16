@@ -1,0 +1,107 @@
+# Prometheus Configuration for RFID Docket Tracking System
+# Production monitoring setup with comprehensive metrics collection
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'rfid-docket-monitor'
+    environment: 'production'
+
+# Rules for alerting
+rule_files:
+  - "alert_rules.yml"
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # Application metrics (Node.js API)
+  - job_name: 'rfid-api'
+    static_configs:
+      - targets: ['api-server:3000']
+    metrics_path: /metrics
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  # PostgreSQL metrics
+  - job_name: 'postgres-master'
+    static_configs:
+      - targets: ['postgres-master:5432']
+    metrics_path: /metrics
+    scrape_interval: 30s
+    params:
+      collector.database: [postgres]
+      collector.table: [table]
+
+  - job_name: 'postgres-replica'
+    static_configs:
+      - targets: ['postgres-replica:5432']
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # Redis metrics
+  - job_name: 'redis-master'
+    static_configs:
+      - targets: ['redis-master:6379']
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  - job_name: 'redis-replica'
+    static_configs:
+      - targets: ['redis-replica:6379']
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # HAProxy metrics
+  - job_name: 'haproxy'
+    static_configs:
+      - targets: ['load-balancer:8404']
+    metrics_path: /stats/prometheus
+    scrape_interval: 30s
+
+  # Node Exporter (system metrics)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 30s
+
+  # Docker container metrics
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    scrape_interval: 30s
+
+  # Elasticsearch metrics
+  - job_name: 'elasticsearch'
+    static_configs:
+      - targets: ['elasticsearch:9200']
+    metrics_path: /_prometheus/metrics
+    scrape_interval: 30s
+
+  # Custom application health checks
+  - job_name: 'health-checks'
+    static_configs:
+      - targets: ['api-server:3000']
+    metrics_path: /health/prometheus
+    scrape_interval: 30s
+    params:
+      format: [prometheus]
+
+# Remote write configuration for long-term storage (optional)
+# remote_write:
+#   - url: "https://prometheus-remote-write.example.com/api/v1/write"
+#     basic_auth:
+#       username: "username"
+#       password: "password"

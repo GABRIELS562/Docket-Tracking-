@@ -1,0 +1,48 @@
+[Unit]
+Description=RFID Docket Tracking System - API Server
+Documentation=https://docs.docket-tracking.com
+After=network.target postgresql.service redis.service
+Wants=postgresql.service redis.service
+Requires=network.target
+
+[Service]
+Type=simple
+User=docket-app
+Group=docket-app
+WorkingDirectory=/opt/docket-tracking/current
+Environment=NODE_ENV=production
+EnvironmentFile=/opt/docket-tracking/current/.env
+
+# Main process
+ExecStart=/usr/bin/node src/server.js
+ExecReload=/bin/kill -HUP $MAINPID
+
+# Process management
+Restart=always
+RestartSec=10s
+TimeoutStartSec=300s
+TimeoutStopSec=30s
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/docket-tracking/current/uploads /var/log/docket-tracking /tmp
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+MemoryMax=2G
+CPUQuota=200%
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=docket-api
+
+# Health checks
+Slice=docket-tracking.slice
+
+[Install]
+WantedBy=multi-user.target

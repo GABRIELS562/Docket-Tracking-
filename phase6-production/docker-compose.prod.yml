@@ -1,0 +1,290 @@
+# Production Docker Compose for RFID Docket Tracking System
+# Optimized for 300k+ objects, 50+ concurrent users, high availability
+
+version: '3.8'
+
+services:
+  # PostgreSQL Master Database (Primary)
+  postgres-master:
+    image: postgres:15-alpine
+    container_name: rfid_postgres_master
+    environment:
+      POSTGRES_DB: docket_tracking_prod
+      POSTGRES_USER: docket_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-ComplexProductionPassword2025!}
+      POSTGRES_REPLICATION_USER: replicator
+      POSTGRES_REPLICATION_PASSWORD: ${REPLICATION_PASSWORD:-ReplicatorPass2025!}
+      # Performance tuning
+      POSTGRES_SHARED_BUFFERS: 2GB
+      POSTGRES_EFFECTIVE_CACHE_SIZE: 6GB
+      POSTGRES_MAINTENANCE_WORK_MEM: 512MB
+      POSTGRES_CHECKPOINT_COMPLETION_TARGET: 0.9
+      POSTGRES_WAL_BUFFERS: 64MB
+      POSTGRES_DEFAULT_STATISTICS_TARGET: 100
+      POSTGRES_RANDOM_PAGE_COST: 1.1
+      POSTGRES_EFFECTIVE_IO_CONCURRENCY: 200
+    volumes:
+      - postgres_master_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+      - ./scripts/postgres-master-setup.sh:/docker-entrypoint-initdb.d/00-master-setup.sh
+      - ./configs/postgresql.conf:/etc/postgresql/postgresql.conf
+    command: 
+      - postgres
+      - -c
+      - config_file=/etc/postgresql/postgresql.conf
+    ports:
+      - "5432:5432"
+    networks:
+      - rfid_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docket_user -d docket_tracking_prod"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PostgreSQL Read Replica (for load balancing)
+  postgres-replica:
+    image: postgres:15-alpine
+    container_name: rfid_postgres_replica
+    environment:
+      POSTGRES_USER: docket_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-ComplexProductionPassword2025!}
+      PGUSER: docket_user
+      POSTGRES_DB: docket_tracking_prod
+      POSTGRES_MASTER_SERVICE: postgres-master
+      POSTGRES_REPLICATION_USER: replicator
+      POSTGRES_REPLICATION_PASSWORD: ${REPLICATION_PASSWORD:-ReplicatorPass2025!}
+    volumes:
+      - postgres_replica_data:/var/lib/postgresql/data
+      - ./scripts/postgres-replica-setup.sh:/docker-entrypoint-initdb.d/replica-setup.sh
+    command: |
+      bash -c "
+      until pg_isready -h postgres-master -p 5432 -U docket_user; do
+        echo 'Waiting for master database...'
+        sleep 2
+      done
+      echo 'Master is ready, starting replica setup...'
+      /docker-entrypoint-initdb.d/replica-setup.sh
+      "
+    depends_on:
+      postgres-master:
+        condition: service_healthy
+    ports:
+      - "5433:5432"
+    networks:
+      - rfid_network
+
+  # Redis Cluster for Caching and Session Management
+  redis-master:
+    image: redis:7-alpine
+    container_name: rfid_redis_master
+    command: redis-server --appendonly yes --appendfsync everysec --maxmemory 2gb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_master_data:/data
+    networks:
+      - rfid_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  redis-replica:
+    image: redis:7-alpine
+    container_name: rfid_redis_replica
+    command: redis-server --appendonly yes --appendfsync everysec --maxmemory 1gb --maxmemory-policy allkeys-lru --replicaof redis-master 6379
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_replica_data:/data
+    depends_on:
+      - redis-master
+    networks:
+      - rfid_network
+
+  # Backend API with Production Optimizations
+  api-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    container_name: rfid_api_server
+    environment:
+      NODE_ENV: production
+      DB_HOST: postgres-master
+      DB_REPLICA_HOST: postgres-replica
+      DB_PORT: 5432
+      DB_NAME: docket_tracking_prod
+      DB_USER: docket_user
+      DB_PASSWORD: ${DB_PASSWORD:-ComplexProductionPassword2025!}
+      REDIS_HOST: redis-master
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:-SuperSecureJWTSecret2025ForProduction!}
+      JWT_EXPIRY: 8h
+      PORT: 3000
+      CORS_ORIGIN: ${FRONTEND_URL:-https://dockettrack.company.com}
+      RATE_LIMIT_WINDOW: 15
+      RATE_LIMIT_MAX: 1000
+      LOG_LEVEL: info
+      ENABLE_CLUSTERING: true
+      MAX_WORKERS: 4
+    volumes:
+      - ./logs:/app/logs
+      - ./uploads:/app/uploads
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres-master:
+        condition: service_healthy
+      redis-master:
+        condition: service_healthy
+    networks:
+      - rfid_network
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Load Balancer (HAProxy)
+  load-balancer:
+    image: haproxy:2.8-alpine
+    container_name: rfid_load_balancer
+    volumes:
+      - ./configs/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8404:8404"  # HAProxy stats
+    depends_on:
+      - api-server
+    networks:
+      - rfid_network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Monitoring Stack
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: rfid_prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    networks:
+      - rfid_network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: rfid_grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-AdminPass2025!}
+      GF_USERS_ALLOW_SIGN_UP: false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - rfid_network
+
+  # Log Management
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: rfid_elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - rfid_network
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: rfid_kibana
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    networks:
+      - rfid_network
+
+  # Backup Service
+  backup-service:
+    build:
+      context: ./backup
+      dockerfile: Dockerfile
+    container_name: rfid_backup_service
+    environment:
+      DB_HOST: postgres-master
+      DB_NAME: docket_tracking_prod
+      DB_USER: docket_user
+      DB_PASSWORD: ${DB_PASSWORD:-ComplexProductionPassword2025!}
+      BACKUP_RETENTION_DAYS: 30
+      BACKUP_SCHEDULE: "0 2 * * *"  # Daily at 2 AM
+      S3_BUCKET: ${BACKUP_S3_BUCKET:-rfid-backups}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+    volumes:
+      - backup_data:/backups
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - postgres-master
+    networks:
+      - rfid_network
+
+volumes:
+  postgres_master_data:
+    driver: local
+  postgres_replica_data:
+    driver: local
+  redis_master_data:
+    driver: local
+  redis_replica_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+  backup_data:
+    driver: local
+
+networks:
+  rfid_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
