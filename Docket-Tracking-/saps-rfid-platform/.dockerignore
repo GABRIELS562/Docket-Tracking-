@@ -1,0 +1,56 @@
+# Node
+node_modules
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# Build output
+dist
+coverage
+*.tsbuildinfo
+
+# Tests
+tests
+*.test.ts
+*.spec.ts
+jest.config.js
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Git
+.git
+.gitignore
+.github
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Documentation
+docs
+*.md
+!README.md
+
+# Logs
+logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Scripts
+scripts
+
+# CI/CD
+.github

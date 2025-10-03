@@ -1,0 +1,34 @@
+version: '3.9'
+
+services:
+  # Test database
+  timescaledb-test:
+    image: timescale/timescaledb:2.13.0-pg15
+    container_name: saps-timescaledb-test
+    environment:
+      POSTGRES_USER: testuser
+      POSTGRES_PASSWORD: testpass
+      POSTGRES_DB: saps_rfid_test
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+    ports:
+      - '5433:5432'
+    tmpfs:
+      - /var/lib/postgresql/data
+    networks:
+      - saps-test-network
+
+  # Test Redis
+  redis-test:
+    image: redis:7-alpine
+    container_name: saps-redis-test
+    command: redis-server --requirepass testpass
+    ports:
+      - '6380:6379'
+    tmpfs:
+      - /data
+    networks:
+      - saps-test-network
+
+networks:
+  saps-test-network:
+    driver: bridge
