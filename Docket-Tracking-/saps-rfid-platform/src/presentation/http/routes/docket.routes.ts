@@ -10,7 +10,9 @@ import {
 } from '../schemas/docket.schema';
 
 const router = Router();
-const controller = container.resolve(DocketController);
+
+// Lazy resolve controller after DI container is initialized
+const getController = () => container.resolve(DocketController);
 
 /**
  * @route   POST /api/dockets
@@ -21,7 +23,7 @@ const controller = container.resolve(DocketController);
 router.post(
   '/',
   validate(createDocketSchema),
-  (req, res, next) => controller.create(req, res, next)
+  (req, res, next) => getController().create(req, res, next)
 );
 
 /**
@@ -33,7 +35,7 @@ router.post(
 router.get(
   '/',
   validateQuery(searchDocketsQuerySchema),
-  (req, res, next) => controller.search(req, res, next)
+  (req, res, next) => getController().search(req, res, next)
 );
 
 /**
@@ -45,7 +47,7 @@ router.get(
 router.get(
   '/:labNumber',
   validateParams(labNumberParamSchema),
-  (req, res, next) => controller.getById(req, res, next)
+  (req, res, next) => getController().getById(req, res, next)
 );
 
 /**
@@ -59,7 +61,7 @@ router.get(
   '/:labNumber/history',
   validateParams(labNumberParamSchema),
   validateQuery(docketHistoryQuerySchema),
-  (req, res, next) => controller.getHistory(req, res, next)
+  (req, res, next) => getController().getHistory(req, res, next)
 );
 
 export default router;

@@ -3,14 +3,16 @@ import { container } from 'tsyringe';
 import { ZoneController } from '../controllers/ZoneController';
 
 const router = Router();
-const controller = container.resolve(ZoneController);
+
+// Lazy resolve controller after DI container is initialized
+const getController = () => container.resolve(ZoneController);
 
 /**
  * @route   GET /api/zones
  * @desc    Get all zones with occupancy information
  * @access  Public
  */
-router.get('/', (req, res, next) => controller.getAll(req, res, next));
+router.get('/', (req, res, next) => getController().getAll(req, res, next));
 
 /**
  * @route   GET /api/zones/:id/dockets
@@ -19,6 +21,6 @@ router.get('/', (req, res, next) => controller.getAll(req, res, next));
  * @param   id - Zone ID
  * @query   { limit? } - Maximum dockets to return (default 5)
  */
-router.get('/:id/dockets', (req, res, next) => controller.getDockets(req, res, next));
+router.get('/:id/dockets', (req, res, next) => getController().getDockets(req, res, next));
 
 export default router;

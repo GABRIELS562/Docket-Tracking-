@@ -1,6 +1,8 @@
 import { Pool, PoolClient, PoolConfig, QueryResult } from 'pg';
 import { Result, ok, err } from 'neverthrow';
+import { injectable, inject } from 'tsyringe';
 import type { ILogger } from '../../application/interfaces/ILogger';
+import { getDatabaseConfig } from '../../config/database.config';
 
 /**
  * Database Configuration
@@ -127,6 +129,7 @@ export interface PoolStats {
  * await db.close();
  * ```
  */
+@injectable()
 export class PostgresConnection {
   private pool: Pool;
   private isInitialized: boolean = false;
@@ -135,7 +138,8 @@ export class PostgresConnection {
   private slowQueryCount: number = 0;
   private errorCount: number = 0;
 
-  constructor(config: DatabaseConfig, private logger: ILogger) {
+  constructor(@inject('ILogger') private logger: ILogger) {
+    const config = getDatabaseConfig();
     // Apply default configuration
     this.config = {
       ...config,

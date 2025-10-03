@@ -234,6 +234,13 @@ export class Server {
   getHttpServer(): HttpServer | null {
     return this.httpServer;
   }
+
+  /**
+   * Get server port number
+   */
+  getPort(): number {
+    return this.port;
+  }
 }
 
 /**

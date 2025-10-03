@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import 'dotenv/config';
 import { initializeConfig } from './config';
 import { initializeContainer, container } from './container';
 import { Server } from './presentation/http/Server';
@@ -6,9 +7,9 @@ import { SocketServer } from './presentation/websocket/SocketServer';
 import { PostgresConnection } from './infrastructure/database/PostgresConnection';
 import { LLRPGateway } from './infrastructure/rfid/LLRPGateway';
 import { ILogger } from './application/interfaces/ILogger';
-import { ProcessTagReadUseCase } from './application/use-cases/ProcessTagReadUseCase';
-import { TagDetectedEvent } from './domain/events/TagDetectedEvent';
-import { IEventBus } from './application/interfaces/IEventBus';
+// import { ProcessTagReadUseCase } from './application/use-cases/ProcessTagReadUseCase';
+// import { TagDetectedEvent } from './domain/events/TagDetectedEvent';
+// import { IEventBus } from './application/interfaces/IEventBus';
 
 /**
  * SAPS RFID Platform - Application Entry Point
@@ -54,30 +55,19 @@ async function main(): Promise<void> {
 
     // Step 3: Connect to database
     logger.info('Connecting to database...');
-    database = container.resolve(PostgresConnection);
-    await database.connect();
+    database = container.resolve<PostgresConnection>('PostgresConnection');
+    const dbInitResult = await database.initialize();
+    if (dbInitResult.isErr()) {
+      throw dbInitResult.error;
+    }
     logger.info('Database connected successfully');
 
-    // Step 4: Initialize RFID gateway
-    logger.info('Initializing RFID gateway...');
-    rfidGateway = container.resolve(LLRPGateway);
-
-    // Subscribe to RFID events
-    const eventBus = container.resolve<IEventBus>('IEventBus');
-    const processTagReadUseCase = container.resolve(ProcessTagReadUseCase);
-
-    eventBus.subscribe('TagDetected', async (event) => {
-      const tagEvent = event as TagDetectedEvent;
-      await processTagReadUseCase.execute({
-        epc: tagEvent.payload.epc,
-        readerId: tagEvent.payload.readerId,
-        timestamp: tagEvent.payload.timestamp,
-        rssi: tagEvent.payload.rssi,
-      });
-    });
-
-    await rfidGateway.connect();
-    logger.info('RFID gateway initialized');
+    // Step 4: Initialize RFID gateway (DISABLED - no physical readers)
+    logger.warn('⚠️  RFID gateway initialization skipped - no readers configured');
+    // logger.info('Initializing RFID gateway...');
+    // rfidGateway = container.resolve(LLRPGateway);
+    // await rfidGateway.connect();
+    // logger.info('RFID gateway initialized');
 
     // Step 5: Start HTTP server
     logger.info('Starting HTTP server...');
@@ -156,7 +146,7 @@ async function shutdown(signal: string): Promise<void> {
     // Close database connections
     if (database) {
       console.log('Closing database connections...');
-      await database.disconnect();
+      await database.close();
       if (logger) logger.info('Database disconnected');
     }
 

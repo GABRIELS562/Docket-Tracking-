@@ -5,10 +5,10 @@ import { config } from './config';
 // Interfaces
 import { ILogger } from './application/interfaces/ILogger';
 import { IEventBus } from './application/interfaces/IEventBus';
-import { IDocketRepository } from './application/interfaces/IDocketRepository';
-import { IZoneRepository } from './application/interfaces/IZoneRepository';
-import { IReaderRepository } from './application/interfaces/IReaderRepository';
-import { ILocationHistoryRepository } from './application/interfaces/ILocationHistoryRepository';
+import { IDocketRepository } from './domain/repositories/IDocketRepository';
+import { IZoneRepository } from './domain/repositories/IZoneRepository';
+import { IReaderRepository } from './domain/repositories/IReaderRepository';
+import { ILocationHistoryRepository } from './domain/repositories/ILocationHistoryRepository';
 
 // Infrastructure - Logging
 import { WinstonLogger } from './infrastructure/logging/WinstonLogger';
@@ -29,17 +29,17 @@ import { LLRPGateway } from './infrastructure/rfid/LLRPGateway';
 import { PostgresDocketRepository } from './infrastructure/database/repositories/PostgresDocketRepository';
 import { PostgresZoneRepository } from './infrastructure/database/repositories/PostgresZoneRepository';
 import { PostgresReaderRepository } from './infrastructure/database/repositories/PostgresReaderRepository';
-import { PostgresLocationHistoryRepository } from './infrastructure/database/repositories/PostgresLocationHistoryRepository';
+import { TimescaleLocationHistoryRepository } from './infrastructure/database/repositories/TimescaleLocationHistoryRepository';
 
 // Application Services
-import { RegisterDocketUseCase } from './application/use-cases/RegisterDocketUseCase';
-import { SearchDocketsUseCase } from './application/use-cases/SearchDocketsUseCase';
-import { GetDocketByLabNumberUseCase } from './application/use-cases/GetDocketByLabNumberUseCase';
-import { GetLocationHistoryUseCase } from './application/use-cases/GetLocationHistoryUseCase';
-import { GetAllZonesUseCase } from './application/use-cases/GetAllZonesUseCase';
-import { GetZoneDocketsUseCase } from './application/use-cases/GetZoneDocketsUseCase';
-import { GetAllReadersUseCase } from './application/use-cases/GetAllReadersUseCase';
-import { ProcessTagReadUseCase } from './application/use-cases/ProcessTagReadUseCase';
+import { RegisterDocketUseCase } from './application/use-cases/dockets/RegisterDocketUseCase';
+import { SearchDocketsUseCase } from './application/use-cases/dockets/SearchDocketsUseCase';
+import { GetDocketDetailsUseCase } from './application/use-cases/dockets/GetDocketDetailsUseCase';
+import { GetDocketHistoryUseCase } from './application/use-cases/dockets/GetDocketHistoryUseCase';
+import { GetAllZonesUseCase } from './application/use-cases/zones/GetAllZonesUseCase';
+import { GetZoneDocketsUseCase } from './application/use-cases/zones/GetZoneDocketsUseCase';
+import { GetAllReadersUseCase } from './application/use-cases/readers/GetAllReadersUseCase';
+// import { ProcessTagReadUseCase } from './application/use-cases/ProcessTagReadUseCase';
 
 // Presentation
 import { Server } from './presentation/http/Server';
@@ -64,9 +64,10 @@ function registerInfrastructure(): void {
 
   // Metrics
   container.registerSingleton(PrometheusMetrics);
+  container.registerSingleton('IMetricsCollector', PrometheusMetrics);
 
   // Database Connection
-  container.registerSingleton(PostgresConnection);
+  container.registerSingleton<PostgresConnection>('PostgresConnection', PostgresConnection);
 
   // RFID Gateway
   container.registerSingleton(LLRPGateway);
@@ -93,7 +94,7 @@ function registerRepositories(): void {
 
   container.registerSingleton<ILocationHistoryRepository>(
     'ILocationHistoryRepository',
-    PostgresLocationHistoryRepository
+    TimescaleLocationHistoryRepository
   );
 }
 
@@ -104,8 +105,8 @@ function registerUseCases(): void {
   // Docket use cases
   container.registerSingleton(RegisterDocketUseCase);
   container.registerSingleton(SearchDocketsUseCase);
-  container.registerSingleton(GetDocketByLabNumberUseCase);
-  container.registerSingleton(GetLocationHistoryUseCase);
+  container.registerSingleton(GetDocketDetailsUseCase);
+  container.registerSingleton(GetDocketHistoryUseCase);
 
   // Zone use cases
   container.registerSingleton(GetAllZonesUseCase);
@@ -115,7 +116,7 @@ function registerUseCases(): void {
   container.registerSingleton(GetAllReadersUseCase);
 
   // Tag processing
-  container.registerSingleton(ProcessTagReadUseCase);
+  // container.registerSingleton(ProcessTagReadUseCase);
 }
 
 /**
