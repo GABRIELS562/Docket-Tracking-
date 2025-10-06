@@ -2,6 +2,7 @@ import { Result, ok, err } from 'neverthrow';
 import { Docket, type DocketCategory } from '../../domain/entities/Docket';
 import { LabNumber } from '../../domain/value-objects/LabNumber';
 import { RfidEpc } from '../../domain/value-objects/RfidEpc';
+import { CaseNumber } from '../../domain/value-objects/CaseNumber';
 import type { DocketDTO, CreateDocketDTO } from '../dto/DocketDTO';
 
 /**
@@ -38,7 +39,7 @@ export class DocketMapper {
     return {
       id: docket.getId(),
       labNumber: docket.getLabNumber().getValue(),
-      caseNumber: docket.getCaseNumber(),
+      caseNumber: docket.getCaseNumber().getValue(),
       exhibitNumber: docket.getExhibitNumber(),
       description: docket.getDescription(),
       category: docket.getCategory(),
@@ -96,6 +97,11 @@ export class DocketMapper {
       return err(labNumberResult.error);
     }
 
+    const caseNumberResult = CaseNumber.create(dto.caseNumber);
+    if (caseNumberResult.isErr()) {
+      return err(caseNumberResult.error);
+    }
+
     const epcResult = RfidEpc.create(dto.rfidEpc);
     if (epcResult.isErr()) {
       return err(epcResult.error);
@@ -105,7 +111,7 @@ export class DocketMapper {
     return Docket.create({
       id: generatedId,
       labNumber: labNumberResult.value,
-      caseNumber: dto.caseNumber,
+      caseNumber: caseNumberResult.value,
       exhibitNumber: dto.exhibitNumber,
       description: dto.description,
       category: dto.category as DocketCategory,

@@ -10,6 +10,8 @@ import type { LabNumber } from '../../../domain/value-objects/LabNumber';
 import { LabNumber as LabNumberVO } from '../../../domain/value-objects/LabNumber';
 import type { RfidEpc } from '../../../domain/value-objects/RfidEpc';
 import { RfidEpc as RfidEpcVO } from '../../../domain/value-objects/RfidEpc';
+import type { CaseNumber } from '../../../domain/value-objects/CaseNumber';
+import { CaseNumber as CaseNumberVO } from '../../../domain/value-objects/CaseNumber';
 import { DocketNotFoundError } from '../../../domain/errors/DocketNotFoundError';
 import { DuplicateLabNumberError } from '../../../domain/errors/DuplicateLabNumberError';
 import { DuplicateEpcError } from '../../../domain/errors/DuplicateEpcError';
@@ -184,7 +186,7 @@ export class PostgresDocketRepository extends BaseRepository implements IDocketR
         props.id,
         props.labNumber.getValue(),
         props.rfidEpc.getValue(),
-        props.caseNumber,
+        props.caseNumber.getValue(),
         props.exhibitNumber ?? null,
         props.description,
         props.category,
@@ -851,6 +853,12 @@ export class PostgresDocketRepository extends BaseRepository implements IDocketR
         return err(labNumberResult.error);
       }
 
+      // Create CaseNumber value object
+      const caseNumberResult = CaseNumberVO.create(row.case_number);
+      if (caseNumberResult.isErr()) {
+        return err(caseNumberResult.error);
+      }
+
       // Create RfidEpc value object
       const epcResult = RfidEpcVO.create(row.rfid_tag_epc);
       if (epcResult.isErr()) {
@@ -880,7 +888,7 @@ export class PostgresDocketRepository extends BaseRepository implements IDocketR
         id: row.id,
         labNumber: labNumberResult.value,
         rfidEpc: epcResult.value,
-        caseNumber: row.case_number,
+        caseNumber: caseNumberResult.value,
         exhibitNumber: row.exhibit_number ?? undefined,
         description: row.description,
         category: row.category as any,

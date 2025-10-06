@@ -8,19 +8,27 @@ import { z } from 'zod';
 export const createDocketSchema = z.object({
   labNumber: z
     .string()
-    .regex(/^FSL-\d{4}-\d{6}$/, 'Lab number must be in format FSL-YYYY-NNNNNN'),
+    .regex(/^\d{1,6}\/\d{2}$/, 'Lab number must be in format NNNNNN/YY (e.g., 12345/25)'),
 
-  caseReference: z
+  caseNumber: z
     .string()
-    .min(1, 'Case reference is required')
-    .max(500, 'Case reference must be less than 500 characters'),
+    .regex(/^\d{1,2}\/\d{1,3}\/\d{2}$/, 'Case number must be in format DD/NN/YY (e.g., 25/34/25)'),
 
   rfidEpc: z
     .string()
     .length(24, 'RFID EPC must be exactly 24 characters')
     .regex(/^[0-9A-Fa-f]{24}$/, 'RFID EPC must be 24 hexadecimal characters'),
 
-  evidenceType: z.string().optional(),
+  description: z
+    .string()
+    .min(1, 'Description is required')
+    .max(500, 'Description must be less than 500 characters'),
+
+  category: z.enum(['firearm', 'drug', 'digital', 'biological', 'document', 'weapon', 'clothing', 'other']),
+
+  exhibitNumber: z.string().optional(),
+
+  receivedBy: z.string().optional(),
 
   metadata: z.record(z.unknown()).optional().default({}),
 });
@@ -66,5 +74,5 @@ export const docketHistoryQuerySchema = z.object({
  * Validation schema for lab number parameter
  */
 export const labNumberParamSchema = z.object({
-  labNumber: z.string().regex(/^FSL-\d{4}-\d{6}$/, 'Invalid lab number format'),
+  labNumber: z.string().regex(/^\d{1,6}\/\d{2}$/, 'Invalid lab number format (expected NNNNNN/YY)'),
 });

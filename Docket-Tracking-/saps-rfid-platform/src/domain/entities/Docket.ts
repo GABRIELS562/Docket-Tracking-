@@ -3,6 +3,7 @@ import { ok, err } from 'neverthrow';
 
 import type { LabNumber } from '../value-objects/LabNumber';
 import type { RfidEpc } from '../value-objects/RfidEpc';
+import type { CaseNumber } from '../value-objects/CaseNumber';
 
 /**
  * Docket status enumeration
@@ -48,7 +49,7 @@ export interface DocketProps {
   readonly id: string;
   readonly labNumber: LabNumber;
   readonly rfidEpc: RfidEpc;
-  readonly caseNumber: string;
+  readonly caseNumber: CaseNumber;
   readonly exhibitNumber?: string;
   readonly description: string;
   readonly category: DocketCategory;
@@ -87,7 +88,7 @@ export interface DocketProps {
  * const result = Docket.create({
  *   labNumber,
  *   rfidEpc,
- *   caseNumber: 'CAS-2025-0123',
+ *   caseNumber,
  *   description: '9mm Pistol',
  *   category: DocketCategory.FIREARM
  * });
@@ -106,17 +107,13 @@ export class Docket {
     id: string;
     labNumber: LabNumber;
     rfidEpc: RfidEpc;
-    caseNumber: string;
+    caseNumber: CaseNumber;
     exhibitNumber?: string;
     description: string;
     category: DocketCategory;
     receivedBy?: string;
     metadata?: Record<string, unknown>;
   }): Result<Docket, Error> {
-    // Validate case number
-    if (params.caseNumber.trim().length === 0) {
-      return err(new Error('Case number cannot be empty'));
-    }
 
     // Validate description
     if (params.description.trim().length === 0) {
@@ -134,7 +131,7 @@ export class Docket {
       id: params.id,
       labNumber: params.labNumber,
       rfidEpc: params.rfidEpc,
-      caseNumber: params.caseNumber.trim(),
+      caseNumber: params.caseNumber,
       exhibitNumber: params.exhibitNumber?.trim(),
       description: params.description.trim(),
       category: params.category,
@@ -180,7 +177,7 @@ export class Docket {
     return this.props.rfidEpc;
   }
 
-  getCaseNumber(): string {
+  getCaseNumber(): CaseNumber {
     return this.props.caseNumber;
   }
 
@@ -548,7 +545,7 @@ export class Docket {
       id: this.props.id,
       labNumber: this.props.labNumber.getValue(),
       rfidEpc: this.props.rfidEpc.getValue(),
-      caseNumber: this.props.caseNumber,
+      caseNumber: this.props.caseNumber.getValue(),
       exhibitNumber: this.props.exhibitNumber,
       description: this.props.description,
       category: this.props.category,
