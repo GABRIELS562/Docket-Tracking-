@@ -7,16 +7,35 @@ interface FloorPlan2DProps {
   dockets: Docket[];
 }
 
-// Zone positions in 2D canvas coordinates (matching 3D layout)
-const ZONE_2D_POSITIONS: Record<number, { x: number; y: number; label: string }> = {
-  1: { x: 200, y: 350, label: 'Explosives Lab' },
-  2: { x: 300, y: 200, label: 'Chemistry Lab' },
-  3: { x: 512, y: 150, label: 'Fraud Lab' },
-  4: { x: 724, y: 200, label: 'Biology Lab' },
-  5: { x: 824, y: 350, label: 'Ballistics Lab' },
-  6: { x: 512, y: 450, label: 'Security Hub' },
-  7: { x: 512, y: 512, label: 'Main Entrance' },
-  8: { x: 512, y: 700, label: 'Auditorium' },
+// Zone positions in 2D canvas coordinates - FSL-PAROW First Floor ACTUAL Layout
+const ZONE_2D_POSITIONS: Record<number, { x: number; y: number; width: number; height: number; label: string }> = {
+  // FAR LEFT - Large Office Accommodation
+  1: { x: 120, y: 384, width: 140, height: 240, label: 'Office Accommodation' },
+
+  // TOP CURVED SECTION - 4 Small Exam Rooms
+  2: { x: 310, y: 120, width: 85, height: 65, label: 'Exam 1' },
+  3: { x: 430, y: 100, width: 85, height: 65, label: 'Exam 2' },
+  4: { x: 594, y: 100, width: 85, height: 65, label: 'Exam 3' },
+  5: { x: 714, y: 120, width: 85, height: 65, label: 'Exam 4' },
+
+  // CENTER - Large E.I.M.S Area
+  6: { x: 512, y: 340, width: 200, height: 180, label: 'E.I.M.S Center' },
+
+  // RIGHT SIDE - Offices
+  7: { x: 884, y: 260, width: 110, height: 80, label: 'Admin' },
+  8: { x: 884, y: 360, width: 110, height: 70, label: 'Support' },
+
+  // STAIRWELL - Central Left
+  9: { x: 340, y: 384, width: 60, height: 60, label: 'Stairs' },
+
+  // BOTTOM CURVED SECTION - Auditorium
+  10: { x: 512, y: 600, width: 180, height: 100, label: 'Auditorium' },
+
+  // BOTTOM CENTER - Entrance
+  11: { x: 512, y: 720, width: 100, height: 60, label: 'Entrance' },
+
+  // STORAGE - Right Side
+  12: { x: 850, y: 500, width: 120, height: 90, label: 'Storage' },
 };
 
 export default function FloorPlan2D({ zones, dockets }: FloorPlan2DProps) {
@@ -68,27 +87,34 @@ export default function FloorPlan2D({ zones, dockets }: FloorPlan2DProps) {
 
       const isSelected = selectedZoneId === zone.zoneId;
       const occupancyPercent = zone.currentOccupancy / zone.capacity;
+      const zoneColor = getZoneColor(zone.zoneType);
 
-      // Zone rectangle
-      ctx.strokeStyle = isSelected ? '#3b82f6' : getZoneColor(zone.zoneType);
+      // Zone rectangle with actual size
+      const rectX = pos.x - pos.width / 2;
+      const rectY = pos.y - pos.height / 2;
+
+      ctx.strokeStyle = isSelected ? '#3b82f6' : zoneColor;
       ctx.lineWidth = isSelected ? 4 : 2;
+
+      // Color based on zone type and occupancy
+      const baseOpacity = zone.zoneType === 'corridor' ? 0.2 : 0.3;
       ctx.fillStyle = isSelected
-        ? 'rgba(59, 130, 246, 0.3)'
-        : `rgba(59, 130, 246, ${occupancyPercent * 0.3})`;
+        ? 'rgba(59, 130, 246, 0.4)'
+        : hexToRgba(zoneColor, baseOpacity + occupancyPercent * 0.2);
 
       ctx.beginPath();
-      ctx.roundRect(pos.x - 60, pos.y - 40, 120, 80, 8);
+      ctx.roundRect(rectX, rectY, pos.width, pos.height, 8);
       ctx.fill();
       ctx.stroke();
 
       // Zone label
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 12px Inter, sans-serif';
+      ctx.font = 'bold 11px Inter, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(pos.label, pos.x, pos.y - 10);
+      ctx.fillText(pos.label, pos.x, pos.y - 5);
 
       // Occupancy info
-      ctx.font = '10px Inter, sans-serif';
+      ctx.font = '9px Inter, sans-serif';
       ctx.fillStyle = '#9ca3af';
       ctx.fillText(
         `${zone.currentOccupancy}/${zone.capacity}`,
@@ -97,16 +123,24 @@ export default function FloorPlan2D({ zones, dockets }: FloorPlan2DProps) {
       );
 
       // Occupancy bar
-      const barWidth = 80;
-      const barHeight = 6;
+      const barWidth = Math.min(pos.width * 0.8, 90);
+      const barHeight = 5;
       const barX = pos.x - barWidth / 2;
-      const barY = pos.y + 20;
+      const barY = pos.y + 22;
 
       ctx.fillStyle = '#374151';
       ctx.fillRect(barX, barY, barWidth, barHeight);
 
       ctx.fillStyle = occupancyPercent > 0.8 ? '#ef4444' : '#10b981';
       ctx.fillRect(barX, barY, barWidth * occupancyPercent, barHeight);
+
+      // Warning indicator for near capacity
+      if (occupancyPercent > 0.9) {
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.arc(pos.x + pos.width / 2 - 10, pos.y - pos.height / 2 + 10, 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
     });
 
     // Draw dockets
@@ -116,35 +150,45 @@ export default function FloorPlan2D({ zones, dockets }: FloorPlan2DProps) {
       const pos = ZONE_2D_POSITIONS[docket.currentZone.id];
       if (!pos) return;
 
-      // Random offset within zone
-      const offsetX = (Math.random() - 0.5) * 80;
-      const offsetY = (Math.random() - 0.5) * 60;
+      // Random offset within zone boundaries
+      const offsetX = (Math.random() - 0.5) * (pos.width * 0.7);
+      const offsetY = (Math.random() - 0.5) * (pos.height * 0.7);
 
       ctx.fillStyle = '#3b82f6';
       ctx.beginPath();
       ctx.arc(pos.x + offsetX, pos.y + offsetY, 3, 0, Math.PI * 2);
       ctx.fill();
+
+      // Small glow effect
+      ctx.fillStyle = 'rgba(59, 130, 246, 0.2)';
+      ctx.beginPath();
+      ctx.arc(pos.x + offsetX, pos.y + offsetY, 6, 0, Math.PI * 2);
+      ctx.fill();
     });
 
-    // Draw connection lines from reception
-    const receptionPos = ZONE_2D_POSITIONS[7];
-    if (receptionPos) {
+    // Draw connection lines from entrance to main areas
+    const entrancePos = ZONE_2D_POSITIONS[11]; // Main Entrance
+    if (entrancePos) {
       ctx.strokeStyle = '#374151';
       ctx.lineWidth = 1;
       ctx.setLineDash([5, 5]);
 
-      [1, 2, 3, 4, 5].forEach((zoneId) => {
-        const labPos = ZONE_2D_POSITIONS[zoneId];
-        if (labPos) {
+      // Connect entrance to key zones: E.I.M.S, Auditorium, Office, Stairs
+      [6, 10, 1, 9].forEach((zoneId) => {
+        const zonePos = ZONE_2D_POSITIONS[zoneId];
+        if (zonePos) {
           ctx.beginPath();
-          ctx.moveTo(receptionPos.x, receptionPos.y);
-          ctx.lineTo(labPos.x, labPos.y);
+          ctx.moveTo(entrancePos.x, entrancePos.y);
+          ctx.lineTo(zonePos.x, zonePos.y);
           ctx.stroke();
         }
       });
 
       ctx.setLineDash([]);
     }
+
+    // Draw curved sections indicators
+    drawCurvedSections(ctx);
   }, [zones, dockets, selectedZoneId, floorPlanImage]);
 
   // Handle click
@@ -156,16 +200,19 @@ export default function FloorPlan2D({ zones, dockets }: FloorPlan2DProps) {
     const x = ((e.clientX - rect.left) / rect.width) * canvas.width;
     const y = ((e.clientY - rect.top) / rect.height) * canvas.height;
 
-    // Find clicked zone
+    // Find clicked zone (with updated hit detection)
     for (const zone of zones) {
       const pos = ZONE_2D_POSITIONS[zone.zoneId];
       if (!pos) continue;
 
+      const rectX = pos.x - pos.width / 2;
+      const rectY = pos.y - pos.height / 2;
+
       if (
-        x >= pos.x - 60 &&
-        x <= pos.x + 60 &&
-        y >= pos.y - 40 &&
-        y <= pos.y + 40
+        x >= rectX &&
+        x <= rectX + pos.width &&
+        y >= rectY &&
+        y <= rectY + pos.height
       ) {
         setSelectedZone(zone.zoneId);
         return;
@@ -206,20 +253,77 @@ function drawProceduralFloorPlan(ctx: CanvasRenderingContext2D) {
     ctx.stroke();
   }
 
-  // Central reception circle
-  ctx.strokeStyle = '#fbbf24';
+  // Building outline - FSL-PAROW ACTUAL shape
+  ctx.strokeStyle = '#4b5563';
   ctx.lineWidth = 3;
-  ctx.fillStyle = 'rgba(251, 191, 36, 0.1)';
+  ctx.setLineDash([]);
+
+  // Main central building
   ctx.beginPath();
-  ctx.arc(512, 512, 80, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.rect(250, 200, 524, 480);
+  ctx.stroke();
+
+  // Far left wing - Office Accommodation (large)
+  ctx.beginPath();
+  ctx.rect(50, 264, 170, 240);
+  ctx.stroke();
+
+  // Right wing - Admin/Support
+  ctx.beginPath();
+  ctx.rect(800, 220, 170, 240);
+  ctx.stroke();
+
+  // TOP curved section indicator
+  ctx.strokeStyle = '#3b82f6';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(512, 150, 220, Math.PI * 0.75, Math.PI * 0.25, true);
+  ctx.stroke();
+
+  // BOTTOM curved section indicator - Auditorium
+  ctx.beginPath();
+  ctx.arc(512, 630, 190, Math.PI * 0.25, Math.PI * 0.75);
   ctx.stroke();
 
   // Title
   ctx.fillStyle = '#fbbf24';
   ctx.font = 'bold 16px Inter, sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('RECEPTION', 512, 520);
+  ctx.fillText('FSL-PAROW', 512, 40);
+  ctx.font = 'bold 12px Inter, sans-serif';
+  ctx.fillStyle = '#9ca3af';
+  ctx.fillText('First Floor - Architectural Layout', 512, 58);
+}
+
+function drawCurvedSections(ctx: CanvasRenderingContext2D) {
+  // Draw TOP curved section visual indicator (exam rooms)
+  ctx.strokeStyle = '#3b82f6';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([10, 5]);
+
+  ctx.beginPath();
+  ctx.arc(512, 150, 220, Math.PI * 0.75, Math.PI * 0.25, true);
+  ctx.stroke();
+
+  // Draw BOTTOM curved section visual indicator (auditorium)
+  ctx.strokeStyle = '#8b5cf6';
+  ctx.beginPath();
+  ctx.arc(512, 630, 190, Math.PI * 0.25, Math.PI * 0.75);
+  ctx.stroke();
+
+  ctx.setLineDash([]);
+}
+
+function hexToRgba(hex: string, alpha: number): string {
+  // Remove # if present
+  hex = hex.replace('#', '');
+
+  // Parse r, g, b values
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 function getZoneColor(zoneType: string): string {
