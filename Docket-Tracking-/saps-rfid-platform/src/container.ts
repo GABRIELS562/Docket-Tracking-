@@ -24,6 +24,7 @@ import { PostgresConnection } from './infrastructure/database/PostgresConnection
 
 // Infrastructure - RFID
 import { LLRPGateway } from './infrastructure/rfid/LLRPGateway';
+import { RFIDSimulator } from './infrastructure/rfid/RFIDSimulator';
 
 // Infrastructure - Repositories
 import { PostgresDocketRepository } from './infrastructure/database/repositories/PostgresDocketRepository';
@@ -71,6 +72,9 @@ function registerInfrastructure(): void {
 
   // RFID Gateway
   container.registerSingleton(LLRPGateway);
+
+  // RFID Simulator (for demo/testing)
+  container.registerSingleton(RFIDSimulator);
 }
 
 /**

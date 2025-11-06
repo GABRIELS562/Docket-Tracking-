@@ -1,11 +1,501 @@
-# 🚀 SAPS RFID Evidence Tracking - Multi-Tenant SaaS Platform
+# 🚀 RFID Inventory Tracking Platform - Multi-Tenant SaaS with 3D Visualization
 
-**Project Goal:** Scale existing RFID evidence tracking system from 670 mock dockets to 300K+ real dockets with on-demand visualization, real-time tracking, and **multi-tenancy for SaaS deployment**.
+**Project Goal:** Build a universal RFID inventory tracking platform with real-time 3D visualization, supporting 300K+ items with multi-tenant SaaS architecture.
+
+**Innovation:** First RFID + 3D visualization platform in South Africa. Generic inventory tracking system applicable to multiple industries (forensics, warehousing, manufacturing, healthcare).
 
 **Key Requirements:**
-- On-demand docket tracking - don't visualize all 300K at once, only when requested through search/navigation
-- **Multi-tenant architecture** - support multiple organizations/customers on single platform
-- **Tenant isolation** - complete data separation and security between customers
+- Real-time RFID tracking with 3D spatial visualization
+- On-demand visualization - virtualized rendering (max 500 visible objects)
+- **Multi-tenant SaaS** - support multiple organizations on single platform
+- **Complete tenant isolation** - schema-per-tenant data separation
+- **Industry-agnostic** - customizable for forensics, warehouses, labs, etc.
+
+---
+
+## 🏗️ SYSTEM ARCHITECTURE OVERVIEW
+
+### **Complete System Architecture with Tech Stack**
+
+```
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                         PRESENTATION LAYER (Frontend)                         │
+├───────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │ React 19 Web Application (TypeScript)                               │    │
+│  │ ├─ React Router DOM - Multi-page routing                            │    │
+│  │ ├─ Zustand - State management (virtualized, <1GB memory)            │    │
+│  │ ├─ Tailwind CSS - Styling framework                                 │    │
+│  │ ├─ Framer Motion - Smooth animations                                │    │
+│  │ └─ Lucide React - Icon library                                      │    │
+│  │                                                                      │    │
+│  │ ┌──────────────────────────────────────────────────────────────┐   │    │
+│  │ │ 3D VISUALIZATION SYSTEM (Core Innovation)                    │   │    │
+│  │ │ ├─ Three.js 0.181 (MIT License) - 3D graphics engine         │   │    │
+│  │ │ ├─ React Three Fiber - Declarative Three.js                  │   │    │
+│  │ │ ├─ @react-three/drei - Three.js helpers & controls           │   │    │
+│  │ │ ├─ Instanced Rendering - Efficient GPU rendering             │   │    │
+│  │ │ ├─ Level-of-Detail (LOD) - Performance optimization          │   │    │
+│  │ │ └─ Spatial Indexing - Octree/quadtree culling                │   │    │
+│  │ └──────────────────────────────────────────────────────────────┘   │    │
+│  │                                                                      │    │
+│  │ ┌──────────────────────────────────────────────────────────────┐   │    │
+│  │ │ REAL-TIME COMMUNICATION                                      │   │    │
+│  │ │ └─ Socket.IO Client - WebSocket connections                  │   │    │
+│  │ │    ├─ Room subscriptions (zone-specific, item-specific)      │   │    │
+│  │ │    ├─ Auto-reconnection logic                                │   │    │
+│  │ │    └─ Event handlers: tag:detected, item:moved, zone:update  │   │    │
+│  │ └──────────────────────────────────────────────────────────────┘   │    │
+│  │                                                                      │    │
+│  │ ┌──────────────────────────────────────────────────────────────┐   │    │
+│  │ │ DATA VISUALIZATION                                           │   │    │
+│  │ │ └─ Recharts - Statistics charts and graphs                   │   │    │
+│  │ └──────────────────────────────────────────────────────────────┘   │    │
+│  └──────────────────────────────────────────────────────────────────────┘    │
+│                                                                               │
+│  Build Tool: Vite 7.2 (Lightning-fast HMR, optimized production builds)      │
+│  Deployment: Static files → CDN (Vercel/Netlify) or nginx                    │
+│                                                                               │
+└───────────────────────────────────────────────────────────────────────────────┘
+                                        │
+                                        │ HTTPS / WSS
+                                        │ REST API + WebSocket
+                                        ▼
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                         APPLICATION LAYER (Backend API)                       │
+├───────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │ Node.js 20 + Express.js 4 (TypeScript)                              │    │
+│  │ ├─ Clean Architecture (DDD) - Domain-driven design                  │    │
+│  │ ├─ tsyringe - Dependency injection                                  │    │
+│  │ ├─ Helmet - Security headers                                        │    │
+│  │ ├─ CORS - Cross-origin resource sharing                             │    │
+│  │ ├─ Morgan - HTTP request logging                                    │    │
+│  │ ├─ Express Rate Limit - DDoS protection                             │    │
+│  │ └─ Zod - Schema validation                                          │    │
+│  │                                                                      │    │
+│  │ REST API ENDPOINTS:                                                 │    │
+│  │ ├─ POST   /api/v1/items              - Register item               │    │
+│  │ ├─ GET    /api/v1/items              - Search items (paginated)    │    │
+│  │ ├─ GET    /api/v1/items/:id          - Get item details            │    │
+│  │ ├─ GET    /api/v1/items/:id/history  - Location history            │    │
+│  │ ├─ GET    /api/v1/zones              - List zones                  │    │
+│  │ ├─ GET    /api/v1/zones/:id/items    - Items in zone               │    │
+│  │ ├─ GET    /api/v1/readers            - List RFID readers           │    │
+│  │ ├─ GET    /health                    - Simple health check         │    │
+│  │ ├─ GET    /health/detailed           - Detailed health + metrics   │    │
+│  │ └─ GET    /metrics                   - Prometheus metrics          │    │
+│  └──────────────────────────────────────────────────────────────────────┘    │
+│                                                                               │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │ WebSocket Server (Socket.IO 4.6)                                    │    │
+│  │ ├─ Room-based subscriptions (zone:{id}, item:{id})                 │    │
+│  │ ├─ Targeted event delivery (not broadcast-all)                     │    │
+│  │ ├─ Redis adapter for horizontal scaling                            │    │
+│  │ └─ Events: tag:detected, item:moved, zone:occupancy, reader:status │    │
+│  └──────────────────────────────────────────────────────────────────────┘    │
+│                                                                               │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │ DOMAIN LAYER (Business Logic)                                       │    │
+│  │ ├─ Entities: Item, Zone, Reader (pure TypeScript classes)          │    │
+│  │ ├─ Value Objects: ItemId, RfidEpc, Location                        │    │
+│  │ ├─ Domain Events: ItemMoved, TagDetected, ZoneOccupancyChanged     │    │
+│  │ └─ Domain Services: LocationConfidence, ZoneAssignment              │    │
+│  └──────────────────────────────────────────────────────────────────────┘    │
+│                                                                               │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │ USE CASES (Application Logic)                                       │    │
+│  │ ├─ RegisterItemUseCase                                              │    │
+│  │ ├─ SearchItemsUseCase                                               │    │
+│  │ ├─ GetItemDetailsUseCase                                            │    │
+│  │ ├─ GetItemHistoryUseCase                                            │    │
+│  │ ├─ GetAllZonesUseCase                                               │    │
+│  │ ├─ GetZoneItemsUseCase                                              │    │
+│  │ └─ ProcessRFIDEventUseCase                                          │    │
+│  └──────────────────────────────────────────────────────────────────────┘    │
+│                                                                               │
+│  Monitoring: Winston (Logging), prom-client (Prometheus metrics)             │
+│  Process Management: PM2 (Production clustering, auto-restart)                │
+│                                                                               │
+└───────────────────────────────────────────────────────────────────────────────┘
+                                        │
+                        ┌───────────────┼───────────────┐
+                        │               │               │
+                        ▼               ▼               ▼
+        ┌───────────────────┐ ┌───────────────┐ ┌─────────────────┐
+        │   PostgreSQL 15   │ │  Redis ≤7.2   │ │  OpenSearch 2   │
+        │  + TimescaleDB    │ │   (BSD-3)     │ │  (Apache 2.0)   │
+        │  (PostgreSQL Lic) │ │               │ │                 │
+        └───────────────────┘ └───────────────┘ └─────────────────┘
+                ▲                      ▲                   ▲
+                │                      │                   │
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                    INFRASTRUCTURE LAYER (Data & Services)                     │
+├───────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │ PostgreSQL 15 + TimescaleDB 2.13 (Apache 2.0)                       │    │
+│  │ ├─ Master Data Storage                                              │    │
+│  │ │  ├─ tenants - Multi-tenant master table                           │    │
+│  │ │  ├─ tenant_{slug}.items - Per-tenant item tracking                │    │
+│  │ │  ├─ tenant_{slug}.zones - Per-tenant zones/locations              │    │
+│  │ │  ├─ tenant_{slug}.readers - Per-tenant RFID hardware              │    │
+│  │ │  └─ tenant_users - Users with tenant association                  │    │
+│  │ ├─ pg (node-postgres) - Database client                             │    │
+│  │ ├─ Connection Pooling - 20 connections/pool                         │    │
+│  │ ├─ Full-text Search (GIN indexes, trigram matching)                 │    │
+│  │ ├─ Partitioning - Table partitioning for 1M+ records/tenant         │    │
+│  │ └─ Performance: <100ms complex queries, <10ms simple lookups        │    │
+│  │                                                                      │    │
+│  │ TimescaleDB Extension:                                              │    │
+│  │ ├─ Hypertable: location_history (time-series data)                  │    │
+│  │ ├─ Automatic partitioning by time (1 day chunks)                    │    │
+│  │ ├─ Continuous aggregates (hourly, daily stats)                      │    │
+│  │ ├─ Compression policies (compress after 7 days)                     │    │
+│  │ ├─ Retention policies (delete after 90 days)                        │    │
+│  │ └─ 10-100x faster time-series queries                               │    │
+│  └──────────────────────────────────────────────────────────────────────┘    │
+│                                                                               │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │ Redis ≤7.2 (BSD-3 License - SaaS Safe)                              │    │
+│  │ ├─ Caching Layer                                                    │    │
+│  │ │  ├─ zone:stats:{zoneId} - Zone aggregates (5min TTL)             │    │
+│  │ │  ├─ item:location:{epc} - Current location (1min TTL)            │    │
+│  │ │  ├─ search:results:{hash} - Search results (10min TTL)           │    │
+│  │ │  └─ user:session:{userId} - User state (24h TTL)                 │    │
+│  │ ├─ Pub/Sub for WebSocket clustering                                │    │
+│  │ ├─ Session storage                                                  │    │
+│  │ └─ Target: 80%+ cache hit rate, <10ms lookups                      │    │
+│  └──────────────────────────────────────────────────────────────────────┘    │
+│                                                                               │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │ OpenSearch 2.x (Apache 2.0 - SaaS Safe, NOT Elasticsearch!)         │    │
+│  │ ├─ Full-text search across 300K+ items                              │    │
+│  │ ├─ @opensearch-project/opensearch client                            │    │
+│  │ ├─ Fuzzy matching for typos                                         │    │
+│  │ ├─ Autocomplete suggestions                                         │    │
+│  │ ├─ Multi-field search with boosting                                │    │
+│  │ ├─ Faceted search (zone, status, date filters)                     │    │
+│  │ ├─ Real-time index updates from PostgreSQL                         │    │
+│  │ └─ Target: <300ms search response time                             │    │
+│  │                                                                      │    │
+│  │ Note: 99% API-compatible with Elasticsearch 7.10 (pre-license change) │    │
+│  └──────────────────────────────────────────────────────────────────────┘    │
+│                                                                               │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │ InfluxDB 3 Core (MIT/Apache 2.0 - SaaS Safe)                        │    │
+│  │ ├─ Time-series RFID event storage                                   │    │
+│  │ ├─ @influxdata/influxdb-client                                      │    │
+│  │ ├─ High-frequency RFID reads (1000+ events/minute)                 │    │
+│  │ ├─ Nanosecond precision timestamps                                 │    │
+│  │ ├─ Measurement: rfid_reads                                          │    │
+│  │ │  ├─ Tags: reader_id, zone_id, epc, tenant_id                     │    │
+│  │ │  ├─ Fields: rssi, antenna_id, read_count                         │    │
+│  │ │  └─ Time: timestamp (nanosecond precision)                       │    │
+│  │ ├─ Retention policies (30 days detailed, 1 year aggregated)        │    │
+│  │ └─ Target: <50ms query response for recent events                  │    │
+│  └──────────────────────────────────────────────────────────────────────┘    │
+│                                                                               │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │ Event Bus (In-Process Event Emitter)                                │    │
+│  │ ├─ Domain event pub/sub                                             │    │
+│  │ ├─ Async event handlers                                             │    │
+│  │ ├─ Multiple subscribers per event                                  │    │
+│  │ └─ Future: Replace with Redis Pub/Sub for distributed events       │    │
+│  └──────────────────────────────────────────────────────────────────────┘    │
+│                                                                               │
+└───────────────────────────────────────────────────────────────────────────────┘
+                                        ▲
+                                        │ LLRP Protocol (TCP/IP)
+                                        │ Port 5084
+                                        │
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                       RFID HARDWARE LAYER (LLRP Gateway)                      │
+├───────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │ RFID Gateway Service (Node.js)                                       │    │
+│  │ ├─ llrp Library (MIT License - Node.js RFID communication)          │    │
+│  │ ├─ LLRP Protocol Implementation (Low Level Reader Protocol)         │    │
+│  │ ├─ Multi-reader connection pool (10+ concurrent readers)            │    │
+│  │ ├─ Tag processing pipeline:                                         │    │
+│  │ │  └─ Parse → Deduplicate (3s window) → Process → Store → Notify   │    │
+│  │ ├─ Circuit breaker pattern (fault tolerance)                        │    │
+│  │ ├─ Exponential backoff reconnection (5s → 80s)                      │    │
+│  │ ├─ Health monitoring (every 30s)                                    │    │
+│  │ └─ Metrics collection (reads/min, success rate, uptime)             │    │
+│  │                                                                      │    │
+│  │ Supported Readers:                                                  │    │
+│  │ ├─ Zebra FX9600 (HF 13.56MHz, 4 antennas)                          │    │
+│  │ ├─ Zebra FX7500 (HF 13.56MHz, 4 antennas)                          │    │
+│  │ ├─ Impinj Speedway R420/R700 (UHF, 4 antennas)                     │    │
+│  │ └─ Any LLRP-compliant RFID reader                                  │    │
+│  │                                                                      │    │
+│  │ Target Performance:                                                 │    │
+│  │ ├─ Support 10+ concurrent readers                                  │    │
+│  │ ├─ <100ms event processing                                         │    │
+│  │ ├─ 99.9% uptime                                                    │    │
+│  │ └─ <1 second end-to-end latency (reader → frontend)                │    │
+│  └──────────────────────────────────────────────────────────────────────┘    │
+│                                                                               │
+└───────────────────────────────────────────────────────────────────────────────┘
+                                        ▲
+                                        │ RF Signals
+                                        │ 13.56MHz (HF) or 860-960MHz (UHF)
+                                        │
+                            ┌───────────┴───────────┐
+                            │                       │
+                      ┌─────▼─────┐         ┌─────▼─────┐
+                      │ RFID      │         │ RFID      │
+                      │ Reader 1  │   ...   │ Reader N  │
+                      │ (Zebra    │         │ (Impinj   │
+                      │  FX9600)  │         │  R420)    │
+                      └───────────┘         └───────────┘
+                            │                       │
+                    ┌───────┴───────┐       ┌───────┴───────┐
+                    │               │       │               │
+              ┌─────▼─────┐   ┌─────▼─────┐   ┌─────▼─────┐
+              │ RFID Tag  │   │ RFID Tag  │   │ RFID Tag  │
+              │ (Passive) │   │ (Passive) │   │ (Passive) │
+              │ EPC: xxx  │   │ EPC: yyy  │   │ EPC: zzz  │
+              └───────────┘   └───────────┘   └───────────┘
+```
+
+---
+
+### **Data Flow & Communication Patterns**
+
+```
+REAL-TIME RFID EVENT FLOW:
+
+1. RFID Tag Detection
+   └─> RFID Reader (Zebra/Impinj)
+       └─> LLRP Protocol (TCP/IP, Port 5084)
+           └─> RFID Gateway (Node.js)
+               ├─> Parse EPC, RSSI, Antenna
+               ├─> Deduplicate (3s window)
+               └─> Process Event
+                   ├─> Store in InfluxDB (time-series)
+                   ├─> Update PostgreSQL (current location)
+                   ├─> Invalidate Redis cache
+                   └─> Publish to Event Bus
+                       └─> WebSocket broadcast
+                           └─> Frontend updates 3D visualization
+
+2. User Search Flow
+   └─> Frontend (React)
+       └─> REST API (GET /api/v1/items?search=xxx)
+           ├─> Check Redis cache (10min TTL)
+           │   └─> Cache hit: Return cached results
+           └─> Cache miss:
+               └─> OpenSearch query (<300ms)
+                   ├─> Full-text search across items
+                   ├─> Faceted filtering
+                   └─> Store in Redis cache
+                       └─> Return results to frontend
+                           └─> Update 3D visualization (fly-to camera)
+
+3. Zone Statistics
+   └─> Frontend requests zone stats
+       └─> REST API (GET /api/v1/zones)
+           ├─> Check Redis cache (5min TTL)
+           │   └─> Cache hit: Return stats
+           └─> Cache miss:
+               └─> PostgreSQL aggregation query (<100ms)
+                   └─> Store in Redis
+                       └─> Return to frontend
+
+4. Location History Query
+   └─> Frontend (GET /api/v1/items/:id/history?from=xxx&to=yyy)
+       └─> TimescaleDB query
+           ├─> Continuous aggregate (if available)
+           └─> Raw data (if recent)
+               └─> <500ms response
+                   └─> Frontend renders timeline chart
+```
+
+---
+
+### **Multi-Tenant Data Isolation**
+
+```
+TENANT ISOLATION STRATEGY:
+
+┌─────────────────────────────────────────────────────────────┐
+│ Request Flow with Tenant Context                           │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│ 1. User Login                                               │
+│    └─> JWT Token issued with tenant_id claim               │
+│                                                             │
+│ 2. API Request with JWT                                    │
+│    └─> Middleware extracts tenant_id from token            │
+│        └─> Sets tenant context in request object           │
+│            └─> All queries filtered by tenant_id           │
+│                                                             │
+│ 3. Database Query (PostgreSQL)                             │
+│    └─> SELECT * FROM tenant_saps.items WHERE ...           │
+│        (Automatically scoped to tenant schema)              │
+│                                                             │
+│ 4. Cache Key Namespacing (Redis)                           │
+│    └─> tenant:saps:zone:stats:1                            │
+│        (Tenant prefix prevents cross-tenant access)         │
+│                                                             │
+│ 5. Search Index (OpenSearch)                               │
+│    └─> saps_items_index (separate index per tenant)        │
+│                                                             │
+│ 6. Time-Series Data (InfluxDB)                             │
+│    └─> WHERE tenant_id = 'saps'                            │
+│        (Tag-based filtering for tenant isolation)           │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### **Performance Optimization Strategies**
+
+```
+VIRTUALIZATION & PERFORMANCE:
+
+Frontend (React + Three.js):
+├─ State Management
+│  ├─ Never load all 300K items into memory
+│  ├─ Virtualized state (max 500 visible items)
+│  ├─ Search-triggered loading
+│  └─ Smart garbage collection
+
+├─ 3D Rendering
+│  ├─ Instanced rendering (GPU-efficient)
+│  ├─ Level-of-Detail (LOD) system
+│  │  ├─ Far: Simple geometry, low detail
+│  │  ├─ Medium: Standard geometry
+│  │  └─ Near: High detail with labels
+│  ├─ Frustum culling (only render visible objects)
+│  ├─ Octree spatial indexing
+│  └─ Target: 60 FPS sustained
+
+└─ Real-time Updates
+   ├─ Throttle updates (max 30 updates/second)
+   ├─ Batch WebSocket events
+   └─ Smart re-rendering (only changed objects)
+
+Backend (Node.js + Express):
+├─ Caching Strategy
+│  ├─ Redis hot data (80%+ hit rate)
+│  ├─ Zone stats cached (5min)
+│  ├─ Search results cached (10min)
+│  └─ User sessions cached (24h)
+
+├─ Database Optimization
+│  ├─ Connection pooling (20 connections)
+│  ├─ Prepared statements
+│  ├─ Index optimization (GIN, B-tree, trigram)
+│  ├─ Query result pagination
+│  └─ Table partitioning for 1M+ records
+
+└─ WebSocket Scaling
+   ├─ Room-based subscriptions (targeted delivery)
+   ├─ Redis adapter (horizontal scaling)
+   ├─ Message compression
+   └─ Load balancing (nginx)
+```
+
+---
+
+### **Deployment Architecture**
+
+```
+LOCAL DEVELOPMENT:
+└─> Frontend: localhost:5173 (Vite dev server)
+└─> Backend: localhost:8080 (tsx watch)
+└─> PostgreSQL: localhost:5432 (Docker)
+└─> Redis: localhost:6379 (Docker)
+
+PRODUCTION (Home Server or Cloud):
+├─> Frontend: Static files served by nginx or CDN
+├─> Backend: PM2 cluster mode (4 Node.js processes)
+├─> Load Balancer: nginx reverse proxy
+│   ├─> SSL termination (Let's Encrypt)
+│   ├─> WebSocket upgrade handling
+│   └─> Static file caching
+├─> Database: PostgreSQL + TimescaleDB
+├─> Cache: Redis cluster
+├─> Search: OpenSearch cluster (3 nodes)
+└─> Monitoring: Prometheus + Grafana
+```
+
+---
+
+## 🎯 TARGET INDUSTRIES & USE CASES
+
+### **1. Forensic Evidence Tracking (SAPS - Pilot Customer)**
+- Track 300K+ evidence items across facilities
+- Chain of custody tracking
+- Case reference linking
+- Lab number management
+
+### **2. Warehouse & Logistics**
+- Inventory tracking across zones
+- Real-time stock location
+- Pick/pack optimization
+- Shipping verification
+
+### **3. Manufacturing**
+- Tool and equipment tracking
+- Work-in-progress monitoring
+- Quality control checkpoints
+- Assembly line tracking
+
+### **4. Healthcare**
+- Medical equipment tracking
+- Sample/specimen management
+- Pharmaceutical tracking
+- Asset management
+
+### **5. Data Centers**
+- Server and network equipment
+- Cable/patch panel tracking
+- Asset lifecycle management
+- Maintenance scheduling
+
+---
+
+## ⚖️ LICENSING & COMMERCIAL USE - CRITICAL!
+
+**🚨 ALL frameworks MUST be SaaS-safe (commercial use allowed)**
+
+### ✅ APPROVED STACK (100% SaaS-Safe)
+
+| Framework | License | Commercial Use | Status |
+|-----------|---------|----------------|--------|
+| **Node.js** | MIT | ✅ YES | Safe |
+| **Express.js** | MIT | ✅ YES | Safe |
+| **React** | MIT | ✅ YES | Safe |
+| **Three.js** | MIT | ✅ YES | Safe |
+| **PostgreSQL** | PostgreSQL License | ✅ YES | Safe |
+| **TimescaleDB** | Apache 2.0 | ✅ YES | Safe |
+| **llrp (RFID)** | MIT | ✅ YES | ✅ **USE THIS** |
+| **OpenSearch** | Apache 2.0 | ✅ YES | ✅ **USE THIS** |
+| **Redis ≤7.2** | BSD-3 | ✅ YES | ✅ **USE THIS** |
+| **InfluxDB 3 Core** | MIT/Apache 2.0 | ✅ YES | ✅ **USE THIS** |
+
+### ❌ FORBIDDEN FRAMEWORKS (Not SaaS-Safe)
+
+| Framework | License | Issue | Alternative |
+|-----------|---------|-------|-------------|
+| **sllurp (Python RFID)** | GPL-3.0 | ❌ Forces entire app open source | Use `llrp` (Node.js, MIT) |
+| **Elasticsearch** | SSPL/ELv2 | ❌ Prevents SaaS offerings | Use `OpenSearch` (Apache 2.0) |
+| **Redis ≥7.4** | RSALv2/SSPL | ❌ Cannot commercialize | Use Redis ≤7.2 (BSD-3) |
+
+### 📋 LICENSING RULES
+
+1. **ONLY use MIT, Apache 2.0, BSD-3, PostgreSQL licenses**
+2. **NEVER use GPL, AGPL, SSPL, or proprietary-source-available licenses**
+3. **Check every npm package license before installing**
+4. **When in doubt, ask for license verification**
 
 ---
 
@@ -252,7 +742,11 @@ npm run db:test-performance -- --target-records=300000
 
 ### **PHASE 1.2: Search Infrastructure Setup (Week 1-2)**
 
-**🎯 Goal:** Set up Elasticsearch for 300K+ docket search
+**🎯 Goal:** Set up OpenSearch for 300K+ docket search (NOT Elasticsearch - licensing issues)
+
+**⚠️ LICENSE NOTE:** We use OpenSearch (Apache 2.0) NOT Elasticsearch (SSPL/ELv2)
+- ✅ OpenSearch = Apache 2.0 (SaaS-safe, commercial use allowed)
+- ❌ Elasticsearch = SSPL/ELv2/AGPLv3 (not SaaS-friendly since 2024)
 
 **📋 Agent Call 2:**
 ```bash
@@ -261,7 +755,7 @@ Agent: search-specialist
 
 **📝 Prompt:**
 ```
-I need to implement Elasticsearch for 300K forensic evidence records with complex search requirements.
+I need to implement OpenSearch (Apache 2.0 license) for 300K forensic evidence records with complex search requirements.
 
 ARCHITECTURE REFERENCE: This supports the search-triggered visualization (max 100 visible results) from our on-demand architecture.
 
@@ -284,11 +778,17 @@ Requirements:
 6. Real-time index updates from PostgreSQL
 
 Please design:
-1. Elasticsearch mapping and configuration
+1. OpenSearch mapping and configuration (99% compatible with Elasticsearch)
 2. Search query optimization strategies
 3. Autocomplete implementation
 4. Faceted search architecture
-5. PostgreSQL → Elasticsearch sync strategy
+5. PostgreSQL → OpenSearch sync strategy
+
+LICENSING REQUIREMENT:
+- Use OpenSearch (Apache 2.0 license)
+- OpenSearch is a fork of Elasticsearch 7.10 (before the license change)
+- 99% API-compatible with Elasticsearch, just different license
+- Install: npm install @opensearch-project/opensearch
 
 STICK TO PLAN: This is Phase 1.2 - search infrastructure only. Do not implement RFID or 3D components yet.
 
@@ -305,8 +805,11 @@ grep -r "find.*labNumber.*includes" src --include="*.ts"
 rm -f src/components/SimpleSearch.tsx
 rm -f src/hooks/useSimpleSearch.ts
 
+# Install OpenSearch client (Apache 2.0)
+npm install @opensearch-project/opensearch
+
 # Test search performance
-npm run elasticsearch:test-performance -- --records=300000 --target-time=300ms
+npm run opensearch:test-performance -- --records=300000 --target-time=300ms
 
 # Validate search integration
 npm run test:search-integration
@@ -437,38 +940,43 @@ npm run influxdb:test-performance -- --events-per-minute=1000
 npm run influxdb:validate-retention
 ```
 
-### **PHASE 2.2: Python RFID Gateway with sllurp (Week 3-4)**
+### **PHASE 2.2: Node.js RFID Gateway with llrp (Week 3-4)**
 
-**🎯 Goal:** Implement Python RFID gateway using sllurp library
+**🎯 Goal:** Implement Node.js RFID gateway using llrp library (MIT License - Already in package.json!)
+
+**⚠️ LICENSE NOTE:** We use `llrp` (Node.js, MIT) NOT `sllurp` (Python, GPL-3.0)
+- ✅ `llrp` = MIT License (SaaS-safe, commercial use allowed)
+- ❌ `sllurp` = GPL-3.0 (forces entire app to be open source)
 
 **📋 Agent Call 5:**
 ```bash
-Agent: python-pro
+Agent: backend-developer
 ```
 
 **📝 Prompt:**
 ```
-I need to implement a Python RFID gateway using the sllurp library for HF RFID (13.56MHz) communication in a 300K+ evidence tracking system.
+I need to implement a Node.js RFID gateway using the llrp library (MIT license) for HF RFID (13.56MHz) communication in a 300K+ evidence tracking system.
 
 ARCHITECTURE REFERENCE: This is the hardware interface layer that feeds into our time-series InfluxDB and triggers real-time updates to the frontend.
 
 PREVIOUS WORK COMPLETED:
 - Phase 1: Database, search, and caching infrastructure ready
 - Phase 2.1: InfluxDB time-series storage configured
+- llrp library already installed in package.json (MIT License ✅)
 
 RFID Requirements:
 - HF RFID readers (13.56MHz) using LLRP protocol
-- sllurp v2.0.1 library for RFID communication
+- llrp library (Node.js, MIT license) for RFID communication
 - Real-time tag detection and processing
 - Integration with InfluxDB for event storage
-- WebSocket notifications to Node.js backend
+- WebSocket notifications to frontend clients
 
 Please implement:
-1. Python RFID gateway using sllurp v2.0.1
+1. Node.js RFID gateway using llrp library (MIT license, already installed)
 2. LLRP protocol communication with HF readers
 3. Tag detection and processing pipeline
 4. InfluxDB event storage integration
-5. WebSocket/HTTP communication with Node.js backend
+5. WebSocket real-time notifications to clients
 6. Error handling and reconnection logic
 7. Configuration for multiple readers
 
@@ -476,7 +984,11 @@ Key Components:
 - RFIDGateway class for reader management
 - Tag event processing and filtering
 - InfluxDB client integration
-- Inter-service communication (Python → Node.js)
+- Real-time WebSocket broadcasts
+
+LICENSING REQUIREMENT:
+- Use llrp (MIT) - already in package.json
+- DO NOT use sllurp (Python, GPL-3.0) - incompatible with commercial SaaS
 
 STICK TO PLAN: This is Phase 2.2 - RFID communication only. Focus on reliable tag detection and event storage.
 
@@ -486,22 +998,24 @@ TARGET: Support 10+ concurrent readers, <100ms event processing, 99.9% uptime
 **🧹 Cleanup Commands After RFID Gateway:**
 ```bash
 # Create RFID gateway directory structure
-mkdir -p rfid-gateway/{src,config,tests}
-mkdir -p rfid-gateway/src/{core,communication,storage}
+mkdir -p saps-rfid-platform/src/infrastructure/rfid/{gateway,processors,events}
 
 # Remove mock RFID data generators
 grep -r "mockReaders\|simulateRealtimeUpdates" src --include="*.ts"
 rm -f src/lib/mockRfidData.ts
 
-# Set up Python environment
-cd rfid-gateway && python -m venv venv && source venv/bin/activate
-pip install sllurp==2.0.1 influxdb-client==1.36.1
+# Verify llrp is installed (MIT license)
+npm list llrp
+cat node_modules/llrp/package.json | grep "license"
+
+# Install InfluxDB client if not already
+npm install @influxdata/influxdb-client
 
 # Test RFID gateway
-python rfid-gateway/src/test_gateway.py --demo-mode
+npm run test:rfid-gateway -- --demo-mode
 
 # Validate InfluxDB integration
-python rfid-gateway/src/test_influx_integration.py
+npm run test:influx-integration
 ```
 
 ### **PHASE 2.3: Asset Management Patterns (zetavg/Inventory) (Week 4-5)**
