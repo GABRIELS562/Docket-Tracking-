@@ -64,6 +64,547 @@ Historical RFID Data → Event Simulator → Predictive Analytics → Recommenda
 
 ---
 
+## 🗺️ COMPLETE SYSTEM MAP: WHAT WE'RE BUILDING
+
+### **Terminal Architecture Diagram**
+
+```
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    RFID INVENTORY TRACKING PLATFORM                          ║
+║              WITH 3D VISUALIZATION + SPATIAL INTELLIGENCE                    ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ LAYER 1: PHYSICAL HARDWARE (What You Buy/Install)                           │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  RFID READERS (Strategically Placed)        RFID TAGS (On Items)           │
+│  ┌─────────────────────────────┐            ┌──────────────────┐           │
+│  │ Zebra FX9600 / Impinj R420  │            │ Passive UHF Tags │           │
+│  │ - 4 antennas per reader     │◄──RF──────►│ - EPC Gen2       │           │
+│  │ - 10m read range            │  Signal    │ - No battery     │           │
+│  │ - LLRP protocol             │  860-960   │ - R2-R5 each     │           │
+│  │ - Ethernet connection       │    MHz     │ - Attach to items│           │
+│  └─────────────┬───────────────┘            └──────────────────┘           │
+│                │                                                             │
+│  Cost: R25k-R60k per reader                Cost: R2-R5 per tag             │
+│  Placement: 1 reader per zone              Quantity: 1,000-10,000 tags     │
+│                │                                                             │
+│  ⚠️ CHALLENGE: Reader placement critical - avoid metal interference         │
+│  ⚠️ CHALLENGE: Tag orientation affects read rate (95-99% typical)          │
+│                │                                                             │
+└────────────────┼─────────────────────────────────────────────────────────────┘
+                 │ TCP/IP (Port 5084)
+                 ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ LAYER 2: RFID GATEWAY (Code - Node.js)                                      │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌────────────────────────────────────────────────────────────────┐        │
+│  │ RFID Event Processing Service (src/infrastructure/rfid/)       │        │
+│  │                                                                 │        │
+│  │  Tech Stack:                                                   │        │
+│  │  • Node.js 20 + TypeScript                                     │        │
+│  │  • llrp library (MIT) - RFID reader communication              │        │
+│  │  • Circuit breaker pattern for fault tolerance                 │        │
+│  │                                                                 │        │
+│  │  What It Does:                                                 │        │
+│  │  1. Connects to all RFID readers (10+ simultaneously)          │        │
+│  │  2. Receives tag read events (1000+ per minute)                │        │
+│  │  3. Deduplicates (same tag read 3x/second → filter to 1)      │        │
+│  │  4. Parses: EPC, RSSI, antenna, reader ID, timestamp           │        │
+│  │  5. Publishes events to processing pipeline                    │        │
+│  │                                                                 │        │
+│  │  ✅ 100% CODE - No manual work after setup                     │        │
+│  │  ⚠️ CHALLENGE: Network latency if readers > 50m away           │        │
+│  │  ⚠️ CHALLENGE: Handle reader disconnections gracefully         │        │
+│  └────────────────────────────────────────────────────────────────┘        │
+│                                                                              │
+└────────────────┬─────────────────────────────────────────────────────────────┘
+                 │ Event Bus
+                 ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ LAYER 3: BACKEND API + DATA PROCESSING (Code - Node.js + Databases)         │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────┐       │
+│  │ FEATURE 1: REAL-TIME ITEM TRACKING                              │       │
+│  │                                                                  │       │
+│  │ Tech Stack:                                                      │       │
+│  │ • PostgreSQL 15 - Current item locations                        │       │
+│  │ • TimescaleDB 2.13 - Location history (time-series)             │       │
+│  │ • Redis 7.2 - Cache hot data (1min TTL)                         │       │
+│  │                                                                  │       │
+│  │ Data Flow:                                                       │       │
+│  │ Tag Read → Update PostgreSQL (item.current_zone)                │       │
+│  │          → Insert TimescaleDB (location_history table)          │       │
+│  │          → Invalidate Redis cache                               │       │
+│  │          → Emit WebSocket event to frontend                     │       │
+│  │                                                                  │       │
+│  │ ✅ 100% CODE - Fully automated                                  │       │
+│  │ ⚠️ CHALLENGE: Handle 1000+ events/min without lag               │       │
+│  └─────────────────────────────────────────────────────────────────┘       │
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────┐       │
+│  │ FEATURE 2: SPATIAL INTELLIGENCE ENGINE (Route Optimization)     │       │
+│  │                                                                  │       │
+│  │ Tech Stack:                                                      │       │
+│  │ • Node.js A* Pathfinding Algorithm (~200 lines of code)         │       │
+│  │ • PostgreSQL - Store facility graph (zones as nodes)            │       │
+│  │ • JSONB columns - Store zone connections/distances              │       │
+│  │                                                                  │       │
+│  │ How It Works:                                                    │       │
+│  │ 1. Model warehouse as graph (zones = nodes, paths = edges)      │       │
+│  │ 2. User searches for item → get current zone from DB            │       │
+│  │ 3. Run A* algorithm: start=user location, end=item zone         │       │
+│  │ 4. Calculate optimal path (consider obstacles, distance)        │       │
+│  │ 5. Return 3D coordinates for path visualization                 │       │
+│  │                                                                  │       │
+│  │ Input:  { from: "zone-1", to: "zone-5", items: ["item-123"] }  │       │
+│  │ Output: { path: ["zone-1", "zone-2", "zone-5"],                │       │
+│  │           distance: 45m, estimated_time: "2min 15s" }           │       │
+│  │                                                                  │       │
+│  │ ✅ 100% CODE - Pure algorithm implementation                    │       │
+│  │ ⚠️ CHALLENGE: Need accurate zone layout (map warehouse first)   │       │
+│  │ ⚠️ CHALLENGE: Handle dynamic obstacles (blocked paths)          │       │
+│  │                                                                  │       │
+│  │ Implementation Difficulty: 🟢 LOW (proven algorithm)            │       │
+│  │ Time to Build: 2-3 weeks                                        │       │
+│  └─────────────────────────────────────────────────────────────────┘       │
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────┐       │
+│  │ FEATURE 3: DIGITAL TWIN SCENARIO SIMULATOR                      │       │
+│  │                                                                  │       │
+│  │ Tech Stack:                                                      │       │
+│  │ • Node.js Discrete Event Simulator (custom code ~500 lines)     │       │
+│  │ • TimescaleDB - Historical movement patterns                    │       │
+│  │ • Simple statistics library (mean, std dev, percentiles)        │       │
+│  │                                                                  │       │
+│  │ How It Works:                                                    │       │
+│  │ 1. Load 3-6 months historical RFID data                         │       │
+│  │ 2. Calculate patterns:                                          │       │
+│  │    - Average items/zone over time                               │       │
+│  │    - Movement frequency (zone-to-zone transitions)              │       │
+│  │    - Peak hours/days                                            │       │
+│  │ 3. Run simulation:                                              │       │
+│  │    - User inputs: "3x volume", "remove Zone 2"                  │       │
+│  │    - Simulator plays forward in time (1 week compressed)        │       │
+│  │    - Tracks: zone occupancy, bottlenecks, overflow              │       │
+│  │ 4. Output recommendations: "Add storage in Zone 5"              │       │
+│  │                                                                  │       │
+│  │ ✅ 80% CODE - Needs manual calibration initially                │       │
+│  │ ⚠️ CHALLENGE: Accuracy depends on historical data quality       │       │
+│  │ ⚠️ CHALLENGE: Complex scenarios = more processing time          │       │
+│  │ ⚠️ LIMITATION: Can't predict truly novel situations             │       │
+│  │                                                                  │       │
+│  │ Implementation Difficulty: 🟡 MEDIUM (statistical modeling)     │       │
+│  │ Time to Build: 4-5 weeks                                        │       │
+│  └─────────────────────────────────────────────────────────────────┘       │
+│                                                                              │
+│  REST API Endpoints:                                                        │
+│  • POST /api/v1/items - Register item                                       │
+│  • GET  /api/v1/items?search=xxx - Search with OpenSearch                  │
+│  • GET  /api/v1/route?from=zone1&to=zone5 - Get optimal path ⭐ NEW        │
+│  • POST /api/v1/simulate - Run scenario simulation ⭐ NEW                   │
+│                                                                              │
+└────────────────┬─────────────────────────────────────────────────────────────┘
+                 │ WebSocket (Socket.IO) + REST API
+                 ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ LAYER 4: FRONTEND - 3D VISUALIZATION (Code - React + Three.js)              │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────┐       │
+│  │ FEATURE 4: 3D FACILITY VISUALIZATION                            │       │
+│  │                                                                  │       │
+│  │ Tech Stack:                                                      │       │
+│  │ • React 19 + TypeScript                                         │       │
+│  │ • Three.js 0.181 - WebGL 3D graphics engine                     │       │
+│  │ • React Three Fiber - React wrapper for Three.js               │       │
+│  │ • @react-three/drei - Pre-built 3D helpers                      │       │
+│  │                                                                  │       │
+│  │ What Gets Rendered:                                             │       │
+│  │ 1. Warehouse Structure (Procedural Generation)                  │       │
+│  │    ✅ 100% CODE - No 3D modeling software needed               │       │
+│  │                                                                  │       │
+│  │    const Warehouse = () => (                                    │       │
+│  │      <>                                                          │       │
+│  │        <Floor width={100} depth={100} color="#333" />           │       │
+│  │        <Walls height={10} thickness={0.5} />                    │       │
+│  │        {zones.map(zone => (                                     │       │
+│  │          <Zone                                                  │       │
+│  │            position={zone.position}                             │       │
+│  │            color={zone.color}                                   │       │
+│  │            size={zone.dimensions}                               │       │
+│  │          />                                                      │       │
+│  │        ))}                                                       │       │
+│  │      </>                                                         │       │
+│  │    )                                                             │       │
+│  │                                                                  │       │
+│  │ 2. Items (Instanced Rendering for Performance)                  │       │
+│  │    • Render 500 visible items out of 300K total                │       │
+│  │    • Each item = small cube/box with label                      │       │
+│  │    • Color-coded by status (in-storage, checked-out, etc)      │       │
+│  │    ✅ 100% CODE - Fully procedural                              │       │
+│  │                                                                  │       │
+│  │ 3. Optimal Route Path (Spatial Intelligence Visualization)      │       │
+│  │    • Receive path from backend: ["zone-1", "zone-3", "zone-5"] │       │
+│  │    • Draw animated glowing line connecting zones                │       │
+│  │    • Show distance markers and time estimates                   │       │
+│  │    ✅ 100% CODE - GSAP animation                                │       │
+│  │                                                                  │       │
+│  │ Performance Optimization:                                        │       │
+│  │ • Frustum culling - Only render visible objects                │       │
+│  │ • LOD (Level of Detail) - Simpler models at distance           │       │
+│  │ • Octree spatial indexing - Fast visibility queries             │       │
+│  │ • Target: 60 FPS with 500 visible items                        │       │
+│  │                                                                  │       │
+│  │ ⚠️ CHALLENGE: WebGL compatibility (95% browsers support)        │       │
+│  │ ⚠️ CHALLENGE: Mobile devices = lower performance                │       │
+│  └─────────────────────────────────────────────────────────────────┘       │
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────┐       │
+│  │ FEATURE 5: CAMERA ANIMATIONS (GSAP + React Three Fiber)         │       │
+│  │                                                                  │       │
+│  │ Tech Stack:                                                      │       │
+│  │ • GSAP 3.13 - Professional animation library                    │       │
+│  │ • React hooks for camera control                                │       │
+│  │                                                                  │       │
+│  │ Animations:                                                      │       │
+│  │ 1. Fly-to Search Result                                         │       │
+│  │    User searches → Camera flies smoothly to item (1.5s)         │       │
+│  │    ✅ 100% CODE                                                  │       │
+│  │                                                                  │       │
+│  │ 2. Follow Optimal Route                                         │       │
+│  │    Camera follows path animation showing route                  │       │
+│  │    ✅ 100% CODE                                                  │       │
+│  │                                                                  │       │
+│  │ 3. Zone Tour (Demo Mode)                                        │       │
+│  │    Automated camera path visiting all zones                     │       │
+│  │    ✅ 100% CODE                                                  │       │
+│  │                                                                  │       │
+│  │ Implementation Difficulty: 🟢 LOW (GSAP handles complexity)     │       │
+│  └─────────────────────────────────────────────────────────────────┘       │
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────┐       │
+│  │ FEATURE 6: REAL-TIME UPDATES (WebSocket Integration)            │       │
+│  │                                                                  │       │
+│  │ Tech Stack:                                                      │       │
+│  │ • Socket.IO Client - WebSocket connection                       │       │
+│  │ • Zustand - State management                                    │       │
+│  │                                                                  │       │
+│  │ Real-time Events:                                                │       │
+│  │ • Tag detected → Item cube appears in 3D scene                  │       │
+│  │ • Item moved → Cube smoothly transitions to new zone            │       │
+│  │ • Zone occupancy update → Zone color changes (green→yellow→red) │       │
+│  │                                                                  │       │
+│  │ ✅ 100% CODE - No manual intervention                           │       │
+│  │ ⚠️ CHALLENGE: Animate 100+ items moving simultaneously          │       │
+│  └─────────────────────────────────────────────────────────────────┘       │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                         COMPLETE DATA FLOW                                   ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+USER SEARCHES FOR ITEM:
+┌────────┐      ┌──────────┐      ┌──────────────┐      ┌──────────────────┐
+│ User   │─────►│ Frontend │─────►│ Backend API  │─────►│ PostgreSQL       │
+│ Types  │      │ Search   │      │ OpenSearch   │      │ Get Item Details │
+│ "Case  │      │ Box      │      │ Query        │      │ Current Zone     │
+│ #12345"│      └──────────┘      └──────────────┘      └──────────────────┘
+└────────┘                               │
+                                         ▼
+                                  ┌──────────────────────────┐
+                                  │ Spatial Intelligence     │
+                                  │ Calculate Optimal Route  │
+                                  │ A* Algorithm Runs        │
+                                  │ Output: Path + Distance  │
+                                  └──────────────┬───────────┘
+                                                 │
+                                                 ▼
+                                  ┌──────────────────────────┐
+                                  │ Return to Frontend:      │
+                                  │ • Item location          │
+                                  │ • Optimal path           │
+                                  │ • Distance & time        │
+                                  └──────────────┬───────────┘
+                                                 │
+                                                 ▼
+┌──────────────────────────────────────────────────────────────────┐
+│ FRONTEND 3D VISUALIZATION:                                       │
+│ 1. Camera flies to item location (GSAP animation - 1.5s)        │
+│ 2. Glowing path appears showing optimal route                   │
+│ 3. Item cube highlighted in 3D scene                            │
+│ 4. Info panel shows: "Zone 5, Row C, Shelf 2 - 45m away"       │
+│ 5. "Start Navigation" button → Mobile-friendly turn-by-turn    │
+└──────────────────────────────────────────────────────────────────┘
+
+
+RFID TAG DETECTED (Real-time):
+┌───────────┐      ┌─────────┐      ┌──────────────┐      ┌──────────────┐
+│ RFID      │─────►│ RFID    │─────►│ Backend      │─────►│ PostgreSQL   │
+│ Reader    │ LLRP │ Gateway │Event │ Event        │Update│ + TimescaleDB│
+│ Detects   │      │ Parses  │Bus   │ Processor    │      │ Location     │
+│ Tag       │      │ EPC     │      │              │      │              │
+└───────────┘      └─────────┘      └──────┬───────┘      └──────────────┘
+                                           │
+                                           ▼
+                              ┌─────────────────────────┐
+                              │ WebSocket Broadcast     │
+                              │ to Connected Clients    │
+                              └────────────┬────────────┘
+                                           │
+                                           ▼
+                              ┌─────────────────────────┐
+                              │ FRONTEND UPDATES:       │
+                              │ • Item cube moves in 3D │
+                              │ • Zone counter updates  │
+                              │ • History log appends   │
+                              └─────────────────────────┘
+
+
+SCENARIO SIMULATION (Digital Twin):
+┌────────────┐      ┌──────────────┐      ┌─────────────────┐
+│ User       │─────►│ Backend      │─────►│ TimescaleDB     │
+│ Configures │      │ Simulation   │Load  │ Historical Data │
+│ Scenario:  │      │ Engine       │6mo   │ Movement        │
+│ "3x Volume"│      │              │data  │ Patterns        │
+└────────────┘      └──────┬───────┘      └─────────────────┘
+                           │
+                           ▼
+              ┌────────────────────────────┐
+              │ Run Discrete Event Sim     │
+              │ • Compress 1 week→5 seconds│
+              │ • Track zone occupancy     │
+              │ • Identify bottlenecks     │
+              │ • Generate recommendations │
+              └────────────┬───────────────┘
+                           │
+                           ▼
+              ┌────────────────────────────┐
+              │ Return Results:            │
+              │ • Heatmap (zone capacity)  │
+              │ • Bottleneck warnings      │
+              │ • Recommended actions      │
+              └────────────┬───────────────┘
+                           │
+                           ▼
+              ┌────────────────────────────┐
+              │ FRONTEND DISPLAYS:         │
+              │ • Animated simulation      │
+              │ • Zones turn red at 90%    │
+              │ • Recommendations panel    │
+              └────────────────────────────┘
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    WHAT CAN/CANNOT BE DONE VIA CODE                          ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+✅ 100% CODE (No Manual Work After Initial Setup):
+┌─────────────────────────────────────────────────────────────────────────┐
+│ • RFID event processing (llrp library handles everything)              │
+│ • Database operations (PostgreSQL, TimescaleDB, Redis)                 │
+│ • A* pathfinding algorithm (pure JavaScript)                           │
+│ • 3D warehouse generation (procedural Three.js code)                   │
+│ • Item rendering with instancing                                       │
+│ • Camera animations (GSAP)                                             │
+│ • WebSocket real-time updates                                          │
+│ • Search with OpenSearch                                               │
+│ • Zone occupancy calculations                                          │
+│ • Historical data analysis                                             │
+│ • Discrete event simulation                                            │
+│ • API endpoints for all features                                       │
+└─────────────────────────────────────────────────────────────────────────┘
+
+⚠️ REQUIRES MANUAL WORK (One-Time Configuration):
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 1. RFID Hardware Installation                                          │
+│    • Mount readers on walls/ceilings                                   │
+│    • Configure reader IP addresses and antenna ports                   │
+│    • Test read zones and adjust positioning                            │
+│    Time: 2-3 days per facility                                         │
+│                                                                         │
+│ 2. Attach RFID Tags to Items                                           │
+│    • Physically apply tags to inventory                                │
+│    • Register EPC codes in database                                    │
+│    Time: Depends on item count (100 items/hour typical)               │
+│                                                                         │
+│ 3. Warehouse Layout Mapping (For Spatial Intelligence)                 │
+│    • Measure zone positions and dimensions                             │
+│    • Map connections between zones                                     │
+│    • Input obstacles/blocked areas                                     │
+│    Time: 1 day per facility                                            │
+│    ✅ SOLUTION: Provide web-based layout editor tool                   │
+│                                                                         │
+│ 4. Calibration (For Digital Twin)                                      │
+│    • Collect 3-6 months historical data                                │
+│    • Validate simulation accuracy                                      │
+│    • Adjust parameters if needed                                       │
+│    Time: Ongoing (improves over time)                                  │
+└─────────────────────────────────────────────────────────────────────────┘
+
+❌ CANNOT BE AUTOMATED:
+┌─────────────────────────────────────────────────────────────────────────┐
+│ • Physical reader installation and positioning                         │
+│ • Physically attaching tags to items                                   │
+│ • Warehouse measurements (until we add camera-based mapping)           │
+│ • Network infrastructure setup (Ethernet to readers)                   │
+│ • Initial data entry for existing inventory                            │
+└─────────────────────────────────────────────────────────────────────────┘
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    POTENTIAL PROBLEMS & SOLUTIONS                            ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+🔴 CRITICAL CHALLENGES:
+┌─────────────────────────────────────────────────────────────────────────┐
+│ Problem 1: RFID Read Rate < 100%                                       │
+│ Reality: 95-99% read rate typical, NOT 100%                            │
+│ Impact: Some items may not be detected                                 │
+│ Solution:                                                               │
+│ • Multi-antenna setup (4 per reader)                                   │
+│ • Read items from multiple angles                                      │
+│ • Flag "last seen > 24 hours" as potentially missing                   │
+│ • Manual audit process for critical items                              │
+│ Risk: 🟡 MEDIUM (manageable with good reader placement)                │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ Problem 2: Metal/Liquid Interference                                    │
+│ Reality: RFID doesn't work well near metal or liquids                  │
+│ Impact: Reduced read range, false negatives                            │
+│ Solution:                                                               │
+│ • Use metal-mount tags (more expensive: R15-R25 each)                  │
+│ • Position readers away from metal shelves                             │
+│ • Test environment before full deployment                              │
+│ Risk: 🟡 MEDIUM (known limitation, plan around it)                     │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ Problem 3: 3D Performance on Low-End Devices                           │
+│ Reality: Mobile phones struggle with heavy 3D                          │
+│ Impact: Lag, low FPS, poor user experience                             │
+│ Solution:                                                               │
+│ • Adaptive rendering quality (low/medium/high)                         │
+│ • Limit visible items to 200 on mobile vs 500 on desktop              │
+│ • Fallback to 2D map view if WebGL not supported                      │
+│ • Progressive enhancement approach                                      │
+│ Risk: 🟢 LOW (well-known solutions available)                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+🟡 MEDIUM CHALLENGES:
+┌─────────────────────────────────────────────────────────────────────────┐
+│ Problem 4: Accurate Warehouse Mapping                                   │
+│ Challenge: Need precise zone positions for pathfinding                 │
+│ Solution:                                                               │
+│ • Build web-based layout editor (drag-and-drop zones)                  │
+│ • Export facility blueprint as JSON                                     │
+│ • Validate with test walks                                             │
+│ Time: 2 weeks to build editor tool                                     │
+│ Risk: 🟡 MEDIUM (manageable with good tooling)                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ Problem 5: Digital Twin Accuracy                                        │
+│ Challenge: Simulation only as good as historical data                  │
+│ Solution:                                                               │
+│ • Start with 3-month minimum data                                       │
+│ • Continuous validation against real outcomes                          │
+│ • Don't oversell as "AI prediction" - call it "scenario planning"     │
+│ • Show confidence intervals in recommendations                         │
+│ Risk: 🟡 MEDIUM (set correct expectations)                             │
+└─────────────────────────────────────────────────────────────────────────┘
+
+🟢 LOW CHALLENGES:
+┌─────────────────────────────────────────────────────────────────────────┐
+│ Problem 6: WebSocket Scaling (10,000+ concurrent users)                │
+│ Solution: Redis adapter + horizontal scaling (well-documented)         │
+│ Risk: 🟢 LOW (won't hit this until massive growth)                     │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ Problem 7: A* Algorithm Performance with Large Facilities              │
+│ Solution: Precompute common paths, cache results in Redis              │
+│ Risk: 🟢 LOW (A* is O(n log n), very efficient)                        │
+└─────────────────────────────────────────────────────────────────────────┘
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                       DECEMBER 15 DEMO READINESS                             ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+✅ DEMO-READY (Fully Functional):
+• Real-time RFID tracking with simulated data (RFIDSimulator running)
+• 3D warehouse visualization with 500+ items
+• Spatial Intelligence pathfinding (working algorithm)
+• Fly-to search with GSAP camera animations
+• WebSocket live updates
+• Multi-tenant UI with zone filters
+
+🟡 PARTIAL DEMO (Basic Version):
+• Digital Twin scenario simulator (simple 2x/3x volume scenarios)
+• Analytics dashboard with Recharts (zone trends, movement heatmaps)
+
+⏰ TIME REMAINING: 38 days (8 December → 15 December)
+📊 ESTIMATED COMPLETION: 85% by December 15
+🎯 DEMO QUALITY: High (enough to win grant)
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                        FINAL TECH STACK SUMMARY                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+HARDWARE:
+• Zebra FX9600 / Impinj R420 RFID readers (R25k-R60k each)
+• Passive UHF RFID tags (R2-R5 each)
+
+BACKEND:
+• Node.js 20 + TypeScript
+• Express.js 4 (REST API)
+• Socket.IO 4.8 (WebSocket)
+• PostgreSQL 15 (master data)
+• TimescaleDB 2.13 (time-series)
+• Redis 7.2 (caching)
+• OpenSearch 2.x (full-text search)
+• llrp library (RFID communication)
+• A* algorithm (custom implementation)
+• Discrete event simulator (custom code)
+
+FRONTEND:
+• React 19 + TypeScript
+• Three.js 0.181 (3D engine)
+• React Three Fiber (React wrapper)
+• @react-three/drei (3D helpers)
+• GSAP 3.13 (animations)
+• Zustand 5 (state management)
+• Socket.IO Client (WebSocket)
+• React Router 7 (navigation)
+• Tailwind CSS 3.4 (styling)
+• Recharts (analytics charts)
+
+DEPLOYMENT:
+• Docker + Docker Compose
+• PM2 (Node.js process manager)
+• Nginx (reverse proxy)
+• Vercel/Netlify (frontend CDN)
+
+ALL LICENSES: ✅ SaaS-Safe (MIT, Apache 2.0, BSD-3, PostgreSQL License)
+
+ESTIMATED COSTS:
+• Development: R0 (you're building it)
+• RFID Hardware: R250k-R500k per facility (one-time)
+• RFID Tags: R2k-R50k depending on quantity
+• Cloud Hosting: R5k-R15k/month (scales with usage)
+• Total First Year: ~R400k-R700k per facility
+```
+
+---
+
 ## 🏗️ SYSTEM ARCHITECTURE OVERVIEW
 
 ### **Complete System Architecture with Tech Stack**
