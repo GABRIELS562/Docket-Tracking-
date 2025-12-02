@@ -1,17 +1,17 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import { injectable, inject } from 'tsyringe';
 import { RegisterItemUseCase } from '../../../application/use-cases/items/RegisterItemUseCase';
 import { SearchItemsUseCase } from '../../../application/use-cases/items/SearchItemsUseCase';
 import { GetItemDetailsUseCase } from '../../../application/use-cases/items/GetItemDetailsUseCase';
 import { GetItemHistoryUseCase } from '../../../application/use-cases/items/GetItemHistoryUseCase';
 import { GetZoneItemsUseCase } from '../../../application/use-cases/items/GetZoneItemsUseCase';
-import { ILogger } from '../../../application/interfaces/ILogger';
+import type { ILogger } from '../../../application/interfaces/ILogger';
+import type { AuthenticatedRequest } from '../middleware/authMiddleware';
 
 /**
  * Item Controller
  *
  * Handles all item-related HTTP requests.
- * This is the generic controller replacing DocketController.
  *
  * Endpoints:
  * - POST   /api/items              - Register new item
@@ -49,9 +49,20 @@ export class ItemController {
    * }
    * ```
    */
-  async create(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async create(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await this.registerItem.execute(req.body);
+      if (!req.tenantId) {
+        res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Tenant context required' },
+        });
+        return;
+      }
+
+      const result = await this.registerItem.execute({
+        ...req.body,
+        tenantId: req.tenantId,
+      });
 
       if (result.isErr()) {
         return next(result.error);
@@ -62,7 +73,7 @@ export class ItemController {
         data: result.value,
         meta: {
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'],
+          requestId: req.requestId,
         },
       });
     } catch (error) {
@@ -84,9 +95,18 @@ export class ItemController {
    * - sortBy: Sort field (itemNumber, referenceId, createdAt, lastSeenAt)
    * - sortOrder: Sort direction (asc, desc)
    */
-  async search(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async search(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
+      if (!req.tenantId) {
+        res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Tenant context required' },
+        });
+        return;
+      }
+
       const result = await this.searchItems.execute({
+        tenantId: req.tenantId,
         query: req.query.q as string,
         status: req.query.status as any,
         zoneId: req.query.zoneId as string,
@@ -112,7 +132,7 @@ export class ItemController {
         },
         meta: {
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'],
+          requestId: req.requestId,
         },
       });
     } catch (error) {
@@ -130,9 +150,18 @@ export class ItemController {
    * - Last seen timestamp
    * - Metadata
    */
-  async getById(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getById(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
+      if (!req.tenantId) {
+        res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Tenant context required' },
+        });
+        return;
+      }
+
       const result = await this.getItemDetails.execute({
+        tenantId: req.tenantId,
         itemNumber: req.params.itemNumber,
       });
 
@@ -145,7 +174,7 @@ export class ItemController {
         data: result.value,
         meta: {
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'],
+          requestId: req.requestId,
         },
       });
     } catch (error) {
@@ -169,9 +198,18 @@ export class ItemController {
    * - Zones visited
    * - RSSI values
    */
-  async getHistory(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getHistory(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
+      if (!req.tenantId) {
+        res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Tenant context required' },
+        });
+        return;
+      }
+
       const result = await this.getItemHistory.execute({
+        tenantId: req.tenantId,
         itemNumber: req.params.itemNumber,
         hours: req.query.hours ? parseInt(req.query.hours as string) : undefined,
         limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
@@ -188,7 +226,7 @@ export class ItemController {
         data: result.value,
         meta: {
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'],
+          requestId: req.requestId,
         },
       });
     } catch (error) {
@@ -209,9 +247,18 @@ export class ItemController {
    * - Array of items in zone
    * - Occupancy metrics
    */
-  async getZoneItems(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getZoneItemsInZone(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
+      if (!req.tenantId) {
+        res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Tenant context required' },
+        });
+        return;
+      }
+
       const result = await this.getZoneItems.execute({
+        tenantId: req.tenantId,
         zoneId: req.params.zoneId,
         limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
         recentOnly: req.query.recentOnly === 'true',
@@ -226,7 +273,7 @@ export class ItemController {
         data: result.value,
         meta: {
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'],
+          requestId: req.requestId,
         },
       });
     } catch (error) {

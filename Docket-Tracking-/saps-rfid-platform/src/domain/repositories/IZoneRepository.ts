@@ -47,6 +47,11 @@ export interface ZoneOccupancyInfo {
  */
 export interface ZoneSearchCriteria {
   /**
+   * Tenant ID for multi-tenant isolation (REQUIRED)
+   */
+  readonly tenantId: string;
+
+  /**
    * Search by zone name or code
    */
   readonly query?: string;
@@ -118,40 +123,43 @@ export interface IZoneRepository {
    * Saves a new zone to the repository
    *
    * @param zone - The zone entity to save
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result indicating success or failure
    *
    * @example
    * ```typescript
    * const zone = Zone.create({
    *   id: 'zone-001',
-   *   name: 'Evidence Storage A',
+   *   name: 'Storage Area A',
    *   code: 'STOR-A',
    *   zoneType: ZoneType.STORAGE,
    *   capacity: 500
    * }).unwrap();
    *
-   * const result = await repository.save(zone);
+   * const result = await repository.save(zone, 'tenant-uuid');
    * ```
    */
-  save(zone: Zone): Promise<Result<void, Error>>;
+  save(zone: Zone, tenantId: string): Promise<Result<void, Error>>;
 
   /**
    * Finds a zone by its unique ID
    *
    * @param id - The zone ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing the zone or null if not found
    */
-  findById(id: string): Promise<Result<Zone | null, Error>>;
+  findById(id: string, tenantId: string): Promise<Result<Zone | null, Error>>;
 
   /**
    * Finds a zone by its unique code
    *
    * @param code - The zone code (e.g., "STOR-A")
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing the zone or ZoneNotFoundError
    *
    * @example
    * ```typescript
-   * const result = await repository.findByCode('STOR-A');
+   * const result = await repository.findByCode('STOR-A', 'tenant-uuid');
    *
    * if (result.isOk()) {
    *   const zone = result.value;
@@ -159,62 +167,66 @@ export interface IZoneRepository {
    * }
    * ```
    */
-  findByCode(code: string): Promise<Result<Zone, ZoneNotFoundError>>;
+  findByCode(code: string, tenantId: string): Promise<Result<Zone, ZoneNotFoundError>>;
 
   /**
-   * Finds all zones
+   * Finds all zones for a tenant
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of all zones
    *
    * @description
-   * Returns all zones regardless of status.
+   * Returns all zones for the tenant regardless of status.
    * For active zones only, use search() with activeOnly: true.
    */
-  findAll(): Promise<Result<Zone[], Error>>;
+  findAll(tenantId: string): Promise<Result<Zone[], Error>>;
 
   /**
-   * Finds all active zones
+   * Finds all active zones for a tenant
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of active zones
    *
    * @description
-   * Returns zones where isActive is true.
+   * Returns zones where isActive is true for the given tenant.
    */
-  findAllActive(): Promise<Result<Zone[], Error>>;
+  findAllActive(tenantId: string): Promise<Result<Zone[], Error>>;
 
   /**
    * Finds zones by type
    *
    * @param zoneType - The type of zone to find
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of matching zones
    *
    * @example
    * ```typescript
-   * const result = await repository.findByType(ZoneType.STORAGE);
+   * const result = await repository.findByType(ZoneType.STORAGE, 'tenant-uuid');
    *
    * if (result.isOk()) {
    *   console.log(`Found ${result.value.length} storage zones`);
    * }
    * ```
    */
-  findByType(zoneType: ZoneType): Promise<Result<Zone[], Error>>;
+  findByType(zoneType: ZoneType, tenantId: string): Promise<Result<Zone[], Error>>;
 
   /**
    * Finds all child zones of a parent zone
    *
    * @param parentZoneId - The parent zone ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of child zones
    *
    * @description
    * Returns zones where parentZoneId matches the given ID.
    * Useful for hierarchical zone navigation.
    */
-  findByParent(parentZoneId: string): Promise<Result<Zone[], Error>>;
+  findByParent(parentZoneId: string, tenantId: string): Promise<Result<Zone[], Error>>;
 
   /**
    * Searches for zones using flexible criteria
    *
-   * @param criteria - Search criteria
+   * @param criteria - Search criteria (includes tenantId)
    * @returns Result containing array of matching zones
    */
   search(criteria: ZoneSearchCriteria): Promise<Result<Zone[], Error>>;
@@ -222,6 +234,7 @@ export interface IZoneRepository {
   /**
    * Finds zones near capacity threshold
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @param threshold - Occupancy percentage threshold (default: 80%)
    * @returns Result containing array of zones near capacity
    *
@@ -232,7 +245,7 @@ export interface IZoneRepository {
    * @example
    * ```typescript
    * // Find zones at 90% capacity or higher
-   * const result = await repository.findNearCapacity(90);
+   * const result = await repository.findNearCapacity('tenant-uuid', 90);
    *
    * if (result.isOk()) {
    *   for (const zone of result.value) {
@@ -241,12 +254,13 @@ export interface IZoneRepository {
    * }
    * ```
    */
-  findNearCapacity(threshold?: number): Promise<Result<Zone[], Error>>;
+  findNearCapacity(tenantId: string, threshold?: number): Promise<Result<Zone[], Error>>;
 
   /**
    * Gets current occupancy count for a specific zone
    *
    * @param zoneId - The zone ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing the current occupancy count
    *
    * @description
@@ -257,11 +271,12 @@ export interface IZoneRepository {
    * - An item is archived/disposed
    * - An item enters/leaves the zone
    */
-  getOccupancy(zoneId: string): Promise<Result<number, Error>>;
+  getOccupancy(zoneId: string, tenantId: string): Promise<Result<number, Error>>;
 
   /**
    * Gets current occupancy counts for all zones
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing Map of zone ID to occupancy count
    *
    * @description
@@ -270,7 +285,7 @@ export interface IZoneRepository {
    *
    * @example
    * ```typescript
-   * const result = await repository.getAllOccupancies();
+   * const result = await repository.getAllOccupancies('tenant-uuid');
    *
    * if (result.isOk()) {
    *   const occupancies = result.value;
@@ -280,11 +295,12 @@ export interface IZoneRepository {
    * }
    * ```
    */
-  getAllOccupancies(): Promise<Result<Map<string, number>, Error>>;
+  getAllOccupancies(tenantId: string): Promise<Result<Map<string, number>, Error>>;
 
   /**
    * Gets occupancy information for all zones
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of zone occupancy info
    *
    * @description
@@ -294,7 +310,7 @@ export interface IZoneRepository {
    *
    * @example
    * ```typescript
-   * const result = await repository.getAllOccupancyInfo();
+   * const result = await repository.getAllOccupancyInfo('tenant-uuid');
    *
    * if (result.isOk()) {
    *   for (const info of result.value) {
@@ -305,12 +321,13 @@ export interface IZoneRepository {
    * }
    * ```
    */
-  getAllOccupancyInfo(): Promise<Result<ZoneOccupancyInfo[], Error>>;
+  getAllOccupancyInfo(tenantId: string): Promise<Result<ZoneOccupancyInfo[], Error>>;
 
   /**
    * Updates an existing zone
    *
    * @param zone - The zone entity with updated values
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result indicating success or failure
    *
    * @description
@@ -318,12 +335,13 @@ export interface IZoneRepository {
    * The zone is identified by its ID.
    * Zone code cannot be changed (immutable identifier).
    */
-  update(zone: Zone): Promise<Result<void, Error>>;
+  update(zone: Zone, tenantId: string): Promise<Result<void, Error>>;
 
   /**
    * Deletes a zone
    *
    * @param id - The zone ID to delete
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result indicating success or failure
    *
    * @description
@@ -333,23 +351,26 @@ export interface IZoneRepository {
    *
    * Otherwise, the zone should be deactivated instead.
    */
-  delete(id: string): Promise<Result<void, Error>>;
+  delete(id: string, tenantId: string): Promise<Result<void, Error>>;
 
   /**
-   * Checks if a zone code already exists
+   * Checks if a zone code already exists for a tenant
    *
    * @param code - The zone code to check
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing boolean (true if exists)
    *
    * @description
    * Used to prevent duplicate zone codes during creation.
+   * Zone codes must be unique within a tenant.
    */
-  existsByCode(code: string): Promise<Result<boolean, Error>>;
+  existsByCode(code: string, tenantId: string): Promise<Result<boolean, Error>>;
 
   /**
    * Increments the occupancy count for a zone
    *
    * @param zoneId - The zone ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result indicating success or failure
    *
    * @description
@@ -357,12 +378,13 @@ export interface IZoneRepository {
    * Called when an item enters the zone.
    * Should fail if zone is at capacity.
    */
-  incrementOccupancy(zoneId: string): Promise<Result<void, Error>>;
+  incrementOccupancy(zoneId: string, tenantId: string): Promise<Result<void, Error>>;
 
   /**
    * Decrements the occupancy count for a zone
    *
    * @param zoneId - The zone ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result indicating success or failure
    *
    * @description
@@ -370,5 +392,5 @@ export interface IZoneRepository {
    * Called when an item leaves the zone.
    * Should fail if occupancy is already 0.
    */
-  decrementOccupancy(zoneId: string): Promise<Result<void, Error>>;
+  decrementOccupancy(zoneId: string, tenantId: string): Promise<Result<void, Error>>;
 }

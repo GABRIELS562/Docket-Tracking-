@@ -1,7 +1,8 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import { injectable, inject } from 'tsyringe';
 import { GetAllReadersUseCase } from '../../../application/use-cases/readers/GetAllReadersUseCase';
-import { ILogger } from '../../../application/interfaces/ILogger';
+import type { ILogger } from '../../../application/interfaces/ILogger';
+import type { AuthenticatedRequest } from '../middleware/authMiddleware';
 
 /**
  * Reader Controller
@@ -22,6 +23,10 @@ export class ReaderController {
    * GET /api/readers
    * Get all RFID readers with current status
    *
+   * Query parameters:
+   * - activeOnly: Only return active readers (default false)
+   * - onlineOnly: Only return online readers (default false)
+   *
    * Returns:
    * - Reader ID and name
    * - IP address and zone assignment
@@ -30,9 +35,21 @@ export class ReaderController {
    * - Configuration
    * - Error message (if applicable)
    */
-  async getAll(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getAll(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await this.getAllReaders.execute();
+      if (!req.tenantId) {
+        res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Tenant context required' },
+        });
+        return;
+      }
+
+      const result = await this.getAllReaders.execute({
+        tenantId: req.tenantId,
+        activeOnly: req.query.activeOnly === 'true',
+        onlineOnly: req.query.onlineOnly === 'true',
+      });
 
       if (result.isErr()) {
         return next(result.error);
@@ -43,7 +60,7 @@ export class ReaderController {
         data: result.value,
         meta: {
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'],
+          requestId: req.requestId,
         },
       });
     } catch (error) {

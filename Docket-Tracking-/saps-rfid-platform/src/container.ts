@@ -9,6 +9,8 @@ import { IItemRepository } from './domain/repositories/IItemRepository';
 import { IZoneRepository } from './domain/repositories/IZoneRepository';
 import { IReaderRepository } from './domain/repositories/IReaderRepository';
 import { ILocationHistoryRepository } from './domain/repositories/ILocationHistoryRepository';
+import { ITenantRepository } from './domain/repositories/ITenantRepository';
+import { ITenantUserRepository } from './domain/repositories/ITenantUserRepository';
 
 // Infrastructure - Logging
 import { WinstonLogger } from './infrastructure/logging/WinstonLogger';
@@ -31,6 +33,11 @@ import { PostgresItemRepository } from './infrastructure/database/repositories/P
 import { PostgresZoneRepository } from './infrastructure/database/repositories/PostgresZoneRepository';
 import { PostgresReaderRepository } from './infrastructure/database/repositories/PostgresReaderRepository';
 import { TimescaleLocationHistoryRepository } from './infrastructure/database/repositories/TimescaleLocationHistoryRepository';
+import { PostgresTenantRepository } from './infrastructure/database/repositories/PostgresTenantRepository';
+import { PostgresTenantUserRepository } from './infrastructure/database/repositories/PostgresTenantUserRepository';
+
+// Infrastructure - Cache (will be enabled when Redis is configured)
+// import { TenantScopedCache } from './infrastructure/cache/TenantScopedCache';
 
 // Application Services - Items
 import { RegisterItemUseCase } from './application/use-cases/items/RegisterItemUseCase';
@@ -44,6 +51,16 @@ import { GetAllZonesUseCase } from './application/use-cases/zones/GetAllZonesUse
 
 // Application Services - Readers
 import { GetAllReadersUseCase } from './application/use-cases/readers/GetAllReadersUseCase';
+
+// Application Services - Tenants
+import { TenantProvisioningService } from './application/services/TenantProvisioningService';
+
+// Presentation - Middleware
+import { AuthMiddlewareFactory } from './presentation/http/middleware/authMiddleware';
+
+// Presentation - Controllers
+import { TenantController } from './presentation/http/controllers/TenantController';
+import { AuthController } from './presentation/http/controllers/AuthController';
 
 // Presentation
 import { Server } from './presentation/http/Server';
@@ -104,6 +121,17 @@ function registerRepositories(): void {
     'ILocationHistoryRepository',
     TimescaleLocationHistoryRepository
   );
+
+  // Tenant Repositories
+  container.registerSingleton<ITenantRepository>(
+    'ITenantRepository',
+    PostgresTenantRepository
+  );
+
+  container.registerSingleton<ITenantUserRepository>(
+    'ITenantUserRepository',
+    PostgresTenantUserRepository
+  );
 }
 
 /**
@@ -122,6 +150,44 @@ function registerUseCases(): void {
 
   // Reader use cases
   container.registerSingleton(GetAllReadersUseCase);
+}
+
+/**
+ * Register tenant and authentication services
+ */
+function registerTenantServices(): void {
+  // JWT Configuration
+  const jwtSecret = config.jwt?.secret || process.env.JWT_SECRET || 'dev-jwt-secret-change-in-production';
+  container.register('JwtConfig', {
+    useValue: {
+      secret: jwtSecret,
+      expiresIn: config.jwt?.expiresIn || '24h',
+      refreshExpiresIn: config.jwt?.refreshExpiresIn || '7d',
+    },
+  });
+
+  // Auth Config for AuthMiddlewareFactory
+  container.register('AuthConfig', {
+    useValue: {
+      jwtSecret,
+      jwtIssuer: config.jwt?.issuer || 'rfid-inventory-platform',
+      jwtAudience: config.jwt?.audience || 'rfid-inventory-api',
+    },
+  });
+
+  // Tenant Provisioning Service
+  container.registerSingleton(TenantProvisioningService);
+
+  // Auth Middleware Factory
+  container.registerSingleton(AuthMiddlewareFactory);
+
+  // Controllers
+  container.registerSingleton(TenantController);
+  container.registerSingleton(AuthController);
+
+  // Tenant-Scoped Cache (requires Redis)
+  // Note: Redis client must be registered separately if using cache
+  // container.registerSingleton(TenantScopedCache);
 }
 
 /**
@@ -152,6 +218,7 @@ export function initializeContainer(): void {
   registerInfrastructure();
   registerRepositories();
   registerUseCases();
+  registerTenantServices();
   registerPresentation();
 }
 

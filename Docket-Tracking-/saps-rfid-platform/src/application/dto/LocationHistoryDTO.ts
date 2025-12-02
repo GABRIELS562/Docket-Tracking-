@@ -7,7 +7,7 @@
  *
  * Used in:
  * - GET /api/location-history
- * - GET /api/items/:labNumber/history
+ * - GET /api/items/:itemNumber/history
  * - GET /api/zones/:id/activity
  */
 export interface LocationHistoryDTO {
@@ -18,10 +18,10 @@ export interface LocationHistoryDTO {
   readonly timestamp: string;
 
   /**
-   * Lab number of the item
-   * @example "FSL-2025-000123"
+   * Item number of the item
+   * @example "INV-2025-000123"
    */
-  readonly labNumber: string;
+  readonly itemNumber: string;
 
   /**
    * Zone ID where tag was read
@@ -31,7 +31,7 @@ export interface LocationHistoryDTO {
 
   /**
    * Zone name
-   * @example "Evidence Storage A"
+   * @example "Storage Area A"
    */
   readonly zoneName: string;
 
@@ -98,10 +98,10 @@ export interface LocationHistoryDTO {
  */
 export interface QueryLocationHistoryDTO {
   /**
-   * Filter by lab number
-   * @example "FSL-2025-000123"
+   * Filter by item number
+   * @example "INV-2025-000123"
    */
-  readonly labNumber?: string;
+  readonly itemNumber?: string;
 
   /**
    * Filter by zone ID
@@ -167,9 +167,9 @@ export interface QueryLocationHistoryDTO {
  */
 export interface ZoneVisitSummaryDTO {
   /**
-   * Lab number
+   * Item number
    */
-  readonly labNumber: string;
+  readonly itemNumber: string;
 
   /**
    * Zone ID

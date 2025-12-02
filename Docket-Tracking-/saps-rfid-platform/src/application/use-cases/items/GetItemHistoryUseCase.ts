@@ -12,6 +12,11 @@ import { ItemNotFoundError } from '../../../domain/errors/ItemNotFoundError';
  */
 export interface GetItemHistoryInput {
   /**
+   * Tenant ID for multi-tenant isolation (REQUIRED)
+   */
+  readonly tenantId: string;
+
+  /**
    * Item number to look up
    * @example "INV-2025-000123"
    */
@@ -132,9 +137,9 @@ export class GetItemHistoryUseCase {
       const itemNumber = itemNumberResult.value;
 
       // Step 2: Verify item exists
-      const itemResult = await this.itemRepo.findByItemNumber(itemNumber);
+      const itemResult = await this.itemRepo.findByItemNumber(itemNumber, input.tenantId);
       if (itemResult.isErr()) {
-        this.logger.warn('Item not found', { itemNumber: input.itemNumber });
+        this.logger.warn('Item not found', { itemNumber: input.itemNumber, tenantId: input.tenantId });
         return err(new ItemNotFoundError(input.itemNumber, 'itemNumber'));
       }
       const item = itemResult.value;
@@ -167,6 +172,7 @@ export class GetItemHistoryUseCase {
 
       const historyResult = await this.historyRepo.getHistoryForItem(
         item.getId(),
+        input.tenantId,
         startTime,
         endTime,
         limit

@@ -13,6 +13,11 @@ import { ItemStatus } from '../../../domain/entities/Item';
  */
 export interface SearchItemsInput {
   /**
+   * Tenant ID for multi-tenant isolation (REQUIRED)
+   */
+  readonly tenantId: string;
+
+  /**
    * Full-text search query
    * Searches in: itemNumber, referenceId, description, serialNumber
    */
@@ -131,6 +136,7 @@ export class SearchItemsUseCase {
 
       // Step 2: Build search criteria
       const criteria: ItemSearchCriteria = {
+        tenantId: input.tenantId,
         query: input.query?.trim(),
         status: this.mapStatusToEnum(input.status),
         zoneId: input.zoneId,
@@ -166,7 +172,7 @@ export class SearchItemsUseCase {
       if (zoneIds.length > 0) {
         // Batch fetch zones to avoid N+1
         for (const zoneId of zoneIds) {
-          const zoneResult = await this.zoneRepo.findById(zoneId);
+          const zoneResult = await this.zoneRepo.findById(zoneId, input.tenantId);
           if (zoneResult.isOk() && zoneResult.value) {
             const zone = zoneResult.value;
             zoneMap.set(zoneId, {

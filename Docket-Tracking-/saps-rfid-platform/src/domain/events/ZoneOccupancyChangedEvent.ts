@@ -50,7 +50,7 @@ export class ZoneOccupancyChangedEvent extends DomainEvent {
 
     /**
      * Zone name
-     * @example "Evidence Storage A"
+     * @example "Storage Area A"
      */
     public readonly zoneName: string,
 

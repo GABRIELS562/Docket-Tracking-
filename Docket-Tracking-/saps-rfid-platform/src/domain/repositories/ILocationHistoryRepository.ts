@@ -23,9 +23,9 @@ export interface LocationHistoryEntry {
   readonly itemId: string;
 
   /**
-   * Lab number of the item
+   * Item number of the item
    */
-  readonly labNumber: string;
+  readonly itemNumber: string;
 
   /**
    * Zone ID where tag was detected
@@ -156,6 +156,11 @@ export interface ReadStatistics {
  */
 export interface AnalyticsQueryOptions {
   /**
+   * Tenant ID for multi-tenant isolation (REQUIRED)
+   */
+  readonly tenantId: string;
+
+  /**
    * Start of time range
    */
   readonly startTime: Date;
@@ -217,6 +222,7 @@ export interface ILocationHistoryRepository {
    *
    * @param tagRead - The tag read value object
    * @param itemId - The item ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @param zoneId - The zone where tag was detected (null if unknown)
    * @param eventType - Type of location event
    * @returns Result indicating success or failure
@@ -238,6 +244,7 @@ export interface ILocationHistoryRepository {
    * const result = await repository.recordTagRead(
    *   tagRead,
    *   'item-001',
+   *   'tenant-uuid',
    *   'zone-001',
    *   'tag_read'
    * );
@@ -246,6 +253,7 @@ export interface ILocationHistoryRepository {
   recordTagRead(
     tagRead: TagRead,
     itemId: string,
+    tenantId: string,
     zoneId: string | null,
     eventType: 'tag_read' | 'zone_entry' | 'zone_exit' | 'movement'
   ): Promise<Result<void, Error>>;
@@ -254,6 +262,7 @@ export interface ILocationHistoryRepository {
    * Records multiple tag reads in a batch
    *
    * @param reads - Array of tag reads with associated metadata
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result indicating success or failure
    *
    * @description
@@ -270,7 +279,7 @@ export interface ILocationHistoryRepository {
    *   eventType: 'tag_read' as const
    * }));
    *
-   * const result = await repository.saveBatch(batch);
+   * const result = await repository.saveBatch(batch, 'tenant-uuid');
    * ```
    */
   saveBatch(
@@ -279,13 +288,15 @@ export interface ILocationHistoryRepository {
       itemId: string;
       zoneId: string | null;
       eventType: 'tag_read' | 'zone_entry' | 'zone_exit' | 'movement';
-    }>
+    }>,
+    tenantId: string
   ): Promise<Result<void, Error>>;
 
   /**
    * Gets location history for a specific item
    *
    * @param itemId - The item ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @param startTime - Start of time range (optional)
    * @param endTime - End of time range (optional)
    * @param limit - Maximum number of records (default: 100)
@@ -299,6 +310,7 @@ export interface ILocationHistoryRepository {
    * ```typescript
    * const result = await repository.getHistoryForItem(
    *   'item-001',
+   *   'tenant-uuid',
    *   new Date('2025-01-01'),
    *   new Date('2025-01-31'),
    *   50
@@ -313,6 +325,7 @@ export interface ILocationHistoryRepository {
    */
   getHistoryForItem(
     itemId: string,
+    tenantId: string,
     startTime?: Date,
     endTime?: Date,
     limit?: number
@@ -322,6 +335,7 @@ export interface ILocationHistoryRepository {
    * Gets location history for an item by item number
    *
    * @param itemNumber - The item number value object
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @param startTime - Start of time range (optional)
    * @param endTime - End of time range (optional)
    * @param limit - Maximum number of records (default: 100)
@@ -329,6 +343,7 @@ export interface ILocationHistoryRepository {
    */
   getHistoryByItemNumber(
     itemNumber: ItemNumber,
+    tenantId: string,
     startTime?: Date,
     endTime?: Date,
     limit?: number
@@ -338,6 +353,7 @@ export interface ILocationHistoryRepository {
    * Gets location history for a specific zone
    *
    * @param zoneId - The zone ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @param startTime - Start of time range (optional)
    * @param endTime - End of time range (optional)
    * @param limit - Maximum number of records (default: 100)
@@ -349,6 +365,7 @@ export interface ILocationHistoryRepository {
    */
   getHistoryForZone(
     zoneId: string,
+    tenantId: string,
     startTime?: Date,
     endTime?: Date,
     limit?: number
@@ -358,6 +375,7 @@ export interface ILocationHistoryRepository {
    * Gets recent tag reads for an EPC
    *
    * @param epc - The RFID EPC value object
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @param withinMs - Time window in milliseconds (default: 3000ms)
    * @returns Result containing array of recent reads
    *
@@ -369,7 +387,7 @@ export interface ILocationHistoryRepository {
    * @example
    * ```typescript
    * // Get reads from last 5 seconds for deduplication
-   * const result = await repository.getRecentReadsForEpc(epc, 5000);
+   * const result = await repository.getRecentReadsForEpc(epc, 'tenant-uuid', 5000);
    *
    * if (result.isOk() && result.value.length > 1) {
    *   console.log('Duplicate reads detected - deduplicating...');
@@ -378,6 +396,7 @@ export interface ILocationHistoryRepository {
    */
   getRecentReadsForEpc(
     epc: RfidEpc,
+    tenantId: string,
     withinMs?: number
   ): Promise<Result<LocationHistoryEntry[], Error>>;
 
@@ -385,18 +404,20 @@ export interface ILocationHistoryRepository {
    * Gets the last known location of a item
    *
    * @param itemId - The item ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing the most recent location entry or null
    *
    * @description
    * Returns the most recent tag read for the item.
    * Useful for quick location lookup without loading full history.
    */
-  getLastKnownLocation(itemId: string): Promise<Result<LocationHistoryEntry | null, Error>>;
+  getLastKnownLocation(itemId: string, tenantId: string): Promise<Result<LocationHistoryEntry | null, Error>>;
 
   /**
    * Gets zone visit summary for a item
    *
    * @param itemId - The item ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @param startTime - Start of time range
    * @param endTime - End of time range
    * @returns Result containing array of zone visits
@@ -409,6 +430,7 @@ export interface ILocationHistoryRepository {
    * ```typescript
    * const result = await repository.getZoneVisits(
    *   'item-001',
+   *   'tenant-uuid',
    *   new Date('2025-01-01'),
    *   new Date('2025-01-31')
    * );
@@ -425,6 +447,7 @@ export interface ILocationHistoryRepository {
    */
   getZoneVisits(
     itemId: string,
+    tenantId: string,
     startTime: Date,
     endTime: Date
   ): Promise<Result<ZoneVisitSummary[], Error>>;
@@ -432,6 +455,7 @@ export interface ILocationHistoryRepository {
   /**
    * Gets tag read count statistics by zone
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @param startTime - Start of time range
    * @param endTime - End of time range
    * @returns Result containing Map of zone ID to read count
@@ -441,6 +465,7 @@ export interface ILocationHistoryRepository {
    * Used for activity heat maps and zone utilization reports.
    */
   getReadCountByZone(
+    tenantId: string,
     startTime: Date,
     endTime: Date
   ): Promise<Result<Map<string, number>, Error>>;
@@ -448,6 +473,7 @@ export interface ILocationHistoryRepository {
   /**
    * Gets tag read count statistics by reader
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @param startTime - Start of time range
    * @param endTime - End of time range
    * @returns Result containing Map of reader ID to read count
@@ -457,6 +483,7 @@ export interface ILocationHistoryRepository {
    * Used for reader performance monitoring.
    */
   getReadCountByReader(
+    tenantId: string,
     startTime: Date,
     endTime: Date
   ): Promise<Result<Map<string, number>, Error>>;
@@ -492,6 +519,7 @@ export interface ILocationHistoryRepository {
   /**
    * Deletes location history older than the specified date
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @param olderThan - Delete records older than this date
    * @returns Result containing number of records deleted
    *
@@ -506,22 +534,23 @@ export interface ILocationHistoryRepository {
    * const twoYearsAgo = new Date();
    * twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
    *
-   * const result = await repository.deleteOlderThan(twoYearsAgo);
+   * const result = await repository.deleteOlderThan('tenant-uuid', twoYearsAgo);
    *
    * if (result.isOk()) {
    *   console.log(`Deleted ${result.value} old records`);
    * }
    * ```
    */
-  deleteOlderThan(olderThan: Date): Promise<Result<number, Error>>;
+  deleteOlderThan(tenantId: string, olderThan: Date): Promise<Result<number, Error>>;
 
   /**
-   * Gets database statistics
+   * Gets database statistics for a tenant
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing storage and performance metrics
    *
    * @description
-   * Returns information about the location history storage:
+   * Returns information about the location history storage for a tenant:
    * - Total number of records
    * - Oldest record timestamp
    * - Newest record timestamp
@@ -530,7 +559,7 @@ export interface ILocationHistoryRepository {
    *
    * Used for capacity planning and monitoring.
    */
-  getStorageStats(): Promise<
+  getStorageStats(tenantId: string): Promise<
     Result<
       {
         totalRecords: number;

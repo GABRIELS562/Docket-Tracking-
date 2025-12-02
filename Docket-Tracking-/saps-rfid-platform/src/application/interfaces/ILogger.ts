@@ -43,7 +43,7 @@ export interface ILogger {
    * @example
    * ```typescript
    * logger.info('Item registered successfully', {
-   *   labNumber: 'FSL-2025-000123',
+   *   itemNumber: 'INV-2025-000123',
    *   epc: 'E280116060002004DECA48DA'
    * });
    * ```
@@ -80,7 +80,7 @@ export interface ILogger {
    * @example
    * ```typescript
    * logger.error('Failed to save item', {
-   *   labNumber: 'FSL-2025-000123',
+   *   itemNumber: 'INV-2025-000123',
    *   error: error.message
    * });
    * ```

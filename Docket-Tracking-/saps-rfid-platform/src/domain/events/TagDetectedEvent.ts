@@ -18,7 +18,7 @@ import { DomainEvent } from './DomainEvent';
  * - **Location Processor**: Aggregate reads to determine item location
  * - **Real-time Dashboard**: Update live tag detection map via WebSocket
  * - **Zone Occupancy Service**: Calculate current zone occupancy
- * - **Audit Service**: Log raw RFID reads for forensic analysis
+ * - **Audit Service**: Log raw RFID reads for tracking and analysis
  * - **Performance Monitor**: Track reader performance and detection rates
  * - **Alert Service**: Trigger alerts for unexpected detections
  *

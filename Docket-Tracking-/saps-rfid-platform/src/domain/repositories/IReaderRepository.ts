@@ -103,6 +103,11 @@ export interface ReaderStatusUpdate {
  */
 export interface ReaderSearchCriteria {
   /**
+   * Tenant ID for multi-tenant isolation (REQUIRED)
+   */
+  readonly tenantId: string;
+
+  /**
    * Search by reader name or ID
    */
   readonly query?: string;
@@ -174,6 +179,7 @@ export interface IReaderRepository {
    * Saves a new reader to the repository
    *
    * @param reader - The reader entity to save
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result indicating success or failure
    *
    * @example
@@ -189,29 +195,31 @@ export interface IReaderRepository {
    *   configuration: defaultConfig
    * }).unwrap();
    *
-   * const result = await repository.save(reader);
+   * const result = await repository.save(reader, 'tenant-uuid');
    * ```
    */
-  save(reader: Reader): Promise<Result<void, Error>>;
+  save(reader: Reader, tenantId: string): Promise<Result<void, Error>>;
 
   /**
    * Finds a reader by its unique ID
    *
    * @param id - The reader ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing the reader or null if not found
    */
-  findById(id: string): Promise<Result<Reader | null, Error>>;
+  findById(id: string, tenantId: string): Promise<Result<Reader | null, Error>>;
 
   /**
-   * Finds a reader by its IP address
+   * Finds a reader by its IP address within a tenant
    *
    * @param ipAddress - The IP address value object
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing the reader or ReaderNotFoundError
    *
    * @example
    * ```typescript
    * const ipAddress = IpAddress.create('192.168.1.100').unwrap();
-   * const result = await repository.findByIpAddress(ipAddress);
+   * const result = await repository.findByIpAddress(ipAddress, 'tenant-uuid');
    *
    * if (result.isOk()) {
    *   const reader = result.value;
@@ -219,68 +227,74 @@ export interface IReaderRepository {
    * }
    * ```
    */
-  findByIpAddress(ipAddress: IpAddress): Promise<Result<Reader, ReaderNotFoundError>>;
+  findByIpAddress(ipAddress: IpAddress, tenantId: string): Promise<Result<Reader, ReaderNotFoundError>>;
 
   /**
-   * Finds all readers
+   * Finds all readers for a tenant
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of all readers
    */
-  findAll(): Promise<Result<Reader[], Error>>;
+  findAll(tenantId: string): Promise<Result<Reader[], Error>>;
 
   /**
-   * Finds all active readers
+   * Finds all active readers for a tenant
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of active readers
    *
    * @description
-   * Returns readers where isActive is true.
+   * Returns readers where isActive is true for the given tenant.
    */
-  findAllActive(): Promise<Result<Reader[], Error>>;
+  findAllActive(tenantId: string): Promise<Result<Reader[], Error>>;
 
   /**
-   * Finds all readers in a specific zone
+   * Finds all readers in a specific zone within a tenant
    *
    * @param zoneId - The zone ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of readers in the zone
    *
    * @example
    * ```typescript
-   * const result = await repository.findByZone('zone-001');
+   * const result = await repository.findByZone('zone-001', 'tenant-uuid');
    *
    * if (result.isOk()) {
    *   console.log(`Found ${result.value.length} readers in zone`);
    * }
    * ```
    */
-  findByZone(zoneId: string): Promise<Result<Reader[], Error>>;
+  findByZone(zoneId: string, tenantId: string): Promise<Result<Reader[], Error>>;
 
   /**
-   * Finds all online readers
+   * Finds all online readers for a tenant
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of online readers
    *
    * @description
-   * Returns readers with status ONLINE.
+   * Returns readers with status ONLINE for the given tenant.
    * Used to get list of active readers for tag reading operations.
    */
-  findAllOnline(): Promise<Result<Reader[], Error>>;
+  findAllOnline(tenantId: string): Promise<Result<Reader[], Error>>;
 
   /**
-   * Finds all offline or error readers
+   * Finds all offline or error readers for a tenant
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of unhealthy readers
    *
    * @description
-   * Returns readers with status OFFLINE or ERROR.
+   * Returns readers with status OFFLINE or ERROR for the given tenant.
    * Used for health monitoring and alerting.
    */
-  findAllUnhealthy(): Promise<Result<Reader[], Error>>;
+  findAllUnhealthy(tenantId: string): Promise<Result<Reader[], Error>>;
 
   /**
    * Finds readers that haven't been seen within the threshold
    *
    * @param thresholdSeconds - Seconds without connection before considered stale
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of stale readers
    *
    * @description
@@ -293,28 +307,29 @@ export interface IReaderRepository {
    * @example
    * ```typescript
    * // Find readers not seen in 5 minutes (300 seconds)
-   * const result = await repository.findStale(300);
+   * const result = await repository.findStale(300, 'tenant-uuid');
    *
    * if (result.isOk()) {
    *   for (const reader of result.value) {
    *     console.warn(`Reader ${reader.getName()} may be offline`);
    *     await reader.markOffline();
-   *     await repository.update(reader);
+   *     await repository.update(reader, 'tenant-uuid');
    *   }
    * }
    * ```
    */
-  findStale(thresholdSeconds: number): Promise<Result<Reader[], Error>>;
+  findStale(thresholdSeconds: number, tenantId: string): Promise<Result<Reader[], Error>>;
 
   /**
-   * Searches for readers using flexible criteria
+   * Searches for readers using flexible criteria (tenant-scoped)
    *
-   * @param criteria - Search criteria
+   * @param criteria - Search criteria (includes tenantId)
    * @returns Result containing array of matching readers
    *
    * @example
    * ```typescript
    * const result = await repository.search({
+   *   tenantId: 'tenant-uuid',
    *   status: ReaderStatus.ONLINE,
    *   zoneId: 'zone-001',
    *   healthyOnly: true
@@ -324,17 +339,18 @@ export interface IReaderRepository {
   search(criteria: ReaderSearchCriteria): Promise<Result<Reader[], Error>>;
 
   /**
-   * Gets health statistics for all readers
+   * Gets health statistics for all readers in a tenant
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of reader health stats
    *
    * @description
-   * Returns aggregated health metrics for all readers.
+   * Returns aggregated health metrics for all readers in the tenant.
    * More efficient than calling getHealth() for each reader individually.
    *
    * @example
    * ```typescript
-   * const result = await repository.getAllHealthStats();
+   * const result = await repository.getAllHealthStats('tenant-uuid');
    *
    * if (result.isOk()) {
    *   for (const stats of result.value) {
@@ -345,12 +361,13 @@ export interface IReaderRepository {
    * }
    * ```
    */
-  getAllHealthStats(): Promise<Result<ReaderHealthStats[], Error>>;
+  getAllHealthStats(tenantId: string): Promise<Result<ReaderHealthStats[], Error>>;
 
   /**
-   * Updates an existing reader
+   * Updates an existing reader within a tenant
    *
    * @param reader - The reader entity with updated values
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result indicating success or failure
    *
    * @description
@@ -358,12 +375,13 @@ export interface IReaderRepository {
    * The reader is identified by its ID.
    * IP address should not be changed after creation.
    */
-  update(reader: Reader): Promise<Result<void, Error>>;
+  update(reader: Reader, tenantId: string): Promise<Result<void, Error>>;
 
   /**
-   * Bulk updates reader statuses
+   * Bulk updates reader statuses within a tenant
    *
    * @param updates - Array of status updates to apply
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result indicating success or failure
    *
    * @description
@@ -378,39 +396,42 @@ export interface IReaderRepository {
    *   { readerId: 'reader-003', status: ReaderStatus.ERROR, errorMessage: 'Connection timeout' }
    * ];
    *
-   * const result = await repository.updateStatuses(updates);
+   * const result = await repository.updateStatuses(updates, 'tenant-uuid');
    * ```
    */
-  updateStatuses(updates: ReaderStatusUpdate[]): Promise<Result<void, Error>>;
+  updateStatuses(updates: ReaderStatusUpdate[], tenantId: string): Promise<Result<void, Error>>;
 
   /**
-   * Deletes a reader
+   * Deletes a reader within a tenant
    *
    * @param id - The reader ID to delete
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result indicating success or failure
    *
    * @description
    * Physical deletion is only allowed if the reader is not currently
    * assigned to any zone with active items.
    */
-  delete(id: string): Promise<Result<void, Error>>;
+  delete(id: string, tenantId: string): Promise<Result<void, Error>>;
 
   /**
-   * Checks if an IP address is already in use
+   * Checks if an IP address is already in use within a tenant
    *
    * @param ipAddress - The IP address to check
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing boolean (true if in use)
    *
    * @description
    * Used to prevent assigning duplicate IP addresses during reader creation.
-   * Each reader must have a unique IP address on the network.
+   * IP addresses must be unique within a tenant.
    */
-  existsByIpAddress(ipAddress: IpAddress): Promise<Result<boolean, Error>>;
+  existsByIpAddress(ipAddress: IpAddress, tenantId: string): Promise<Result<boolean, Error>>;
 
   /**
-   * Records a heartbeat from a reader
+   * Records a heartbeat from a reader within a tenant
    *
    * @param readerId - The reader ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result indicating success or failure
    *
    * @description
@@ -418,12 +439,13 @@ export interface IReaderRepository {
    * Called periodically when the reader sends keepalive messages.
    * Lightweight operation optimized for high frequency.
    */
-  recordHeartbeat(readerId: string): Promise<Result<void, Error>>;
+  recordHeartbeat(readerId: string, tenantId: string): Promise<Result<void, Error>>;
 
   /**
-   * Increments read counters for a reader
+   * Increments read counters for a reader within a tenant
    *
    * @param readerId - The reader ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @param successful - Number of successful reads to add
    * @param failed - Number of failed reads to add
    * @returns Result indicating success or failure
@@ -434,6 +456,7 @@ export interface IReaderRepository {
    */
   incrementReadCounters(
     readerId: string,
+    tenantId: string,
     successful: number,
     failed: number
   ): Promise<Result<void, Error>>;

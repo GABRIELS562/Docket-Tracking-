@@ -20,6 +20,7 @@ import type { ILogger } from '../../../application/interfaces/ILogger';
  */
 interface ZoneRow {
   id: string;
+  tenant_id: string;
   name: string;
   code: string;
   description: string | null;
@@ -37,29 +38,30 @@ interface ZoneRow {
 }
 
 /**
- * PostgreSQL Implementation of IZoneRepository
+ * PostgreSQL Implementation of IZoneRepository (Multi-Tenant)
  *
  * @description
- * Concrete repository implementation using PostgreSQL.
- * Includes caching for performance optimization.
+ * Concrete repository implementation using PostgreSQL with full multi-tenant support.
+ * ALL queries are filtered by tenant_id for data isolation.
  *
  * **Features:**
- * - In-memory caching (1-minute TTL)
+ * - Tenant-scoped in-memory caching (1-minute TTL)
  * - Aggregated occupancy queries
  * - Optimized bulk operations
  * - Hierarchical zone support
  * - Dynamic search with multiple criteria
  *
  * **Caching Strategy:**
- * Zones change infrequently, so we cache the entire zone list for 1 minute.
+ * Zones change infrequently, so we cache zone lists per tenant for 1 minute.
  * Cache is invalidated on any write operation (save, update, delete).
  *
  * **Database Schema Expected:**
  * ```sql
  * CREATE TABLE zones (
  *   id VARCHAR(36) PRIMARY KEY,
+ *   tenant_id UUID NOT NULL REFERENCES tenants(id),
  *   name VARCHAR(100) NOT NULL,
- *   code VARCHAR(50) UNIQUE NOT NULL,
+ *   code VARCHAR(50) NOT NULL,
  *   description TEXT,
  *   zone_type VARCHAR(20) NOT NULL,
  *   capacity INTEGER NOT NULL DEFAULT 0,
@@ -72,32 +74,35 @@ interface ZoneRow {
  *   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
  *   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
  *   FOREIGN KEY (parent_zone_id) REFERENCES zones(id),
+ *   UNIQUE (tenant_id, code),
  *   CHECK (current_occupancy >= 0),
  *   CHECK (current_occupancy <= capacity)
  * );
  *
- * CREATE INDEX idx_zones_code ON zones(code);
- * CREATE INDEX idx_zones_type ON zones(zone_type);
+ * CREATE INDEX idx_zones_tenant ON zones(tenant_id);
+ * CREATE INDEX idx_zones_tenant_code ON zones(tenant_id, code);
+ * CREATE INDEX idx_zones_tenant_type ON zones(tenant_id, zone_type);
  * CREATE INDEX idx_zones_parent ON zones(parent_zone_id);
- * CREATE INDEX idx_zones_active ON zones(is_active);
+ * CREATE INDEX idx_zones_tenant_active ON zones(tenant_id, is_active);
  * ```
  *
  * @example
  * ```typescript
  * const repository = new PostgresZoneRepository(db, logger);
  *
- * // Find all zones (uses cache if valid)
- * const zones = await repository.findAll();
+ * // Find all zones for a tenant (uses cache if valid)
+ * const zones = await repository.findAll('tenant-uuid');
  *
  * // Get occupancy for all zones (single query)
- * const occupancies = await repository.getAllOccupancies();
+ * const occupancies = await repository.getAllOccupancies('tenant-uuid');
  * ```
  */
 @injectable()
 export class PostgresZoneRepository extends BaseRepository implements IZoneRepository {
-  // In-memory cache for zones (they change rarely)
-  private zoneCache: Map<string, Zone> = new Map();
-  private cacheTimestamp: number = 0;
+  // Tenant-scoped in-memory cache for zones (they change rarely)
+  // Map<tenantId, Map<zoneId, Zone>>
+  private zoneCache: Map<string, Map<string, Zone>> = new Map();
+  private cacheTimestamp: Map<string, number> = new Map();
   private readonly CACHE_TTL_MS = 60000; // 1 minute
 
   constructor(
@@ -111,17 +116,19 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
    * Saves a new zone to the database
    *
    * @param zone - Zone entity to save
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result indicating success or failure
    *
    * @description
    * Invalidates cache after successful save.
    */
-  async save(zone: Zone): Promise<Result<void, Error>> {
+  async save(zone: Zone, tenantId: string): Promise<Result<void, Error>> {
     const props = zone.toPersistence();
 
     const sql = `
       INSERT INTO zones (
         id,
+        tenant_id,
         name,
         code,
         description,
@@ -135,11 +142,12 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
         is_active,
         created_at,
         updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
     `;
 
     const params = [
       props.id,
+      tenantId,
       props.name,
       props.code,
       props.description ?? null,
@@ -163,29 +171,34 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
 
     this.logger.info('Zone saved', {
       id: props.id,
+      tenantId,
       code: props.code,
       name: props.name,
     });
 
-    // Invalidate cache
-    this.invalidateCache();
+    // Invalidate tenant cache
+    this.invalidateTenantCache(tenantId);
 
     return ok(undefined);
   }
 
   /**
-   * Finds a zone by its unique ID
+   * Finds a zone by its unique ID within a tenant
    *
    * @param id - Zone ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing zone or null if not found
    *
    * @description
-   * Checks cache first. If cache miss, queries database.
+   * Checks tenant cache first. If cache miss, queries database.
    */
-  async findById(id: string): Promise<Result<Zone | null, Error>> {
+  async findById(id: string, tenantId: string): Promise<Result<Zone | null, Error>> {
     // Check cache first
-    if (this.isCacheValid() && this.zoneCache.has(id)) {
-      return ok(this.zoneCache.get(id)!);
+    if (this.isTenantCacheValid(tenantId)) {
+      const tenantCache = this.zoneCache.get(tenantId);
+      if (tenantCache?.has(id)) {
+        return ok(tenantCache.get(id)!);
+      }
     }
 
     const sql = `
@@ -196,12 +209,12 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
           ARRAY[]::text[]
         ) as reader_ids
       FROM zones z
-      LEFT JOIN readers r ON r.zone_id = z.id
-      WHERE z.id = $1
+      LEFT JOIN readers r ON r.zone_id = z.id AND r.tenant_id = $2
+      WHERE z.id = $1 AND z.tenant_id = $2
       GROUP BY z.id
     `;
 
-    const result = await this.executeQueryOne<ZoneRow>(sql, [id]);
+    const result = await this.executeQueryOne<ZoneRow>(sql, [id, tenantId]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -217,18 +230,19 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
     }
 
     // Update cache
-    this.zoneCache.set(id, zoneResult.value);
+    this.updateTenantCache(tenantId, id, zoneResult.value);
 
     return ok(zoneResult.value);
   }
 
   /**
-   * Finds a zone by its unique code
+   * Finds a zone by its unique code within a tenant
    *
    * @param code - Zone code
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing zone or ZoneNotFoundError
    */
-  async findByCode(code: string): Promise<Result<Zone, ZoneNotFoundError>> {
+  async findByCode(code: string, tenantId: string): Promise<Result<Zone, ZoneNotFoundError>> {
     const sql = `
       SELECT
         z.*,
@@ -237,12 +251,12 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
           ARRAY[]::text[]
         ) as reader_ids
       FROM zones z
-      LEFT JOIN readers r ON r.zone_id = z.id
-      WHERE z.code = $1
+      LEFT JOIN readers r ON r.zone_id = z.id AND r.tenant_id = $2
+      WHERE z.code = $1 AND z.tenant_id = $2
       GROUP BY z.id
     `;
 
-    const result = await this.executeQueryOne<ZoneRow>(sql, [code.toUpperCase()]);
+    const result = await this.executeQueryOne<ZoneRow>(sql, [code.toUpperCase(), tenantId]);
 
     if (result.isErr()) {
       return err(new ZoneNotFoundError(code));
@@ -261,17 +275,21 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
   }
 
   /**
-   * Finds all zones
+   * Finds all zones for a tenant
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of all zones
    *
    * @description
-   * Uses cache if valid. Otherwise, fetches from database and populates cache.
+   * Uses tenant cache if valid. Otherwise, fetches from database and populates cache.
    */
-  async findAll(): Promise<Result<Zone[], Error>> {
+  async findAll(tenantId: string): Promise<Result<Zone[], Error>> {
     // Check cache first
-    if (this.isCacheValid()) {
-      return ok(Array.from(this.zoneCache.values()));
+    if (this.isTenantCacheValid(tenantId)) {
+      const tenantCache = this.zoneCache.get(tenantId);
+      if (tenantCache) {
+        return ok(Array.from(tenantCache.values()));
+      }
     }
 
     const sql = `
@@ -282,36 +300,43 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
           ARRAY[]::text[]
         ) as reader_ids
       FROM zones z
-      LEFT JOIN readers r ON r.zone_id = z.id
+      LEFT JOIN readers r ON r.zone_id = z.id AND r.tenant_id = $1
+      WHERE z.tenant_id = $1
       GROUP BY z.id
       ORDER BY z.name
     `;
 
-    const result = await this.executeQuery<ZoneRow>(sql);
+    const result = await this.executeQuery<ZoneRow>(sql, [tenantId]);
 
     if (result.isErr()) {
       return err(result.error);
     }
 
     const zones: Zone[] = [];
+    const tenantCache = new Map<string, Zone>();
+
     for (const row of result.value) {
       const zoneResult = this.rowToDomain(row);
       if (zoneResult.isOk()) {
         zones.push(zoneResult.value);
-        this.zoneCache.set(row.id, zoneResult.value);
+        tenantCache.set(row.id, zoneResult.value);
       }
     }
 
-    this.cacheTimestamp = Date.now();
+    // Update cache
+    this.zoneCache.set(tenantId, tenantCache);
+    this.cacheTimestamp.set(tenantId, Date.now());
+
     return ok(zones);
   }
 
   /**
-   * Finds all active zones
+   * Finds all active zones for a tenant
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of active zones
    */
-  async findAllActive(): Promise<Result<Zone[], Error>> {
+  async findAllActive(tenantId: string): Promise<Result<Zone[], Error>> {
     const sql = `
       SELECT
         z.*,
@@ -320,13 +345,13 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
           ARRAY[]::text[]
         ) as reader_ids
       FROM zones z
-      LEFT JOIN readers r ON r.zone_id = z.id
-      WHERE z.is_active = true
+      LEFT JOIN readers r ON r.zone_id = z.id AND r.tenant_id = $1
+      WHERE z.tenant_id = $1 AND z.is_active = true
       GROUP BY z.id
       ORDER BY z.name
     `;
 
-    const result = await this.executeQuery<ZoneRow>(sql);
+    const result = await this.executeQuery<ZoneRow>(sql, [tenantId]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -344,12 +369,13 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
   }
 
   /**
-   * Finds zones by type
+   * Finds zones by type within a tenant
    *
    * @param zoneType - The type of zone to find
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of matching zones
    */
-  async findByType(zoneType: ZoneType): Promise<Result<Zone[], Error>> {
+  async findByType(zoneType: ZoneType, tenantId: string): Promise<Result<Zone[], Error>> {
     const sql = `
       SELECT
         z.*,
@@ -358,13 +384,13 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
           ARRAY[]::text[]
         ) as reader_ids
       FROM zones z
-      LEFT JOIN readers r ON r.zone_id = z.id
-      WHERE z.zone_type = $1
+      LEFT JOIN readers r ON r.zone_id = z.id AND r.tenant_id = $2
+      WHERE z.zone_type = $1 AND z.tenant_id = $2
       GROUP BY z.id
       ORDER BY z.name
     `;
 
-    const result = await this.executeQuery<ZoneRow>(sql, [zoneType]);
+    const result = await this.executeQuery<ZoneRow>(sql, [zoneType, tenantId]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -382,12 +408,13 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
   }
 
   /**
-   * Finds all child zones of a parent zone
+   * Finds all child zones of a parent zone within a tenant
    *
    * @param parentZoneId - The parent zone ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of child zones
    */
-  async findByParent(parentZoneId: string): Promise<Result<Zone[], Error>> {
+  async findByParent(parentZoneId: string, tenantId: string): Promise<Result<Zone[], Error>> {
     const sql = `
       SELECT
         z.*,
@@ -396,13 +423,13 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
           ARRAY[]::text[]
         ) as reader_ids
       FROM zones z
-      LEFT JOIN readers r ON r.zone_id = z.id
-      WHERE z.parent_zone_id = $1
+      LEFT JOIN readers r ON r.zone_id = z.id AND r.tenant_id = $2
+      WHERE z.parent_zone_id = $1 AND z.tenant_id = $2
       GROUP BY z.id
       ORDER BY z.name
     `;
 
-    const result = await this.executeQuery<ZoneRow>(sql, [parentZoneId]);
+    const result = await this.executeQuery<ZoneRow>(sql, [parentZoneId, tenantId]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -420,16 +447,16 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
   }
 
   /**
-   * Searches for zones using flexible criteria
+   * Searches for zones using flexible criteria (tenant-scoped)
    *
-   * @param criteria - Search criteria
+   * @param criteria - Search criteria (includes tenantId)
    * @returns Result containing array of matching zones
    */
   async search(criteria: ZoneSearchCriteria): Promise<Result<Zone[], Error>> {
     try {
-      const conditions: string[] = [];
-      const params: any[] = [];
-      let paramIndex = 1;
+      const conditions: string[] = ['z.tenant_id = $1'];
+      const params: any[] = [criteria.tenantId];
+      let paramIndex = 2;
 
       // Text search
       if (criteria.query && criteria.query.trim().length > 0) {
@@ -471,7 +498,7 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
         conditions.push('z.is_active = true');
       }
 
-      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+      const whereClause = `WHERE ${conditions.join(' AND ')}`;
 
       // Sorting
       const sortField = this.mapSortField(criteria.sortBy || 'name');
@@ -486,7 +513,7 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
             ARRAY[]::text[]
           ) as reader_ids
         FROM zones z
-        LEFT JOIN readers r ON r.zone_id = z.id
+        LEFT JOIN readers r ON r.zone_id = z.id AND r.tenant_id = $1
         ${whereClause}
         GROUP BY z.id
         ${orderBy}
@@ -514,12 +541,13 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
   }
 
   /**
-   * Finds zones near capacity threshold
+   * Finds zones near capacity threshold within a tenant
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @param threshold - Occupancy percentage threshold (default: 80%)
    * @returns Result containing array of zones near capacity
    */
-  async findNearCapacity(threshold: number = 80): Promise<Result<Zone[], Error>> {
+  async findNearCapacity(tenantId: string, threshold: number = 80): Promise<Result<Zone[], Error>> {
     const sql = `
       SELECT
         z.*,
@@ -529,15 +557,16 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
         ) as reader_ids,
         (z.current_occupancy::float / NULLIF(z.capacity, 0) * 100) as occupancy_pct
       FROM zones z
-      LEFT JOIN readers r ON r.zone_id = z.id
-      WHERE z.capacity > 0
-        AND (z.current_occupancy::float / z.capacity * 100) >= $1
+      LEFT JOIN readers r ON r.zone_id = z.id AND r.tenant_id = $1
+      WHERE z.tenant_id = $1
+        AND z.capacity > 0
+        AND (z.current_occupancy::float / z.capacity * 100) >= $2
         AND z.is_active = true
       GROUP BY z.id
       ORDER BY occupancy_pct DESC
     `;
 
-    const result = await this.executeQuery<ZoneRow>(sql, [threshold]);
+    const result = await this.executeQuery<ZoneRow>(sql, [tenantId, threshold]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -555,25 +584,27 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
   }
 
   /**
-   * Gets current occupancy count for a specific zone
+   * Gets current occupancy count for a specific zone within a tenant
    *
    * @param zoneId - The zone ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing the current occupancy count
    *
    * @description
-   * Uses real-time count from items table.
+   * Uses real-time count from items table, filtered by tenant.
    * Consider using getAllOccupancies() for bulk operations.
    */
-  async getOccupancy(zoneId: string): Promise<Result<number, Error>> {
+  async getOccupancy(zoneId: string, tenantId: string): Promise<Result<number, Error>> {
     const sql = `
       SELECT COUNT(*) as occupancy
       FROM items
       WHERE current_zone_id = $1
+        AND tenant_id = $2
         AND status IN ('registered', 'in_transit', 'in_processing')
         AND is_active = true
     `;
 
-    const result = await this.executeQueryOne<{ occupancy: string }>(sql, [zoneId]);
+    const result = await this.executeQueryOne<{ occupancy: string }>(sql, [zoneId, tenantId]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -583,21 +614,23 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
   }
 
   /**
-   * Gets current occupancy counts for all zones
+   * Gets current occupancy counts for all zones in a tenant
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing Map of zone ID to occupancy count
    *
    * @description
    * Performance-optimized: Single query instead of N queries.
-   * Returns real-time counts from items table.
+   * Returns real-time counts from items table, filtered by tenant.
    */
-  async getAllOccupancies(): Promise<Result<Map<string, number>, Error>> {
+  async getAllOccupancies(tenantId: string): Promise<Result<Map<string, number>, Error>> {
     const sql = `
       SELECT
         current_zone_id as zone_id,
         COUNT(*) as occupancy
       FROM items
-      WHERE current_zone_id IS NOT NULL
+      WHERE tenant_id = $1
+        AND current_zone_id IS NOT NULL
         AND status IN ('registered', 'in_transit', 'in_processing')
         AND is_active = true
       GROUP BY current_zone_id
@@ -606,7 +639,7 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
     const result = await this.executeQuery<{
       zone_id: string;
       occupancy: string;
-    }>(sql);
+    }>(sql, [tenantId]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -621,15 +654,16 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
   }
 
   /**
-   * Gets occupancy information for all zones
+   * Gets occupancy information for all zones in a tenant
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of zone occupancy info
    *
    * @description
    * Performance-optimized: Single query with JOIN.
    * Returns enriched occupancy data with metadata.
    */
-  async getAllOccupancyInfo(): Promise<Result<ZoneOccupancyInfo[], Error>> {
+  async getAllOccupancyInfo(tenantId: string): Promise<Result<ZoneOccupancyInfo[], Error>> {
     const sql = `
       SELECT
         z.id as zone_id,
@@ -642,12 +676,13 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
           current_zone_id,
           COUNT(*) as occupancy
         FROM items
-        WHERE current_zone_id IS NOT NULL
+        WHERE tenant_id = $1
+          AND current_zone_id IS NOT NULL
           AND status IN ('registered', 'in_transit', 'in_processing')
           AND is_active = true
         GROUP BY current_zone_id
       ) i ON i.current_zone_id = z.id
-      WHERE z.is_active = true
+      WHERE z.tenant_id = $1 AND z.is_active = true
       ORDER BY z.name
     `;
 
@@ -656,7 +691,7 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
       zone_name: string;
       capacity: number;
       current_occupancy: string;
-    }>(sql);
+    }>(sql, [tenantId]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -690,15 +725,17 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
   }
 
   /**
-   * Updates an existing zone
+   * Updates an existing zone within a tenant
    *
    * @param zone - The zone entity with updated values
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result indicating success or failure
    *
    * @description
    * Invalidates cache after successful update.
+   * Only updates zones belonging to the specified tenant.
    */
-  async update(zone: Zone): Promise<Result<void, Error>> {
+  async update(zone: Zone, tenantId: string): Promise<Result<void, Error>> {
     const props = zone.toPersistence();
 
     const sql = `
@@ -714,7 +751,7 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
         parent_zone_id = $10,
         is_active = $11,
         updated_at = $12
-      WHERE id = $1
+      WHERE id = $1 AND tenant_id = $13
     `;
 
     const params = [
@@ -730,6 +767,7 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
       props.parentZoneId,
       props.isActive,
       props.updatedAt,
+      tenantId,
     ];
 
     const result = await this.executeQuery(sql, params);
@@ -740,28 +778,30 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
 
     this.logger.info('Zone updated', {
       id: props.id,
+      tenantId,
       code: props.code,
     });
 
-    // Invalidate cache
-    this.invalidateCache();
+    // Invalidate tenant cache
+    this.invalidateTenantCache(tenantId);
 
     return ok(undefined);
   }
 
   /**
-   * Deletes a zone
+   * Deletes a zone within a tenant
    *
    * @param id - The zone ID to delete
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result indicating success or failure
    *
    * @description
    * Physical deletion only allowed if zone has no items and no child zones.
    * Invalidates cache after successful deletion.
    */
-  async delete(id: string): Promise<Result<void, Error>> {
+  async delete(id: string, tenantId: string): Promise<Result<void, Error>> {
     // Check for child zones
-    const childrenResult = await this.findByParent(id);
+    const childrenResult = await this.findByParent(id, tenantId);
     if (childrenResult.isErr()) {
       return err(childrenResult.error);
     }
@@ -771,7 +811,7 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
     }
 
     // Check occupancy
-    const occupancyResult = await this.getOccupancy(id);
+    const occupancyResult = await this.getOccupancy(id, tenantId);
     if (occupancyResult.isErr()) {
       return err(occupancyResult.error);
     }
@@ -782,37 +822,38 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
 
     const sql = `
       DELETE FROM zones
-      WHERE id = $1
+      WHERE id = $1 AND tenant_id = $2
     `;
 
-    const result = await this.executeQuery(sql, [id]);
+    const result = await this.executeQuery(sql, [id, tenantId]);
 
     if (result.isErr()) {
       return err(result.error);
     }
 
-    this.logger.info('Zone deleted', { id });
+    this.logger.info('Zone deleted', { id, tenantId });
 
-    // Invalidate cache
-    this.invalidateCache();
+    // Invalidate tenant cache
+    this.invalidateTenantCache(tenantId);
 
     return ok(undefined);
   }
 
   /**
-   * Checks if a zone code already exists
+   * Checks if a zone code already exists for a tenant
    *
    * @param code - The zone code to check
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing boolean (true if exists)
    */
-  async existsByCode(code: string): Promise<Result<boolean, Error>> {
+  async existsByCode(code: string, tenantId: string): Promise<Result<boolean, Error>> {
     const sql = `
       SELECT EXISTS(
-        SELECT 1 FROM zones WHERE code = $1
+        SELECT 1 FROM zones WHERE code = $1 AND tenant_id = $2
       ) as exists
     `;
 
-    const result = await this.executeQueryOne<{ exists: boolean }>(sql, [code.toUpperCase()]);
+    const result = await this.executeQueryOne<{ exists: boolean }>(sql, [code.toUpperCase(), tenantId]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -822,67 +863,71 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
   }
 
   /**
-   * Increments the occupancy count for a zone
+   * Increments the occupancy count for a zone within a tenant
    *
    * @param zoneId - The zone ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result indicating success or failure
    *
    * @description
    * Atomically increments the occupancy counter.
    * Fails if zone is at capacity.
    */
-  async incrementOccupancy(zoneId: string): Promise<Result<void, Error>> {
+  async incrementOccupancy(zoneId: string, tenantId: string): Promise<Result<void, Error>> {
     const sql = `
       UPDATE zones
       SET current_occupancy = current_occupancy + 1,
           updated_at = NOW()
       WHERE id = $1
+        AND tenant_id = $2
         AND current_occupancy < capacity
     `;
 
-    const result = await this.executeQuery(sql, [zoneId]);
+    const result = await this.executeQuery(sql, [zoneId, tenantId]);
 
     if (result.isErr()) {
       return err(result.error);
     }
 
-    this.logger.debug('Zone occupancy incremented', { zoneId });
+    this.logger.debug('Zone occupancy incremented', { zoneId, tenantId });
 
-    // Invalidate cache
-    this.invalidateCache();
+    // Invalidate tenant cache
+    this.invalidateTenantCache(tenantId);
 
     return ok(undefined);
   }
 
   /**
-   * Decrements the occupancy count for a zone
+   * Decrements the occupancy count for a zone within a tenant
    *
    * @param zoneId - The zone ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result indicating success or failure
    *
    * @description
    * Atomically decrements the occupancy counter.
    * Fails if occupancy is already 0.
    */
-  async decrementOccupancy(zoneId: string): Promise<Result<void, Error>> {
+  async decrementOccupancy(zoneId: string, tenantId: string): Promise<Result<void, Error>> {
     const sql = `
       UPDATE zones
       SET current_occupancy = current_occupancy - 1,
           updated_at = NOW()
       WHERE id = $1
+        AND tenant_id = $2
         AND current_occupancy > 0
     `;
 
-    const result = await this.executeQuery(sql, [zoneId]);
+    const result = await this.executeQuery(sql, [zoneId, tenantId]);
 
     if (result.isErr()) {
       return err(result.error);
     }
 
-    this.logger.debug('Zone occupancy decremented', { zoneId });
+    this.logger.debug('Zone occupancy decremented', { zoneId, tenantId });
 
-    // Invalidate cache
-    this.invalidateCache();
+    // Invalidate tenant cache
+    this.invalidateTenantCache(tenantId);
 
     return ok(undefined);
   }
@@ -963,20 +1008,44 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
   }
 
   /**
-   * Checks if cache is valid
+   * Checks if tenant cache is valid
    *
+   * @param tenantId - Tenant ID
    * @returns true if cache is valid
    */
-  private isCacheValid(): boolean {
-    return this.zoneCache.size > 0 && Date.now() - this.cacheTimestamp < this.CACHE_TTL_MS;
+  private isTenantCacheValid(tenantId: string): boolean {
+    const tenantCache = this.zoneCache.get(tenantId);
+    const timestamp = this.cacheTimestamp.get(tenantId);
+    if (!tenantCache || !timestamp) {
+      return false;
+    }
+    return tenantCache.size > 0 && Date.now() - timestamp < this.CACHE_TTL_MS;
   }
 
   /**
-   * Invalidates cache
+   * Updates tenant cache with a single zone
+   *
+   * @param tenantId - Tenant ID
+   * @param zoneId - Zone ID
+   * @param zone - Zone entity
    */
-  private invalidateCache(): void {
-    this.zoneCache.clear();
-    this.cacheTimestamp = 0;
-    this.logger.debug('Zone cache invalidated');
+  private updateTenantCache(tenantId: string, zoneId: string, zone: Zone): void {
+    let tenantCache = this.zoneCache.get(tenantId);
+    if (!tenantCache) {
+      tenantCache = new Map<string, Zone>();
+      this.zoneCache.set(tenantId, tenantCache);
+    }
+    tenantCache.set(zoneId, zone);
+  }
+
+  /**
+   * Invalidates cache for a tenant
+   *
+   * @param tenantId - Tenant ID
+   */
+  private invalidateTenantCache(tenantId: string): void {
+    this.zoneCache.delete(tenantId);
+    this.cacheTimestamp.delete(tenantId);
+    this.logger.debug('Zone cache invalidated for tenant', { tenantId });
   }
 }

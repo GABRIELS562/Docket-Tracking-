@@ -51,8 +51,8 @@ export interface ApiSuccessResponse<T> {
  *   "success": false,
  *   "error": {
  *     "code": "VALIDATION_ERROR",
- *     "message": "Invalid lab number format",
- *     "details": { "field": "labNumber", "value": "INVALID" }
+ *     "message": "Invalid item number format",
+ *     "details": { "field": "itemNumber", "value": "INVALID" }
  *   },
  *   "timestamp": "2025-10-03T10:30:00.000Z"
  * }
@@ -77,7 +77,7 @@ export interface ApiErrorResponse {
 
     /**
      * Human-readable error message
-     * @example "Invalid lab number format"
+     * @example "Invalid item number format"
      */
     readonly message: string;
 
@@ -116,7 +116,7 @@ export type ApiResponse<T> = ApiSuccessResponse<T> | ApiErrorResponse;
 export enum ApiErrorCode {
   // Validation Errors (400)
   VALIDATION_ERROR = 'VALIDATION_ERROR',
-  INVALID_LAB_NUMBER = 'INVALID_LAB_NUMBER',
+  INVALID_ITEM_NUMBER = 'INVALID_ITEM_NUMBER',
   INVALID_EPC = 'INVALID_EPC',
   INVALID_IP_ADDRESS = 'INVALID_IP_ADDRESS',
 
@@ -126,7 +126,7 @@ export enum ApiErrorCode {
   READER_NOT_FOUND = 'READER_NOT_FOUND',
 
   // Conflict Errors (409)
-  DUPLICATE_LAB_NUMBER = 'DUPLICATE_LAB_NUMBER',
+  DUPLICATE_ITEM_NUMBER = 'DUPLICATE_ITEM_NUMBER',
   DUPLICATE_EPC = 'DUPLICATE_EPC',
   ZONE_CAPACITY_EXCEEDED = 'ZONE_CAPACITY_EXCEEDED',
 
@@ -184,8 +184,8 @@ export function createSuccessResponse<T>(
  * ```typescript
  * return createErrorResponse(
  *   ApiErrorCode.ITEM_NOT_FOUND,
- *   'Item with lab number FSL-2025-000123 not found',
- *   { labNumber: 'FSL-2025-000123' }
+ *   'Item with item number INV-2025-000123 not found',
+ *   { itemNumber: 'INV-2025-000123' }
  * );
  * ```
  */

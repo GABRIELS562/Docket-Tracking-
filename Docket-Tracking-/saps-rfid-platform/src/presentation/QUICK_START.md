@@ -1,6 +1,6 @@
 # Quick Start Guide - Presentation Layer
 
-Get the SAPS RFID Platform API up and running in 5 minutes.
+Get the RFID Inventory Platform API up and running in 5 minutes.
 
 ## Prerequisites
 
@@ -57,7 +57,7 @@ container.register(PostgresConnection, {
   useValue: new PostgresConnection({
     host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 5432,
-    database: process.env.DB_NAME || 'saps_rfid',
+    database: process.env.DB_NAME || 'rfid_inventory',
     user: process.env.DB_USER || 'postgres',
     password: process.env.DB_PASSWORD || '',
   }),
@@ -141,7 +141,7 @@ CORS_ORIGINS=http://localhost:3000,http://localhost:3001
 # Database
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=saps_rfid
+DB_NAME=rfid_inventory
 DB_USER=postgres
 DB_PASSWORD=your_password
 
@@ -278,7 +278,7 @@ kill -9 $(lsof -ti:3000)
 
 3. Check database exists:
    ```sql
-   CREATE DATABASE saps_rfid;
+   CREATE DATABASE rfid_inventory;
    ```
 
 ### Issue: CORS errors
@@ -295,7 +295,7 @@ Import this collection:
 ```json
 {
   "info": {
-    "name": "SAPS RFID Platform",
+    "name": "RFID Inventory Platform",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [

@@ -12,7 +12,7 @@ import { ILogger } from './application/interfaces/ILogger';
 // import { IEventBus } from './application/interfaces/IEventBus';
 
 /**
- * SAPS RFID Platform - Application Entry Point
+ * RFID Inventory Platform - Application Entry Point
  *
  * Initializes and starts all services:
  * 1. Configuration validation
@@ -36,7 +36,7 @@ let rfidGateway: LLRPGateway;
  */
 async function main(): Promise<void> {
   try {
-    console.log('🚀 Starting SAPS RFID Platform...');
+    console.log('🚀 Starting RFID Inventory Platform...');
 
     // Step 1: Validate environment configuration
     console.log('📋 Validating configuration...');
@@ -91,7 +91,7 @@ async function main(): Promise<void> {
       metricsUrl: `http://localhost:${server.getPort()}/metrics`,
     });
 
-    console.log('\n✅ SAPS RFID Platform is running!\n');
+    console.log('\n✅ RFID Inventory Platform is running!\n');
     console.log(`   HTTP API:    http://localhost:${server.getPort()}`);
     console.log(`   WebSocket:   ws://localhost:${server.getPort()}`);
     console.log(`   Health:      http://localhost:${server.getPort()}/health`);

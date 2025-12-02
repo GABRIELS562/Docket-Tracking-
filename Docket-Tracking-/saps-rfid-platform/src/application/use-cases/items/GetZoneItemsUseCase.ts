@@ -12,6 +12,11 @@ import { ItemMapper } from '../../mappers/ItemMapper';
  */
 export interface GetZoneItemsInput {
   /**
+   * Tenant ID for multi-tenant isolation (REQUIRED)
+   */
+  readonly tenantId: string;
+
+  /**
    * Zone ID to look up
    * @example "zone-storage-001"
    */
@@ -85,10 +90,11 @@ export class GetZoneItemsUseCase {
   async execute(input: GetZoneItemsInput): Promise<Result<GetZoneItemsOutput, Error>> {
     try {
       // Step 1: Validate zone exists
-      const zoneResult = await this.zoneRepo.findById(input.zoneId);
+      const zoneResult = await this.zoneRepo.findById(input.zoneId, input.tenantId);
       if (zoneResult.isErr()) {
         this.logger.error('Failed to fetch zone', {
           zoneId: input.zoneId,
+          tenantId: input.tenantId,
           error: zoneResult.error.message,
         });
         return err(zoneResult.error);
@@ -108,10 +114,10 @@ export class GetZoneItemsUseCase {
       let itemsResult;
       if (input.recentOnly) {
         // Get only recently seen items
-        itemsResult = await this.itemRepo.findRecentByZone(input.zoneId, limit);
+        itemsResult = await this.itemRepo.findRecentByZone(input.zoneId, input.tenantId, limit);
       } else {
         // Get all items in zone
-        itemsResult = await this.itemRepo.findByZone(input.zoneId);
+        itemsResult = await this.itemRepo.findByZone(input.zoneId, input.tenantId);
       }
 
       if (itemsResult.isErr()) {

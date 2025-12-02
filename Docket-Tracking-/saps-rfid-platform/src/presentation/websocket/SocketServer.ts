@@ -1,12 +1,24 @@
 import { Server as HttpServer } from 'http';
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { injectable, inject } from 'tsyringe';
+import jwt from 'jsonwebtoken';
 import { IEventBus } from '../../application/interfaces/IEventBus';
 import { ILogger } from '../../application/interfaces/ILogger';
 import { DomainEvent } from '../../domain/events/DomainEvent';
 import { TagDetectedEvent } from '../../domain/events/TagDetectedEvent';
 import { ItemMovedEvent } from '../../domain/events/ItemMovedEvent';
 import { ZoneOccupancyChangedEvent } from '../../domain/events/ZoneOccupancyChangedEvent';
+import type { JwtConfig } from '../http/middleware/authMiddleware';
+
+/**
+ * Extended Socket with tenant context
+ */
+interface TenantSocket extends Socket {
+  tenantId?: string;
+  tenantSlug?: string;
+  userId?: string;
+  userRole?: string;
+}
 
 /**
  * WebSocket Server - Real-time updates via Socket.IO
@@ -30,12 +42,16 @@ import { ZoneOccupancyChangedEvent } from '../../domain/events/ZoneOccupancyChan
  * - Connection tracking
  * - Error handling
  * - CORS support
+ * - Multi-tenant isolation with tenant-scoped rooms
+ * - JWT authentication for secure connections
  *
  * Example client usage:
  * ```javascript
- * const socket = io('http://localhost:3000');
+ * const socket = io('http://localhost:3000', {
+ *   auth: { token: 'your-jwt-token' }
+ * });
  *
- * // Subscribe to zones
+ * // Subscribe to zones (within your tenant)
  * socket.emit('subscribe:zones', [1, 2, 3]);
  *
  * // Listen for events
@@ -47,11 +63,13 @@ import { ZoneOccupancyChangedEvent } from '../../domain/events/ZoneOccupancyChan
 @injectable()
 export class SocketServer {
   private io: SocketIOServer | null = null;
-  private activeConnections: Map<string, Socket> = new Map();
+  private activeConnections: Map<string, TenantSocket> = new Map();
+  private tenantConnections: Map<string, Set<string>> = new Map(); // tenantId -> Set of socketIds
 
   constructor(
     @inject('IEventBus') private eventBus: IEventBus,
-    @inject('ILogger') private logger: ILogger
+    @inject('ILogger') private logger: ILogger,
+    @inject('JwtConfig') private jwtConfig: JwtConfig
   ) {}
 
   /**
@@ -71,11 +89,62 @@ export class SocketServer {
       pingInterval: 25000, // 25 seconds
     });
 
+    this.setupAuthMiddleware();
     this.setupConnectionHandlers();
     this.subscribeToEvents();
 
     this.logger.info('WebSocket server started', {
       transports: ['websocket', 'polling'],
+      features: ['multi-tenant rooms', 'jwt authentication'],
+    });
+  }
+
+  /**
+   * Set up JWT authentication middleware
+   */
+  private setupAuthMiddleware(): void {
+    if (!this.io) {
+      throw new Error('Socket.IO server not initialized');
+    }
+
+    this.io.use((socket: TenantSocket, next) => {
+      const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.replace('Bearer ', '');
+
+      if (!token) {
+        // Allow anonymous connections for public data (if needed)
+        // For strict auth, use: return next(new Error('Authentication required'));
+        this.logger.debug('Anonymous WebSocket connection', { socketId: socket.id });
+        return next();
+      }
+
+      try {
+        const decoded = jwt.verify(token, this.jwtConfig.secret) as {
+          sub: string;
+          tenantId: string;
+          tenantSlug: string;
+          role: string;
+        };
+
+        // Attach tenant context to socket
+        socket.userId = decoded.sub;
+        socket.tenantId = decoded.tenantId;
+        socket.tenantSlug = decoded.tenantSlug;
+        socket.userRole = decoded.role;
+
+        this.logger.debug('Authenticated WebSocket connection', {
+          socketId: socket.id,
+          userId: decoded.sub,
+          tenantId: decoded.tenantId,
+        });
+
+        next();
+      } catch (error) {
+        this.logger.warn('Invalid WebSocket authentication token', {
+          socketId: socket.id,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+        next(new Error('Invalid authentication token'));
+      }
     });
   }
 
@@ -87,61 +156,97 @@ export class SocketServer {
       throw new Error('Socket.IO server not initialized');
     }
 
-    this.io.on('connection', (socket: Socket) => {
+    this.io.on('connection', (socket: TenantSocket) => {
       const socketId = socket.id;
+      const tenantId = socket.tenantId;
+
       this.activeConnections.set(socketId, socket);
+
+      // Track connections by tenant
+      if (tenantId) {
+        if (!this.tenantConnections.has(tenantId)) {
+          this.tenantConnections.set(tenantId, new Set());
+        }
+        this.tenantConnections.get(tenantId)!.add(socketId);
+
+        // Auto-join tenant room for tenant-wide broadcasts
+        socket.join(`tenant:${tenantId}`);
+      }
 
       this.logger.info('WebSocket client connected', {
         socketId,
+        tenantId: tenantId || 'anonymous',
+        userId: socket.userId || 'anonymous',
         totalConnections: this.activeConnections.size,
+        tenantConnections: tenantId ? this.tenantConnections.get(tenantId)?.size : 0,
         remoteAddress: socket.handshake.address,
       });
 
-      // Send welcome message
+      // Send welcome message with tenant context
       socket.emit('connected', {
-        message: 'Connected to SAPS RFID Platform',
+        message: 'Connected to RFID Inventory Platform',
         socketId,
+        tenantId: tenantId || null,
+        authenticated: !!socket.userId,
         timestamp: new Date().toISOString(),
       });
 
-      // Handle zone subscriptions
+      // Handle zone subscriptions (tenant-scoped)
       socket.on('subscribe:zones', (zoneIds: number[]) => {
         this.handleZoneSubscription(socket, zoneIds);
       });
 
-      // Handle item subscriptions
+      // Handle item subscriptions (tenant-scoped)
       socket.on('subscribe:item', (itemNumber: string) => {
         this.handleItemSubscription(socket, itemNumber);
       });
 
-      // Handle reader subscriptions
+      // Handle reader subscriptions (tenant-scoped)
       socket.on('subscribe:readers', () => {
         this.handleReaderSubscription(socket);
       });
 
+      // Handle tenant-wide subscriptions
+      socket.on('subscribe:tenant', () => {
+        this.handleTenantSubscription(socket);
+      });
+
       // Handle unsubscribe
       socket.on('unsubscribe:zones', (zoneIds: number[]) => {
+        const prefix = tenantId ? `tenant:${tenantId}:` : '';
         zoneIds.forEach((zoneId) => {
-          socket.leave(`zone:${zoneId}`);
+          socket.leave(`${prefix}zone:${zoneId}`);
         });
-        this.logger.debug('Client unsubscribed from zones', { socketId, zoneIds });
+        this.logger.debug('Client unsubscribed from zones', { socketId, zoneIds, tenantId });
       });
 
       socket.on('unsubscribe:item', (itemNumber: string) => {
-        socket.leave(`item:${itemNumber}`);
-        this.logger.debug('Client unsubscribed from item', { socketId, itemNumber });
+        const prefix = tenantId ? `tenant:${tenantId}:` : '';
+        socket.leave(`${prefix}item:${itemNumber}`);
+        this.logger.debug('Client unsubscribed from item', { socketId, itemNumber, tenantId });
       });
 
       socket.on('unsubscribe:readers', () => {
-        socket.leave('readers');
-        this.logger.debug('Client unsubscribed from readers', { socketId });
+        const prefix = tenantId ? `tenant:${tenantId}:` : '';
+        socket.leave(`${prefix}readers`);
+        this.logger.debug('Client unsubscribed from readers', { socketId, tenantId });
       });
 
       // Handle disconnection
       socket.on('disconnect', (reason) => {
         this.activeConnections.delete(socketId);
+
+        // Remove from tenant tracking
+        if (tenantId && this.tenantConnections.has(tenantId)) {
+          this.tenantConnections.get(tenantId)!.delete(socketId);
+          if (this.tenantConnections.get(tenantId)!.size === 0) {
+            this.tenantConnections.delete(tenantId);
+          }
+        }
+
         this.logger.info('WebSocket client disconnected', {
           socketId,
+          tenantId: tenantId || 'anonymous',
           reason,
           totalConnections: this.activeConnections.size,
         });
@@ -151,6 +256,7 @@ export class SocketServer {
       socket.on('error', (error) => {
         this.logger.error('WebSocket error', {
           socketId,
+          tenantId: tenantId || 'anonymous',
           error: error.message,
         });
       });
@@ -246,9 +352,11 @@ export class SocketServer {
   }
 
   /**
-   * Handle zone subscription request
+   * Handle zone subscription request (tenant-scoped)
    */
-  private handleZoneSubscription(socket: Socket, zoneIds: number[]): void {
+  private handleZoneSubscription(socket: TenantSocket, zoneIds: number[]): void {
+    const tenantId = socket.tenantId;
+
     // Validate input
     if (!Array.isArray(zoneIds)) {
       socket.emit('error', {
@@ -267,29 +375,34 @@ export class SocketServer {
       return;
     }
 
-    // Join rooms for each zone
+    // Join rooms for each zone (tenant-scoped if authenticated)
+    const prefix = tenantId ? `tenant:${tenantId}:` : '';
     zoneIds.forEach((zoneId) => {
       if (typeof zoneId === 'number' && zoneId > 0) {
-        socket.join(`zone:${zoneId}`);
+        socket.join(`${prefix}zone:${zoneId}`);
       }
     });
 
     this.logger.debug('Client subscribed to zones', {
       socketId: socket.id,
       zoneIds,
+      tenantId: tenantId || 'global',
     });
 
     socket.emit('subscribed', {
       type: 'zones',
       zoneIds,
+      tenantScoped: !!tenantId,
       timestamp: new Date().toISOString(),
     });
   }
 
   /**
-   * Handle item subscription request
+   * Handle item subscription request (tenant-scoped)
    */
-  private handleItemSubscription(socket: Socket, itemNumber: string): void {
+  private handleItemSubscription(socket: TenantSocket, itemNumber: string): void {
+    const tenantId = socket.tenantId;
+
     // Validate input - generic item number format: INV-YYYY-NNNNNN
     if (typeof itemNumber !== 'string' || !itemNumber.match(/^INV-\d{4}-\d{6}$/)) {
       socket.emit('error', {
@@ -299,33 +412,68 @@ export class SocketServer {
       return;
     }
 
-    socket.join(`item:${itemNumber}`);
+    const prefix = tenantId ? `tenant:${tenantId}:` : '';
+    socket.join(`${prefix}item:${itemNumber}`);
 
     this.logger.debug('Client subscribed to item', {
       socketId: socket.id,
       itemNumber,
+      tenantId: tenantId || 'global',
     });
 
     socket.emit('subscribed', {
       type: 'item',
       itemNumber,
+      tenantScoped: !!tenantId,
       timestamp: new Date().toISOString(),
     });
   }
 
   /**
-   * Handle reader subscription request
+   * Handle reader subscription request (tenant-scoped)
    */
-  private handleReaderSubscription(socket: Socket): void {
-    socket.join('readers');
+  private handleReaderSubscription(socket: TenantSocket): void {
+    const tenantId = socket.tenantId;
+    const prefix = tenantId ? `tenant:${tenantId}:` : '';
+
+    socket.join(`${prefix}readers`);
 
     this.logger.debug('Client subscribed to readers', {
       socketId: socket.id,
+      tenantId: tenantId || 'global',
     });
 
     socket.emit('subscribed', {
       type: 'readers',
+      tenantScoped: !!tenantId,
       timestamp: new Date().toISOString(),
+    });
+  }
+
+  /**
+   * Handle tenant-wide subscription request
+   */
+  private handleTenantSubscription(socket: TenantSocket): void {
+    const tenantId = socket.tenantId;
+
+    if (!tenantId) {
+      socket.emit('error', {
+        code: 'AUTHENTICATION_REQUIRED',
+        message: 'Must be authenticated to subscribe to tenant events',
+      });
+      return;
+    }
+
+    // Already auto-joined tenant room on connection
+    socket.emit('subscribed', {
+      type: 'tenant',
+      tenantId,
+      timestamp: new Date().toISOString(),
+    });
+
+    this.logger.debug('Client confirmed tenant subscription', {
+      socketId: socket.id,
+      tenantId,
     });
   }
 
@@ -355,6 +503,47 @@ export class SocketServer {
   }
 
   /**
+   * Broadcast to all clients within a specific tenant
+   *
+   * @param tenantId - Tenant ID
+   * @param event - Event name
+   * @param data - Event data
+   */
+  broadcastToTenant(tenantId: string, event: string, data: any): void {
+    if (this.io) {
+      this.io.to(`tenant:${tenantId}`).emit(event, data);
+    }
+  }
+
+  /**
+   * Broadcast to a zone within a tenant
+   *
+   * @param tenantId - Tenant ID
+   * @param zoneId - Zone ID
+   * @param event - Event name
+   * @param data - Event data
+   */
+  broadcastToTenantZone(tenantId: string, zoneId: number, event: string, data: any): void {
+    if (this.io) {
+      this.io.to(`tenant:${tenantId}:zone:${zoneId}`).emit(event, data);
+    }
+  }
+
+  /**
+   * Broadcast to item subscribers within a tenant
+   *
+   * @param tenantId - Tenant ID
+   * @param itemNumber - Item number
+   * @param event - Event name
+   * @param data - Event data
+   */
+  broadcastToTenantItem(tenantId: string, itemNumber: string, event: string, data: any): void {
+    if (this.io) {
+      this.io.to(`tenant:${tenantId}:item:${itemNumber}`).emit(event, data);
+    }
+  }
+
+  /**
    * Get number of active connections
    *
    * @returns Number of connected clients
@@ -364,12 +553,35 @@ export class SocketServer {
   }
 
   /**
+   * Get number of connections for a specific tenant
+   *
+   * @param tenantId - Tenant ID
+   * @returns Number of connected clients for the tenant
+   */
+  getTenantConnections(tenantId: string): number {
+    return this.tenantConnections.get(tenantId)?.size || 0;
+  }
+
+  /**
    * Get all connected socket IDs
    *
    * @returns Array of socket IDs
    */
   getConnectedSockets(): string[] {
     return Array.from(this.activeConnections.keys());
+  }
+
+  /**
+   * Get all connected tenants and their connection counts
+   *
+   * @returns Map of tenant IDs to connection counts
+   */
+  getConnectedTenants(): Map<string, number> {
+    const result = new Map<string, number>();
+    for (const [tenantId, sockets] of this.tenantConnections) {
+      result.set(tenantId, sockets.size);
+    }
+    return result;
   }
 
   /**
@@ -386,6 +598,7 @@ export class SocketServer {
       // Close server
       this.io.close();
       this.activeConnections.clear();
+      this.tenantConnections.clear();
 
       this.logger.info('WebSocket server stopped');
     }

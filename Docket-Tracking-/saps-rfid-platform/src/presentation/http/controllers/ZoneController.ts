@@ -1,8 +1,9 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import { injectable, inject } from 'tsyringe';
 import { GetAllZonesUseCase } from '../../../application/use-cases/zones/GetAllZonesUseCase';
 import { GetZoneItemsUseCase } from '../../../application/use-cases/items/GetZoneItemsUseCase';
-import { ILogger } from '../../../application/interfaces/ILogger';
+import type { ILogger } from '../../../application/interfaces/ILogger';
+import type { AuthenticatedRequest } from '../middleware/authMiddleware';
 
 /**
  * Zone Controller
@@ -25,6 +26,9 @@ export class ZoneController {
    * GET /api/zones
    * Get all zones with current occupancy information
    *
+   * Query parameters:
+   * - activeOnly: Only return active zones (default false)
+   *
    * Returns:
    * - Zone ID and name
    * - Zone type (storage, lab, office, corridor, entrance)
@@ -32,9 +36,20 @@ export class ZoneController {
    * - Occupancy percentage
    * - Status (normal, warning, critical, full)
    */
-  async getAll(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getAll(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await this.getAllZones.execute();
+      if (!req.tenantId) {
+        res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Tenant context required' },
+        });
+        return;
+      }
+
+      const result = await this.getAllZones.execute({
+        tenantId: req.tenantId,
+        activeOnly: req.query.activeOnly === 'true',
+      });
 
       if (result.isErr()) {
         return next(result.error);
@@ -45,7 +60,7 @@ export class ZoneController {
         data: result.value,
         meta: {
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'],
+          requestId: req.requestId,
         },
       });
     } catch (error) {
@@ -67,9 +82,18 @@ export class ZoneController {
    * - Reference IDs
    * - Last seen timestamps
    */
-  async getItems(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getItems(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
+      if (!req.tenantId) {
+        res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Tenant context required' },
+        });
+        return;
+      }
+
       const result = await this.getZoneItems.execute({
+        tenantId: req.tenantId,
         zoneId: req.params.id,
         limit: req.query.limit ? parseInt(req.query.limit as string) : 50,
         recentOnly: req.query.recentOnly === 'true',
@@ -84,7 +108,7 @@ export class ZoneController {
         data: result.value,
         meta: {
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'],
+          requestId: req.requestId,
         },
       });
     } catch (error) {

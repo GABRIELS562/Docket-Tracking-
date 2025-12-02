@@ -29,7 +29,7 @@ export class LocationHistoryMapper {
 
     return {
       timestamp: entry.time.toISOString(),
-      labNumber: entry.labNumber,
+      itemNumber: entry.itemNumber,
       zoneId: entry.zoneId,
       zoneName: entry.zoneName,
       readerId: entry.readerId,

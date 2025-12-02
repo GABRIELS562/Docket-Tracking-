@@ -196,13 +196,13 @@ describe('PostgresConnection', () => {
       });
 
       const result = await connection.query(
-        'SELECT * FROM dockets WHERE status = $1 AND zone_id = $2',
+        'SELECT * FROM items WHERE status = $1 AND zone_id = $2',
         ['active', 'zone-001']
       );
 
       expect(result.isOk()).toBe(true);
       expect(mockPool.query).toHaveBeenCalledWith(
-        'SELECT * FROM dockets WHERE status = $1 AND zone_id = $2',
+        'SELECT * FROM items WHERE status = $1 AND zone_id = $2',
         ['active', 'zone-001']
       );
     });

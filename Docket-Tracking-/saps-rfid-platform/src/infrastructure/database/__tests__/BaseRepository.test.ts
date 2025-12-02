@@ -110,18 +110,18 @@ describe('BaseRepository', () => {
           code: '23505',
           message: 'duplicate key value violates unique constraint',
           detail: 'Key (id)=(abc-123) already exists.',
-          constraint: 'dockets_pkey',
+          constraint: 'items_pkey',
         };
 
         const error = repository.testHandleDbError(dbError, 'insert');
 
         expect(error.message).toContain('Duplicate entry');
-        expect(error.message).toContain('dockets_pkey');
+        expect(error.message).toContain('items_pkey');
         expect(mockLogger.error).toHaveBeenCalledWith(
           'Database error in insert',
           expect.objectContaining({
             code: '23505',
-            constraint: 'dockets_pkey',
+            constraint: 'items_pkey',
           })
         );
       });
@@ -131,28 +131,28 @@ describe('BaseRepository', () => {
           code: '23503',
           message: 'foreign key constraint violated',
           detail: 'Key (zone_id)=(zone-999) is not present in table "zones".',
-          constraint: 'dockets_zone_id_fkey',
+          constraint: 'items_zone_id_fkey',
         };
 
         const error = repository.testHandleDbError(dbError, 'insert');
 
         expect(error.message).toContain('Foreign key violation');
-        expect(error.message).toContain('dockets_zone_id_fkey');
+        expect(error.message).toContain('items_zone_id_fkey');
       });
 
       it('should handle 23502 - not_null_violation', () => {
         const dbError = {
           code: '23502',
           message: 'null value in column violates not-null constraint',
-          column: 'lab_number',
-          table: 'dockets',
+          column: 'item_number',
+          table: 'items',
         };
 
         const error = repository.testHandleDbError(dbError, 'insert');
 
         expect(error.message).toContain('Required field missing');
-        expect(error.message).toContain('lab_number');
-        expect(error.message).toContain('dockets');
+        expect(error.message).toContain('item_number');
+        expect(error.message).toContain('items');
       });
 
       it('should handle 23514 - check_violation', () => {
@@ -186,13 +186,13 @@ describe('BaseRepository', () => {
         const dbError = {
           code: '22001',
           message: 'value too long for type character varying(50)',
-          column: 'lab_number',
+          column: 'item_number',
         };
 
         const error = repository.testHandleDbError(dbError, 'insert');
 
         expect(error.message).toContain('Value too long for column');
-        expect(error.message).toContain('lab_number');
+        expect(error.message).toContain('item_number');
       });
 
       it('should handle 22003 - numeric_value_out_of_range', () => {
@@ -268,7 +268,7 @@ describe('BaseRepository', () => {
       it('should handle 42501 - insufficient_privilege', () => {
         const dbError = {
           code: '42501',
-          message: 'permission denied for table dockets',
+          message: 'permission denied for table items',
         };
 
         const error = repository.testHandleDbError(dbError, 'query');
@@ -280,7 +280,7 @@ describe('BaseRepository', () => {
       it('should handle 42P07 - duplicate_table', () => {
         const dbError = {
           code: '42P07',
-          message: 'relation "dockets" already exists',
+          message: 'relation "items" already exists',
         };
 
         const error = repository.testHandleDbError(dbError, 'create');
@@ -528,13 +528,13 @@ describe('BaseRepository', () => {
       const criteria = {
         status: 'active',
         zone_id: 'zone-001',
-        lab_number: 'SAPS-123',
+        item_number: 'INV-123',
       };
 
       const result = repository.testBuildWhereClause(criteria);
 
-      expect(result.sql).toBe('WHERE status = $1 AND zone_id = $2 AND lab_number = $3');
-      expect(result.params).toEqual(['active', 'zone-001', 'SAPS-123']);
+      expect(result.sql).toBe('WHERE status = $1 AND zone_id = $2 AND item_number = $3');
+      expect(result.params).toEqual(['active', 'zone-001', 'INV-123']);
     });
 
     it('should handle NULL values correctly', () => {
@@ -553,13 +553,13 @@ describe('BaseRepository', () => {
       const criteria = {
         status: 'active',
         zone_id: undefined,
-        lab_number: 'SAPS-123',
+        item_number: 'INV-123',
       };
 
       const result = repository.testBuildWhereClause(criteria);
 
-      expect(result.sql).toBe('WHERE status = $1 AND lab_number = $2');
-      expect(result.params).toEqual(['active', 'SAPS-123']);
+      expect(result.sql).toBe('WHERE status = $1 AND item_number = $2');
+      expect(result.params).toEqual(['active', 'INV-123']);
     });
 
     it('should return empty WHERE clause for empty criteria', () => {
@@ -612,17 +612,17 @@ describe('BaseRepository', () => {
 
   describe('Query Building - buildLikeClause()', () => {
     it('should build LIKE clause with wildcards', () => {
-      const result = repository.testBuildLikeClause('lab_number', 'SAPS', 1);
+      const result = repository.testBuildLikeClause('item_number', 'INV', 1);
 
-      expect(result.sql).toBe('lab_number LIKE $1');
-      expect(result.params).toEqual(['%SAPS%']);
+      expect(result.sql).toBe('item_number LIKE $1');
+      expect(result.params).toEqual(['%INV%']);
     });
 
     it('should use custom parameter index', () => {
-      const result = repository.testBuildLikeClause('description', 'evidence', 5);
+      const result = repository.testBuildLikeClause('description', 'inventory', 5);
 
       expect(result.sql).toBe('description LIKE $5');
-      expect(result.params).toEqual(['%evidence%']);
+      expect(result.params).toEqual(['%inventory%']);
     });
 
     it('should handle empty search value', () => {
@@ -729,20 +729,20 @@ describe('BaseRepository', () => {
   describe('Query Execution - executeQuery()', () => {
     it('should execute query successfully', async () => {
       const mockRows = [
-        { id: 'docket-001', lab_number: 'SAPS-001' },
-        { id: 'docket-002', lab_number: 'SAPS-002' },
+        { id: 'item-001', item_number: 'INV-001' },
+        { id: 'item-002', item_number: 'INV-002' },
       ];
 
       jest.mocked(mockDb.query).mockResolvedValue(ok(mockRows));
 
       const result = await repository.testExecuteQuery<any>(
-        'SELECT * FROM dockets WHERE status = $1',
+        'SELECT * FROM items WHERE status = $1',
         ['active']
       );
 
       expect(result.isOk()).toBe(true);
       expect(result._unsafeUnwrap()).toEqual(mockRows);
-      expect(mockDb.query).toHaveBeenCalledWith('SELECT * FROM dockets WHERE status = $1', [
+      expect(mockDb.query).toHaveBeenCalledWith('SELECT * FROM items WHERE status = $1', [
         'active',
       ]);
     });
@@ -750,12 +750,12 @@ describe('BaseRepository', () => {
     it('should handle query errors with error mapping', async () => {
       const dbError = {
         code: '42P01',
-        message: 'relation "dockets" does not exist',
+        message: 'relation "items" does not exist',
       };
 
       jest.mocked(mockDb.query).mockResolvedValue(err(dbError as any));
 
-      const result = await repository.testExecuteQuery<any>('SELECT * FROM dockets');
+      const result = await repository.testExecuteQuery<any>('SELECT * FROM items');
 
       expect(result.isErr()).toBe(true);
       expect(result._unsafeUnwrapErr().message).toContain('Table not found');
@@ -764,13 +764,13 @@ describe('BaseRepository', () => {
 
   describe('Query Execution - executeQueryOne()', () => {
     it('should execute query for single row successfully', async () => {
-      const mockRow = { id: 'docket-001', lab_number: 'SAPS-001' };
+      const mockRow = { id: 'item-001', item_number: 'INV-001' };
 
       jest.mocked(mockDb.queryOne).mockResolvedValue(ok(mockRow));
 
       const result = await repository.testExecuteQueryOne<any>(
-        'SELECT * FROM dockets WHERE id = $1',
-        ['docket-001']
+        'SELECT * FROM items WHERE id = $1',
+        ['item-001']
       );
 
       expect(result.isOk()).toBe(true);
@@ -781,7 +781,7 @@ describe('BaseRepository', () => {
       jest.mocked(mockDb.queryOne).mockResolvedValue(ok(null));
 
       const result = await repository.testExecuteQueryOne<any>(
-        'SELECT * FROM dockets WHERE id = $1',
+        'SELECT * FROM items WHERE id = $1',
         ['non-existent']
       );
 
@@ -798,7 +798,7 @@ describe('BaseRepository', () => {
       jest.mocked(mockDb.queryOne).mockResolvedValue(err(dbError as any));
 
       const result = await repository.testExecuteQueryOne<any>(
-        'SELECT invalid_column FROM dockets'
+        'SELECT invalid_column FROM items'
       );
 
       expect(result.isErr()).toBe(true);
@@ -808,7 +808,7 @@ describe('BaseRepository', () => {
 
   describe('Transaction Execution - executeTransaction()', () => {
     it('should execute transaction successfully', async () => {
-      const mockResult = { id: 'docket-001' };
+      const mockResult = { id: 'item-001' };
 
       jest.mocked(mockDb.transaction).mockResolvedValue(ok(mockResult));
 
@@ -841,8 +841,8 @@ describe('BaseRepository', () => {
   describe('Pagination - executePaginatedQuery()', () => {
     it('should execute paginated query successfully', async () => {
       const mockData = [
-        { id: 'docket-001', lab_number: 'SAPS-001' },
-        { id: 'docket-002', lab_number: 'SAPS-002' },
+        { id: 'item-001', item_number: 'INV-001' },
+        { id: 'item-002', item_number: 'INV-002' },
       ];
 
       // Mock count query
@@ -854,8 +854,8 @@ describe('BaseRepository', () => {
       jest.mocked(mockDb.query).mockResolvedValue(ok(mockData));
 
       const result = await repository.testExecutePaginatedQuery<any>(
-        'SELECT * FROM dockets WHERE status = $1 ORDER BY created_at DESC',
-        'SELECT COUNT(*) FROM dockets WHERE status = $1',
+        'SELECT * FROM items WHERE status = $1 ORDER BY created_at DESC',
+        'SELECT COUNT(*) FROM items WHERE status = $1',
         ['active'],
         { page: 1, pageSize: 20 }
       );
@@ -878,8 +878,8 @@ describe('BaseRepository', () => {
       jest.mocked(mockDb.query).mockResolvedValue(ok([]));
 
       const result = await repository.testExecutePaginatedQuery<any>(
-        'SELECT * FROM dockets WHERE status = $1',
-        'SELECT COUNT(*) FROM dockets WHERE status = $1',
+        'SELECT * FROM items WHERE status = $1',
+        'SELECT COUNT(*) FROM items WHERE status = $1',
         ['inactive'],
         { page: 1, pageSize: 20 }
       );
@@ -900,8 +900,8 @@ describe('BaseRepository', () => {
       jest.mocked(mockDb.query).mockResolvedValue(ok([]));
 
       const result = await repository.testExecutePaginatedQuery<any>(
-        'SELECT * FROM dockets',
-        'SELECT COUNT(*) FROM dockets',
+        'SELECT * FROM items',
+        'SELECT COUNT(*) FROM items',
         [],
         { page: 1, pageSize: 10 }
       );
@@ -916,14 +916,14 @@ describe('BaseRepository', () => {
     it('should handle count query error', async () => {
       const dbError = {
         code: '42P01',
-        message: 'relation "dockets" does not exist',
+        message: 'relation "items" does not exist',
       };
 
       jest.mocked(mockDb.queryOne).mockResolvedValue(err(dbError as any));
 
       const result = await repository.testExecutePaginatedQuery<any>(
-        'SELECT * FROM dockets',
-        'SELECT COUNT(*) FROM dockets',
+        'SELECT * FROM items',
+        'SELECT COUNT(*) FROM items',
         [],
         { page: 1, pageSize: 20 }
       );
@@ -944,8 +944,8 @@ describe('BaseRepository', () => {
       jest.mocked(mockDb.query).mockResolvedValue(err(dbError as any));
 
       const result = await repository.testExecutePaginatedQuery<any>(
-        'SELECT * FROM dockets',
-        'SELECT COUNT(*) FROM dockets',
+        'SELECT * FROM items',
+        'SELECT COUNT(*) FROM items',
         [],
         { page: 1, pageSize: 20 }
       );
@@ -959,20 +959,20 @@ describe('BaseRepository', () => {
     it('should return true when record exists', async () => {
       jest.mocked(mockDb.queryOne).mockResolvedValue(ok({ exists: true }));
 
-      const result = await repository.testExists('dockets', { id: 'docket-001' });
+      const result = await repository.testExists('items', { id: 'item-001' });
 
       expect(result.isOk()).toBe(true);
       expect(result._unsafeUnwrap()).toBe(true);
       expect(mockDb.queryOne).toHaveBeenCalledWith(
-        'SELECT EXISTS(SELECT 1 FROM dockets WHERE id = $1) as exists',
-        ['docket-001']
+        'SELECT EXISTS(SELECT 1 FROM items WHERE id = $1) as exists',
+        ['item-001']
       );
     });
 
     it('should return false when record does not exist', async () => {
       jest.mocked(mockDb.queryOne).mockResolvedValue(ok({ exists: false }));
 
-      const result = await repository.testExists('dockets', { id: 'non-existent' });
+      const result = await repository.testExists('items', { id: 'non-existent' });
 
       expect(result.isOk()).toBe(true);
       expect(result._unsafeUnwrap()).toBe(false);
@@ -981,7 +981,7 @@ describe('BaseRepository', () => {
     it('should handle null result as false', async () => {
       jest.mocked(mockDb.queryOne).mockResolvedValue(ok(null));
 
-      const result = await repository.testExists('dockets', { id: 'docket-001' });
+      const result = await repository.testExists('items', { id: 'item-001' });
 
       expect(result.isOk()).toBe(true);
       expect(result._unsafeUnwrap()).toBe(false);
@@ -990,13 +990,13 @@ describe('BaseRepository', () => {
     it('should build WHERE clause with multiple criteria', async () => {
       jest.mocked(mockDb.queryOne).mockResolvedValue(ok({ exists: true }));
 
-      await repository.testExists('dockets', {
+      await repository.testExists('items', {
         status: 'active',
         zone_id: 'zone-001',
       });
 
       expect(mockDb.queryOne).toHaveBeenCalledWith(
-        'SELECT EXISTS(SELECT 1 FROM dockets WHERE status = $1 AND zone_id = $2) as exists',
+        'SELECT EXISTS(SELECT 1 FROM items WHERE status = $1 AND zone_id = $2) as exists',
         ['active', 'zone-001']
       );
     });
@@ -1004,12 +1004,12 @@ describe('BaseRepository', () => {
     it('should handle query errors', async () => {
       const dbError = {
         code: '42P01',
-        message: 'relation "dockets" does not exist',
+        message: 'relation "items" does not exist',
       };
 
       jest.mocked(mockDb.queryOne).mockResolvedValue(err(dbError as any));
 
-      const result = await repository.testExists('dockets', { id: 'docket-001' });
+      const result = await repository.testExists('items', { id: 'item-001' });
 
       expect(result.isErr()).toBe(true);
       expect(result._unsafeUnwrapErr().message).toContain('Table not found');
@@ -1020,12 +1020,12 @@ describe('BaseRepository', () => {
     it('should return count of all records', async () => {
       jest.mocked(mockDb.queryOne).mockResolvedValue(ok({ count: '42' }));
 
-      const result = await repository.testCount('dockets');
+      const result = await repository.testCount('items');
 
       expect(result.isOk()).toBe(true);
       expect(result._unsafeUnwrap()).toBe(42);
       expect(mockDb.queryOne).toHaveBeenCalledWith(
-        'SELECT COUNT(*) as count FROM dockets ',
+        'SELECT COUNT(*) as count FROM items ',
         []
       );
     });
@@ -1033,12 +1033,12 @@ describe('BaseRepository', () => {
     it('should return count with criteria', async () => {
       jest.mocked(mockDb.queryOne).mockResolvedValue(ok({ count: '15' }));
 
-      const result = await repository.testCount('dockets', { status: 'active' });
+      const result = await repository.testCount('items', { status: 'active' });
 
       expect(result.isOk()).toBe(true);
       expect(result._unsafeUnwrap()).toBe(15);
       expect(mockDb.queryOne).toHaveBeenCalledWith(
-        'SELECT COUNT(*) as count FROM dockets WHERE status = $1',
+        'SELECT COUNT(*) as count FROM items WHERE status = $1',
         ['active']
       );
     });
@@ -1046,7 +1046,7 @@ describe('BaseRepository', () => {
     it('should return 0 for empty result', async () => {
       jest.mocked(mockDb.queryOne).mockResolvedValue(ok(null));
 
-      const result = await repository.testCount('dockets');
+      const result = await repository.testCount('items');
 
       expect(result.isOk()).toBe(true);
       expect(result._unsafeUnwrap()).toBe(0);
@@ -1055,13 +1055,13 @@ describe('BaseRepository', () => {
     it('should handle multiple criteria', async () => {
       jest.mocked(mockDb.queryOne).mockResolvedValue(ok({ count: '7' }));
 
-      await repository.testCount('dockets', {
+      await repository.testCount('items', {
         status: 'active',
         zone_id: 'zone-001',
       });
 
       expect(mockDb.queryOne).toHaveBeenCalledWith(
-        'SELECT COUNT(*) as count FROM dockets WHERE status = $1 AND zone_id = $2',
+        'SELECT COUNT(*) as count FROM items WHERE status = $1 AND zone_id = $2',
         ['active', 'zone-001']
       );
     });
@@ -1069,12 +1069,12 @@ describe('BaseRepository', () => {
     it('should handle query errors', async () => {
       const dbError = {
         code: '42P01',
-        message: 'relation "dockets" does not exist',
+        message: 'relation "items" does not exist',
       };
 
       jest.mocked(mockDb.queryOne).mockResolvedValue(err(dbError as any));
 
-      const result = await repository.testCount('dockets');
+      const result = await repository.testCount('items');
 
       expect(result.isErr()).toBe(true);
       expect(result._unsafeUnwrapErr().message).toContain('Table not found');

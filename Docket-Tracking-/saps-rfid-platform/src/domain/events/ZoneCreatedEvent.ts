@@ -33,10 +33,10 @@ import type { ZoneType } from '../entities/Zone';
  * const event = new ZoneCreatedEvent(
  *   'zone-storage-003',
  *   'STOR-C',
- *   'Evidence Storage C',
+ *   'Storage Area C',
  *   'STORAGE',
  *   500,
- *   'Main Forensic Lab',
+ *   'Main Building',
  *   2,
  *   'admin-user-123'
  * );
@@ -77,7 +77,7 @@ export class ZoneCreatedEvent extends DomainEvent {
 
     /**
      * Building name
-     * @example "Main Forensic Lab"
+     * @example "Main Building"
      */
     public readonly building: string | null,
 

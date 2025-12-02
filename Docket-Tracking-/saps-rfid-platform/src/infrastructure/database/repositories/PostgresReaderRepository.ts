@@ -23,6 +23,7 @@ import type { ILogger } from '../../../application/interfaces/ILogger';
  */
 interface ReaderRow {
   id: string;
+  tenant_id: string;
   name: string;
   ip_address: string;
   port: number;
@@ -47,11 +48,11 @@ interface ReaderRow {
 }
 
 /**
- * PostgreSQL Implementation of IReaderRepository
+ * PostgreSQL Implementation of IReaderRepository (Multi-Tenant)
  *
  * @description
- * Concrete repository implementation using PostgreSQL.
- * Includes bulk operations and health statistics.
+ * Concrete repository implementation using PostgreSQL with full multi-tenant support.
+ * ALL queries are filtered by tenant_id for data isolation.
  *
  * **Features:**
  * - Bulk status updates (single transaction)
@@ -70,8 +71,9 @@ interface ReaderRow {
  * ```sql
  * CREATE TABLE readers (
  *   id VARCHAR(36) PRIMARY KEY,
+ *   tenant_id UUID NOT NULL REFERENCES tenants(id),
  *   name VARCHAR(100) NOT NULL,
- *   ip_address VARCHAR(15) UNIQUE NOT NULL,
+ *   ip_address VARCHAR(15) NOT NULL,
  *   port INTEGER NOT NULL DEFAULT 5084,
  *   zone_id VARCHAR(36) NOT NULL,
  *   reader_model VARCHAR(50),
@@ -91,12 +93,14 @@ interface ReaderRow {
  *   error_message TEXT,
  *   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
  *   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
- *   FOREIGN KEY (zone_id) REFERENCES zones(id)
+ *   FOREIGN KEY (zone_id) REFERENCES zones(id),
+ *   UNIQUE (tenant_id, ip_address)
  * );
  *
- * CREATE INDEX idx_readers_zone ON readers(zone_id);
- * CREATE INDEX idx_readers_status ON readers(status);
- * CREATE INDEX idx_readers_ip ON readers(ip_address);
+ * CREATE INDEX idx_readers_tenant ON readers(tenant_id);
+ * CREATE INDEX idx_readers_tenant_zone ON readers(tenant_id, zone_id);
+ * CREATE INDEX idx_readers_tenant_status ON readers(tenant_id, status);
+ * CREATE INDEX idx_readers_tenant_ip ON readers(tenant_id, ip_address);
  * CREATE INDEX idx_readers_last_connected ON readers(last_connected_at DESC);
  * ```
  *
@@ -108,10 +112,10 @@ interface ReaderRow {
  * await repository.updateStatuses([
  *   { readerId: 'reader-001', status: ReaderStatus.ONLINE },
  *   { readerId: 'reader-002', status: ReaderStatus.OFFLINE }
- * ]);
+ * ], 'tenant-uuid');
  *
  * // Get all health stats (single query)
- * const stats = await repository.getAllHealthStats();
+ * const stats = await repository.getAllHealthStats('tenant-uuid');
  * ```
  */
 @injectable()
@@ -127,14 +131,16 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
    * Saves a new reader to the database
    *
    * @param reader - Reader entity to save
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result indicating success or failure
    */
-  async save(reader: Reader): Promise<Result<void, Error>> {
+  async save(reader: Reader, tenantId: string): Promise<Result<void, Error>> {
     const props = reader.toPersistence();
 
     const sql = `
       INSERT INTO readers (
         id,
+        tenant_id,
         name,
         ip_address,
         port,
@@ -156,11 +162,12 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
         error_message,
         created_at,
         updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
     `;
 
     const params = [
       props.id,
+      tenantId,
       props.name,
       props.ipAddress.getValue(),
       props.port,
@@ -192,6 +199,7 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
 
     this.logger.info('Reader saved', {
       id: props.id,
+      tenantId,
       name: props.name,
       ipAddress: props.ipAddress.getValue(),
     });
@@ -200,18 +208,19 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
   }
 
   /**
-   * Finds a reader by its unique ID
+   * Finds a reader by its unique ID within a tenant
    *
    * @param id - Reader ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing reader or null if not found
    */
-  async findById(id: string): Promise<Result<Reader | null, Error>> {
+  async findById(id: string, tenantId: string): Promise<Result<Reader | null, Error>> {
     const sql = `
       SELECT * FROM readers
-      WHERE id = $1
+      WHERE id = $1 AND tenant_id = $2
     `;
 
-    const result = await this.executeQueryOne<ReaderRow>(sql, [id]);
+    const result = await this.executeQueryOne<ReaderRow>(sql, [id, tenantId]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -225,18 +234,19 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
   }
 
   /**
-   * Finds a reader by its IP address
+   * Finds a reader by its IP address within a tenant
    *
    * @param ipAddress - The IP address value object
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing the reader or ReaderNotFoundError
    */
-  async findByIpAddress(ipAddress: IpAddress): Promise<Result<Reader, ReaderNotFoundError>> {
+  async findByIpAddress(ipAddress: IpAddress, tenantId: string): Promise<Result<Reader, ReaderNotFoundError>> {
     const sql = `
       SELECT * FROM readers
-      WHERE ip_address = $1
+      WHERE ip_address = $1 AND tenant_id = $2
     `;
 
-    const result = await this.executeQueryOne<ReaderRow>(sql, [ipAddress.getValue()]);
+    const result = await this.executeQueryOne<ReaderRow>(sql, [ipAddress.getValue(), tenantId]);
 
     if (result.isErr()) {
       return err(new ReaderNotFoundError(ipAddress.getValue()));
@@ -255,17 +265,19 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
   }
 
   /**
-   * Finds all readers
+   * Finds all readers for a tenant
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of all readers
    */
-  async findAll(): Promise<Result<Reader[], Error>> {
+  async findAll(tenantId: string): Promise<Result<Reader[], Error>> {
     const sql = `
       SELECT * FROM readers
+      WHERE tenant_id = $1
       ORDER BY name
     `;
 
-    const result = await this.executeQuery<ReaderRow>(sql);
+    const result = await this.executeQuery<ReaderRow>(sql, [tenantId]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -283,18 +295,19 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
   }
 
   /**
-   * Finds all active readers
+   * Finds all active readers for a tenant
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of active readers
    */
-  async findAllActive(): Promise<Result<Reader[], Error>> {
+  async findAllActive(tenantId: string): Promise<Result<Reader[], Error>> {
     const sql = `
       SELECT * FROM readers
-      WHERE is_active = true
+      WHERE tenant_id = $1 AND is_active = true
       ORDER BY name
     `;
 
-    const result = await this.executeQuery<ReaderRow>(sql);
+    const result = await this.executeQuery<ReaderRow>(sql, [tenantId]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -312,19 +325,20 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
   }
 
   /**
-   * Finds all readers in a specific zone
+   * Finds all readers in a specific zone within a tenant
    *
    * @param zoneId - The zone ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of readers in the zone
    */
-  async findByZone(zoneId: string): Promise<Result<Reader[], Error>> {
+  async findByZone(zoneId: string, tenantId: string): Promise<Result<Reader[], Error>> {
     const sql = `
       SELECT * FROM readers
-      WHERE zone_id = $1
+      WHERE zone_id = $1 AND tenant_id = $2
       ORDER BY name
     `;
 
-    const result = await this.executeQuery<ReaderRow>(sql, [zoneId]);
+    const result = await this.executeQuery<ReaderRow>(sql, [zoneId, tenantId]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -342,19 +356,21 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
   }
 
   /**
-   * Finds all online readers
+   * Finds all online readers for a tenant
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of online readers
    */
-  async findAllOnline(): Promise<Result<Reader[], Error>> {
+  async findAllOnline(tenantId: string): Promise<Result<Reader[], Error>> {
     const sql = `
       SELECT * FROM readers
-      WHERE status = $1
+      WHERE tenant_id = $1
+        AND status = $2
         AND is_active = true
       ORDER BY name
     `;
 
-    const result = await this.executeQuery<ReaderRow>(sql, [ReaderStatus.ONLINE]);
+    const result = await this.executeQuery<ReaderRow>(sql, [tenantId, ReaderStatus.ONLINE]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -372,19 +388,22 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
   }
 
   /**
-   * Finds all offline or error readers
+   * Finds all offline or error readers for a tenant
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of unhealthy readers
    */
-  async findAllUnhealthy(): Promise<Result<Reader[], Error>> {
+  async findAllUnhealthy(tenantId: string): Promise<Result<Reader[], Error>> {
     const sql = `
       SELECT * FROM readers
-      WHERE status IN ($1, $2)
+      WHERE tenant_id = $1
+        AND status IN ($2, $3)
         AND is_active = true
       ORDER BY last_connected_at ASC NULLS FIRST
     `;
 
     const result = await this.executeQuery<ReaderRow>(sql, [
+      tenantId,
       ReaderStatus.OFFLINE,
       ReaderStatus.ERROR,
     ]);
@@ -408,21 +427,23 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
    * Finds readers that haven't been seen within the threshold
    *
    * @param thresholdSeconds - Seconds without connection before considered stale
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of stale readers
    */
-  async findStale(thresholdSeconds: number): Promise<Result<Reader[], Error>> {
+  async findStale(thresholdSeconds: number, tenantId: string): Promise<Result<Reader[], Error>> {
     const sql = `
       SELECT * FROM readers
-      WHERE (
-        last_connected_at < NOW() - INTERVAL '${thresholdSeconds} seconds'
-        OR last_connected_at IS NULL
-      )
-      AND status != $1
-      AND is_active = true
+      WHERE tenant_id = $1
+        AND (
+          last_connected_at < NOW() - INTERVAL '${thresholdSeconds} seconds'
+          OR last_connected_at IS NULL
+        )
+        AND status != $2
+        AND is_active = true
       ORDER BY last_connected_at ASC NULLS FIRST
     `;
 
-    const result = await this.executeQuery<ReaderRow>(sql, [ReaderStatus.OFFLINE]);
+    const result = await this.executeQuery<ReaderRow>(sql, [tenantId, ReaderStatus.OFFLINE]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -440,16 +461,16 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
   }
 
   /**
-   * Searches for readers using flexible criteria
+   * Searches for readers using flexible criteria (tenant-scoped)
    *
-   * @param criteria - Search criteria
+   * @param criteria - Search criteria (includes tenantId)
    * @returns Result containing array of matching readers
    */
   async search(criteria: ReaderSearchCriteria): Promise<Result<Reader[], Error>> {
     try {
-      const conditions: string[] = [];
-      const params: any[] = [];
-      let paramIndex = 1;
+      const conditions: string[] = ['tenant_id = $1'];
+      const params: any[] = [criteria.tenantId];
+      let paramIndex = 2;
 
       // Text search
       if (criteria.query && criteria.query.trim().length > 0) {
@@ -490,7 +511,7 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
         conditions.push('is_active = true');
       }
 
-      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+      const whereClause = `WHERE ${conditions.join(' AND ')}`;
 
       // Sorting
       const sortField = this.mapSortField(criteria.sortBy || 'name');
@@ -525,14 +546,15 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
   }
 
   /**
-   * Gets health statistics for all readers
+   * Gets health statistics for all readers in a tenant
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of reader health stats
    *
    * @description
    * Performance-optimized: Single query instead of N queries.
    */
-  async getAllHealthStats(): Promise<Result<ReaderHealthStats[], Error>> {
+  async getAllHealthStats(tenantId: string): Promise<Result<ReaderHealthStats[], Error>> {
     const sql = `
       SELECT
         id as reader_id,
@@ -555,7 +577,7 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
           ELSE NULL
         END as seconds_since_last_connection
       FROM readers
-      WHERE is_active = true
+      WHERE tenant_id = $1 AND is_active = true
       ORDER BY name
     `;
 
@@ -571,7 +593,7 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
       success_rate: string;
       seconds_since_last_connection: string | null;
       last_error: string | null;
-    }>(sql);
+    }>(sql, [tenantId]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -610,12 +632,13 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
   }
 
   /**
-   * Updates an existing reader
+   * Updates an existing reader within a tenant
    *
    * @param reader - The reader entity with updated values
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result indicating success or failure
    */
-  async update(reader: Reader): Promise<Result<void, Error>> {
+  async update(reader: Reader, tenantId: string): Promise<Result<void, Error>> {
     const props = reader.toPersistence();
 
     const sql = `
@@ -638,7 +661,7 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
         last_health_check_at = $17,
         error_message = $18,
         updated_at = $19
-      WHERE id = $1
+      WHERE id = $1 AND tenant_id = $20
     `;
 
     const params = [
@@ -661,6 +684,7 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
       props.health.lastHealthCheckAt,
       props.errorMessage,
       props.updatedAt,
+      tenantId,
     ];
 
     const result = await this.executeQuery(sql, params);
@@ -671,6 +695,7 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
 
     this.logger.info('Reader updated', {
       id: props.id,
+      tenantId,
       name: props.name,
     });
 
@@ -678,16 +703,18 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
   }
 
   /**
-   * Bulk updates reader statuses
+   * Bulk updates reader statuses within a tenant
    *
    * @param updates - Array of status updates to apply
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result indicating success or failure
    *
    * @description
    * Performance-optimized: Single transaction using VALUES clause.
    * Atomically updates multiple readers.
+   * Only updates readers belonging to the specified tenant.
    */
-  async updateStatuses(updates: ReaderStatusUpdate[]): Promise<Result<void, Error>> {
+  async updateStatuses(updates: ReaderStatusUpdate[], tenantId: string): Promise<Result<void, Error>> {
     if (updates.length === 0) {
       return ok(undefined);
     }
@@ -695,16 +722,14 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
     try {
       // Build VALUES clause for bulk update
       const values = updates.map((_, index) => {
-        const base = index * 4 + 1;
+        const base = index * 4 + 2; // Start at $2 since $1 is tenantId
         return `($${base}, $${base + 1}, $${base + 2}, $${base + 3})`;
       }).join(', ');
 
-      const params = updates.flatMap((u) => [
-        u.readerId,
-        u.status,
-        u.errorMessage ?? null,
-        u.timestamp ?? new Date(),
-      ]);
+      const params: any[] = [tenantId];
+      for (const u of updates) {
+        params.push(u.readerId, u.status, u.errorMessage ?? null, u.timestamp ?? new Date());
+      }
 
       const sql = `
         UPDATE readers
@@ -713,7 +738,7 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
           error_message = v.error_message,
           updated_at = v.timestamp
         FROM (VALUES ${values}) AS v(reader_id, status, error_message, timestamp)
-        WHERE readers.id = v.reader_id
+        WHERE readers.id = v.reader_id AND readers.tenant_id = $1
       `;
 
       const result = await this.executeQuery(sql, params);
@@ -723,6 +748,7 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
       }
 
       this.logger.debug('Bulk status update completed', {
+        tenantId,
         count: updates.length,
       });
 
@@ -734,42 +760,44 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
   }
 
   /**
-   * Deletes a reader
+   * Deletes a reader within a tenant
    *
    * @param id - The reader ID to delete
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result indicating success or failure
    */
-  async delete(id: string): Promise<Result<void, Error>> {
+  async delete(id: string, tenantId: string): Promise<Result<void, Error>> {
     const sql = `
       DELETE FROM readers
-      WHERE id = $1
+      WHERE id = $1 AND tenant_id = $2
     `;
 
-    const result = await this.executeQuery(sql, [id]);
+    const result = await this.executeQuery(sql, [id, tenantId]);
 
     if (result.isErr()) {
       return err(result.error);
     }
 
-    this.logger.info('Reader deleted', { id });
+    this.logger.info('Reader deleted', { id, tenantId });
 
     return ok(undefined);
   }
 
   /**
-   * Checks if an IP address is already in use
+   * Checks if an IP address is already in use within a tenant
    *
    * @param ipAddress - The IP address to check
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing boolean (true if in use)
    */
-  async existsByIpAddress(ipAddress: IpAddress): Promise<Result<boolean, Error>> {
+  async existsByIpAddress(ipAddress: IpAddress, tenantId: string): Promise<Result<boolean, Error>> {
     const sql = `
       SELECT EXISTS(
-        SELECT 1 FROM readers WHERE ip_address = $1
+        SELECT 1 FROM readers WHERE ip_address = $1 AND tenant_id = $2
       ) as exists
     `;
 
-    const result = await this.executeQueryOne<{ exists: boolean }>(sql, [ipAddress.getValue()]);
+    const result = await this.executeQueryOne<{ exists: boolean }>(sql, [ipAddress.getValue(), tenantId]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -779,37 +807,39 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
   }
 
   /**
-   * Records a heartbeat from a reader
+   * Records a heartbeat from a reader within a tenant
    *
    * @param readerId - The reader ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result indicating success or failure
    *
    * @description
    * Lightweight operation optimized for high frequency.
    * Only updates last_connected_at timestamp.
    */
-  async recordHeartbeat(readerId: string): Promise<Result<void, Error>> {
+  async recordHeartbeat(readerId: string, tenantId: string): Promise<Result<void, Error>> {
     const sql = `
       UPDATE readers
       SET last_connected_at = NOW()
-      WHERE id = $1
+      WHERE id = $1 AND tenant_id = $2
     `;
 
-    const result = await this.executeQuery(sql, [readerId]);
+    const result = await this.executeQuery(sql, [readerId, tenantId]);
 
     if (result.isErr()) {
       return err(result.error);
     }
 
-    this.logger.debug('Heartbeat recorded', { readerId });
+    this.logger.debug('Heartbeat recorded', { readerId, tenantId });
 
     return ok(undefined);
   }
 
   /**
-   * Increments read counters for a reader
+   * Increments read counters for a reader within a tenant
    *
    * @param readerId - The reader ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @param successful - Number of successful reads to add
    * @param failed - Number of failed reads to add
    * @returns Result indicating success or failure
@@ -820,21 +850,22 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
    */
   async incrementReadCounters(
     readerId: string,
+    tenantId: string,
     successful: number,
     failed: number
   ): Promise<Result<void, Error>> {
     const sql = `
       UPDATE readers
       SET
-        total_reads = total_reads + $2 + $3,
-        successful_reads = successful_reads + $2,
-        failed_reads = failed_reads + $3,
+        total_reads = total_reads + $3 + $4,
+        successful_reads = successful_reads + $3,
+        failed_reads = failed_reads + $4,
         last_read_at = NOW(),
         updated_at = NOW()
-      WHERE id = $1
+      WHERE id = $1 AND tenant_id = $2
     `;
 
-    const result = await this.executeQuery(sql, [readerId, successful, failed]);
+    const result = await this.executeQuery(sql, [readerId, tenantId, successful, failed]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -842,6 +873,7 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
 
     this.logger.debug('Read counters incremented', {
       readerId,
+      tenantId,
       successful,
       failed,
     });

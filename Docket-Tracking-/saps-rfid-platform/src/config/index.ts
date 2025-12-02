@@ -17,6 +17,7 @@ import { getDatabaseConfig } from './database.config';
 import { getRFIDConfig } from './rfid.config';
 import { getServerConfig } from './server.config';
 import { getLoggingConfig } from './logging.config';
+import { getJwtConfig } from './jwt.config';
 
 /**
  * Initialize and validate configuration
@@ -39,6 +40,7 @@ export const config = {
   rfid: getRFIDConfig(),
   server: getServerConfig(),
   logging: getLoggingConfig(),
+  jwt: getJwtConfig(),
 };
 
 // Export individual config functions
@@ -46,4 +48,5 @@ export { getDatabaseConfig } from './database.config';
 export { getRFIDConfig } from './rfid.config';
 export { getServerConfig } from './server.config';
 export { getLoggingConfig } from './logging.config';
+export { getJwtConfig } from './jwt.config';
 export { validateEnv, getEnv } from './validation';

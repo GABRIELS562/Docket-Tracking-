@@ -24,8 +24,9 @@ import type { ILogger } from '../../../application/interfaces/ILogger';
  */
 interface LocationHistoryRow {
   time: Date;
-  docket_id: string;
-  lab_number: string;
+  tenant_id: string;
+  item_id: string;
+  item_number: string;
   zone_id: string | null;
   zone_name: string | null;
   reader_id: string;
@@ -44,6 +45,7 @@ interface LocationHistoryRow {
 interface BatchItem {
   tagRead: TagRead;
   itemId: string;
+  tenantId: string;
   zoneId: string | null;
   eventType: 'tag_read' | 'zone_entry' | 'zone_exit' | 'movement';
 }
@@ -72,8 +74,9 @@ interface BatchItem {
  * ```sql
  * CREATE TABLE location_history (
  *   time TIMESTAMPTZ NOT NULL,
- *   docket_id VARCHAR(36) NOT NULL,
- *   lab_number VARCHAR(50) NOT NULL,
+ *   tenant_id UUID NOT NULL REFERENCES tenants(id),
+ *   item_id VARCHAR(36) NOT NULL,
+ *   item_number VARCHAR(50) NOT NULL,
  *   zone_id VARCHAR(36),
  *   zone_name VARCHAR(100),
  *   reader_id VARCHAR(36) NOT NULL,
@@ -84,22 +87,22 @@ interface BatchItem {
  *   read_count INTEGER NOT NULL DEFAULT 1,
  *   location_confidence DECIMAL(3,2),
  *   event_type VARCHAR(20) NOT NULL,
- *   CONSTRAINT pk_location_history PRIMARY KEY (time, docket_id, reader_id)
+ *   CONSTRAINT pk_location_history PRIMARY KEY (time, tenant_id, item_id, reader_id)
  * );
  *
  * -- Convert to hypertable (time-series optimized)
  * SELECT create_hypertable('location_history', 'time');
  *
- * -- Create indexes for common queries
- * CREATE INDEX idx_location_history_docket ON location_history (docket_id, time DESC);
- * CREATE INDEX idx_location_history_lab_number ON location_history (lab_number, time DESC);
- * CREATE INDEX idx_location_history_zone ON location_history (zone_id, time DESC) WHERE zone_id IS NOT NULL;
- * CREATE INDEX idx_location_history_epc ON location_history (rfid_epc, time DESC);
+ * -- Create indexes for common queries (all include tenant_id for multi-tenant isolation)
+ * CREATE INDEX idx_location_history_tenant_item ON location_history (tenant_id, item_id, time DESC);
+ * CREATE INDEX idx_location_history_tenant_item_number ON location_history (tenant_id, item_number, time DESC);
+ * CREATE INDEX idx_location_history_tenant_zone ON location_history (tenant_id, zone_id, time DESC) WHERE zone_id IS NOT NULL;
+ * CREATE INDEX idx_location_history_tenant_epc ON location_history (tenant_id, rfid_epc, time DESC);
  *
  * -- Enable compression after 7 days
  * ALTER TABLE location_history SET (
  *   timescaledb.compress,
- *   timescaledb.compress_segmentby = 'docket_id',
+ *   timescaledb.compress_segmentby = 'tenant_id, item_id',
  *   timescaledb.compress_orderby = 'time DESC'
  * );
  *
@@ -150,6 +153,7 @@ export class TimescaleLocationHistoryRepository
    *
    * @param tagRead - The tag read value object
    * @param itemId - The item ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @param zoneId - The zone where tag was detected (null if unknown)
    * @param eventType - Type of location event
    * @returns Result indicating success or failure
@@ -162,11 +166,12 @@ export class TimescaleLocationHistoryRepository
   async recordTagRead(
     tagRead: TagRead,
     itemId: string,
+    tenantId: string,
     zoneId: string | null,
     eventType: 'tag_read' | 'zone_entry' | 'zone_exit' | 'movement'
   ): Promise<Result<void, Error>> {
     // Add to batch queue
-    this.batchQueue.push({ tagRead, itemId, zoneId, eventType });
+    this.batchQueue.push({ tagRead, itemId, tenantId, zoneId, eventType });
 
     // If batch is full, flush immediately
     if (this.batchQueue.length >= this.BATCH_SIZE) {
@@ -189,6 +194,7 @@ export class TimescaleLocationHistoryRepository
    * Records multiple tag reads in a batch
    *
    * @param reads - Array of tag reads with associated metadata
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result indicating success or failure
    *
    * @description
@@ -201,7 +207,8 @@ export class TimescaleLocationHistoryRepository
       itemId: string;
       zoneId: string | null;
       eventType: 'tag_read' | 'zone_entry' | 'zone_exit' | 'movement';
-    }>
+    }>,
+    tenantId: string
   ): Promise<Result<void, Error>> {
     if (reads.length === 0) {
       return ok(undefined);
@@ -215,20 +222,20 @@ export class TimescaleLocationHistoryRepository
 
       for (const { tagRead, itemId, zoneId, eventType } of reads) {
         // Fetch zone/reader names for denormalization (in production, these would be cached)
-        const zoneName = zoneId ? await this.getZoneName(zoneId) : null;
-        const readerName = await this.getReaderName(tagRead.getReaderId());
+        const zoneName = zoneId ? await this.getZoneName(zoneId, tenantId) : null;
+        const readerName = await this.getReaderName(tagRead.getReaderId(), tenantId);
 
         values.push(
-          `($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7}, $${paramIndex + 8}, $${paramIndex + 9}, $${paramIndex + 10}, $${paramIndex + 11}, $${paramIndex + 12})`
+          `($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7}, $${paramIndex + 8}, $${paramIndex + 9}, $${paramIndex + 10}, $${paramIndex + 11}, $${paramIndex + 12}, $${paramIndex + 13})`
         );
 
         const locationConfidence = this.calculateLocationConfidence(tagRead.getRssi());
 
-        // Note: Database column still named 'docket_id' until migration
         params.push(
           tagRead.getTimestamp(),
+          tenantId,
           itemId,
-          await this.getItemNumber(itemId),
+          await this.getItemNumber(itemId, tenantId),
           zoneId,
           zoneName,
           tagRead.getReaderId(),
@@ -241,14 +248,15 @@ export class TimescaleLocationHistoryRepository
           eventType
         );
 
-        paramIndex += 13;
+        paramIndex += 14;
       }
 
       const sql = `
         INSERT INTO location_history (
           time,
-          docket_id,
-          lab_number,
+          tenant_id,
+          item_id,
+          item_number,
           zone_id,
           zone_name,
           reader_id,
@@ -260,7 +268,7 @@ export class TimescaleLocationHistoryRepository
           location_confidence,
           event_type
         ) VALUES ${values.join(', ')}
-        ON CONFLICT (time, docket_id, reader_id) DO NOTHING
+        ON CONFLICT (time, tenant_id, item_id, reader_id) DO NOTHING
       `;
 
       const result = await this.executeQuery(sql, params);
@@ -287,6 +295,7 @@ export class TimescaleLocationHistoryRepository
    * Gets location history for a specific item
    *
    * @param itemId - The item ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @param startTime - Start of time range (optional)
    * @param endTime - End of time range (optional)
    * @param limit - Maximum number of records (default: 100)
@@ -294,15 +303,15 @@ export class TimescaleLocationHistoryRepository
    */
   async getHistoryForItem(
     itemId: string,
+    tenantId: string,
     startTime?: Date,
     endTime?: Date,
     limit: number = 100
   ): Promise<Result<LocationHistoryEntry[], Error>> {
     try {
-      // Note: Database column still named 'docket_id' until migration
-      const conditions: string[] = ['docket_id = $1'];
-      const params: any[] = [itemId];
-      let paramIndex = 2;
+      const conditions: string[] = ['tenant_id = $1', 'item_id = $2'];
+      const params: any[] = [tenantId, itemId];
+      let paramIndex = 3;
 
       if (startTime) {
         conditions.push(`time >= $${paramIndex}`);
@@ -342,6 +351,7 @@ export class TimescaleLocationHistoryRepository
    * Gets location history for an item by item number
    *
    * @param itemNumber - The item number value object
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @param startTime - Start of time range (optional)
    * @param endTime - End of time range (optional)
    * @param limit - Maximum number of records (default: 100)
@@ -349,15 +359,15 @@ export class TimescaleLocationHistoryRepository
    */
   async getHistoryByItemNumber(
     itemNumber: ItemNumber,
+    tenantId: string,
     startTime?: Date,
     endTime?: Date,
     limit: number = 100
   ): Promise<Result<LocationHistoryEntry[], Error>> {
     try {
-      // Note: Database column still named 'lab_number' until migration
-      const conditions: string[] = ['lab_number = $1'];
-      const params: any[] = [itemNumber.getValue()];
-      let paramIndex = 2;
+      const conditions: string[] = ['tenant_id = $1', 'item_number = $2'];
+      const params: any[] = [tenantId, itemNumber.getValue()];
+      let paramIndex = 3;
 
       if (startTime) {
         conditions.push(`time >= $${paramIndex}`);
@@ -397,6 +407,7 @@ export class TimescaleLocationHistoryRepository
    * Gets location history for a specific zone
    *
    * @param zoneId - The zone ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @param startTime - Start of time range (optional)
    * @param endTime - End of time range (optional)
    * @param limit - Maximum number of records (default: 100)
@@ -404,14 +415,15 @@ export class TimescaleLocationHistoryRepository
    */
   async getHistoryForZone(
     zoneId: string,
+    tenantId: string,
     startTime?: Date,
     endTime?: Date,
     limit: number = 100
   ): Promise<Result<LocationHistoryEntry[], Error>> {
     try {
-      const conditions: string[] = ['zone_id = $1'];
-      const params: any[] = [zoneId];
-      let paramIndex = 2;
+      const conditions: string[] = ['tenant_id = $1', 'zone_id = $2'];
+      const params: any[] = [tenantId, zoneId];
+      let paramIndex = 3;
 
       if (startTime) {
         conditions.push(`time >= $${paramIndex}`);
@@ -451,22 +463,25 @@ export class TimescaleLocationHistoryRepository
    * Gets recent tag reads for an EPC
    *
    * @param epc - The RFID EPC value object
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @param withinMs - Time window in milliseconds (default: 3000ms)
    * @returns Result containing array of recent reads
    */
   async getRecentReadsForEpc(
     epc: RfidEpc,
+    tenantId: string,
     withinMs: number = 3000
   ): Promise<Result<LocationHistoryEntry[], Error>> {
     const sql = `
       SELECT *
       FROM location_history
-      WHERE rfid_epc = $1
+      WHERE tenant_id = $1
+        AND rfid_epc = $2
         AND time >= NOW() - INTERVAL '${withinMs} milliseconds'
       ORDER BY time DESC
     `;
 
-    const result = await this.executeQuery<LocationHistoryRow>(sql, [epc.getValue()]);
+    const result = await this.executeQuery<LocationHistoryRow>(sql, [tenantId, epc.getValue()]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -479,21 +494,22 @@ export class TimescaleLocationHistoryRepository
    * Gets the last known location of an item
    *
    * @param itemId - The item ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing the most recent location entry or null
    */
   async getLastKnownLocation(
-    itemId: string
+    itemId: string,
+    tenantId: string
   ): Promise<Result<LocationHistoryEntry | null, Error>> {
-    // Note: Database column still named 'docket_id' until migration
     const sql = `
       SELECT *
       FROM location_history
-      WHERE docket_id = $1
+      WHERE tenant_id = $1 AND item_id = $2
       ORDER BY time DESC
       LIMIT 1
     `;
 
-    const result = await this.executeQueryOne<LocationHistoryRow>(sql, [itemId]);
+    const result = await this.executeQueryOne<LocationHistoryRow>(sql, [tenantId, itemId]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -510,6 +526,7 @@ export class TimescaleLocationHistoryRepository
    * Gets zone visit summary for an item
    *
    * @param itemId - The item ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @param startTime - Start of time range
    * @param endTime - End of time range
    * @returns Result containing array of zone visits
@@ -520,10 +537,10 @@ export class TimescaleLocationHistoryRepository
    */
   async getZoneVisits(
     itemId: string,
+    tenantId: string,
     startTime: Date,
     endTime: Date
   ): Promise<Result<ZoneVisitSummary[], Error>> {
-    // Note: Database column still named 'docket_id' until migration
     const sql = `
       WITH zone_changes AS (
         SELECT
@@ -534,9 +551,10 @@ export class TimescaleLocationHistoryRepository
           LEAD(zone_id) OVER (ORDER BY time) as next_zone_id,
           rssi
         FROM location_history
-        WHERE docket_id = $1
-          AND time >= $2
-          AND time <= $3
+        WHERE tenant_id = $1
+          AND item_id = $2
+          AND time >= $3
+          AND time <= $4
           AND zone_id IS NOT NULL
         ORDER BY time
       ),
@@ -563,7 +581,8 @@ export class TimescaleLocationHistoryRepository
         AVG(lh.rssi) as average_rssi
       FROM zone_entries ze
       LEFT JOIN location_history lh
-        ON lh.docket_id = $1
+        ON lh.tenant_id = $1
+        AND lh.item_id = $2
         AND lh.zone_id = ze.zone_id
         AND lh.time >= ze.entered_at
         AND (ze.exited_at IS NULL OR lh.time < ze.exited_at)
@@ -579,7 +598,7 @@ export class TimescaleLocationHistoryRepository
       duration_seconds: string | null;
       read_count: string;
       average_rssi: string;
-    }>(sql, [itemId, startTime, endTime]);
+    }>(sql, [tenantId, itemId, startTime, endTime]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -601,11 +620,13 @@ export class TimescaleLocationHistoryRepository
   /**
    * Gets tag read count statistics by zone
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @param startTime - Start of time range
    * @param endTime - End of time range
    * @returns Result containing Map of zone ID to read count
    */
   async getReadCountByZone(
+    tenantId: string,
     startTime: Date,
     endTime: Date
   ): Promise<Result<Map<string, number>, Error>> {
@@ -614,8 +635,9 @@ export class TimescaleLocationHistoryRepository
         zone_id,
         COUNT(*) as read_count
       FROM location_history
-      WHERE time >= $1
-        AND time <= $2
+      WHERE tenant_id = $1
+        AND time >= $2
+        AND time <= $3
         AND zone_id IS NOT NULL
       GROUP BY zone_id
       ORDER BY read_count DESC
@@ -624,7 +646,7 @@ export class TimescaleLocationHistoryRepository
     const result = await this.executeQuery<{
       zone_id: string;
       read_count: string;
-    }>(sql, [startTime, endTime]);
+    }>(sql, [tenantId, startTime, endTime]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -641,11 +663,13 @@ export class TimescaleLocationHistoryRepository
   /**
    * Gets tag read count statistics by reader
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @param startTime - Start of time range
    * @param endTime - End of time range
    * @returns Result containing Map of reader ID to read count
    */
   async getReadCountByReader(
+    tenantId: string,
     startTime: Date,
     endTime: Date
   ): Promise<Result<Map<string, number>, Error>> {
@@ -654,8 +678,9 @@ export class TimescaleLocationHistoryRepository
         reader_id,
         COUNT(*) as read_count
       FROM location_history
-      WHERE time >= $1
-        AND time <= $2
+      WHERE tenant_id = $1
+        AND time >= $2
+        AND time <= $3
       GROUP BY reader_id
       ORDER BY read_count DESC
     `;
@@ -663,7 +688,7 @@ export class TimescaleLocationHistoryRepository
     const result = await this.executeQuery<{
       reader_id: string;
       read_count: string;
-    }>(sql, [startTime, endTime]);
+    }>(sql, [tenantId, startTime, endTime]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -680,7 +705,7 @@ export class TimescaleLocationHistoryRepository
   /**
    * Gets time-series analytics
    *
-   * @param options - Analytics query options
+   * @param options - Analytics query options (includes tenantId)
    * @returns Result containing array of read statistics
    *
    * @description
@@ -691,9 +716,9 @@ export class TimescaleLocationHistoryRepository
   ): Promise<Result<ReadStatistics[], Error>> {
     try {
       const bucketSize = options.bucketSize || '1 hour';
-      const conditions: string[] = ['time >= $1', 'time <= $2'];
-      const params: any[] = [options.startTime, options.endTime];
-      let paramIndex = 3;
+      const conditions: string[] = ['tenant_id = $1', 'time >= $2', 'time <= $3'];
+      const params: any[] = [options.tenantId, options.startTime, options.endTime];
+      let paramIndex = 4;
 
       if (options.zoneIds && options.zoneIds.length > 0) {
         const placeholders = options.zoneIds.map((_, i) => `$${paramIndex + i}`).join(', ');
@@ -709,12 +734,11 @@ export class TimescaleLocationHistoryRepository
         paramIndex += options.readerIds.length;
       }
 
-      // Note: Database column still named 'docket_id' until migration
       const sql = `
         SELECT
           time_bucket('${bucketSize}', time) as time_bucket,
           COUNT(*) as total_reads,
-          COUNT(DISTINCT docket_id) as unique_items,
+          COUNT(DISTINCT item_id) as unique_items,
           COUNT(DISTINCT zone_id) FILTER (WHERE zone_id IS NOT NULL) as active_zones,
           AVG(rssi) as average_rssi
         FROM location_history
@@ -753,6 +777,7 @@ export class TimescaleLocationHistoryRepository
   /**
    * Deletes location history older than the specified date
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @param olderThan - Delete records older than this date
    * @returns Result containing number of records deleted
    *
@@ -760,22 +785,23 @@ export class TimescaleLocationHistoryRepository
    * In production with TimescaleDB, use drop_chunks() for efficiency:
    * SELECT drop_chunks('location_history', older_than => INTERVAL '2 years');
    */
-  async deleteOlderThan(olderThan: Date): Promise<Result<number, Error>> {
+  async deleteOlderThan(tenantId: string, olderThan: Date): Promise<Result<number, Error>> {
     try {
       // For TimescaleDB, this is better done with drop_chunks()
       // But we'll use DELETE for compatibility
       const sql = `
         DELETE FROM location_history
-        WHERE time < $1
+        WHERE tenant_id = $1 AND time < $2
       `;
 
-      const result = await this.executeQuery(sql, [olderThan]);
+      const result = await this.executeQuery(sql, [tenantId, olderThan]);
 
       if (result.isErr()) {
         return err(result.error);
       }
 
       this.logger.info('Old location history deleted', {
+        tenantId,
         beforeDate: olderThan.toISOString(),
       });
 
@@ -788,11 +814,12 @@ export class TimescaleLocationHistoryRepository
   }
 
   /**
-   * Gets database statistics
+   * Gets database statistics for a tenant
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing storage and performance metrics
    */
-  async getStorageStats(): Promise<
+  async getStorageStats(tenantId: string): Promise<
     Result<
       {
         totalRecords: number;
@@ -805,26 +832,27 @@ export class TimescaleLocationHistoryRepository
     >
   > {
     try {
-      // Get record statistics
+      // Get record statistics for tenant
       const statsSql = `
         SELECT
           COUNT(*) as total_records,
           MIN(time) as oldest_record,
           MAX(time) as newest_record
         FROM location_history
+        WHERE tenant_id = $1
       `;
 
       const statsResult = await this.executeQueryOne<{
         total_records: string;
         oldest_record: Date | null;
         newest_record: Date | null;
-      }>(statsSql);
+      }>(statsSql, [tenantId]);
 
       if (statsResult.isErr()) {
         return err(statsResult.error);
       }
 
-      // Get table size
+      // Get table size (total for all tenants - can't easily partition by tenant)
       const sizeSql = `
         SELECT pg_total_relation_size('location_history') as table_size_bytes
       `;
@@ -872,7 +900,7 @@ export class TimescaleLocationHistoryRepository
           : null,
       });
     } catch (error) {
-      this.logger.error('Failed to get storage stats', { error });
+      this.logger.error('Failed to get storage stats', { error, tenantId });
       return err(error as Error);
     }
   }
@@ -887,7 +915,7 @@ export class TimescaleLocationHistoryRepository
    * @returns Result indicating success or failure
    *
    * @description
-   * Clears timer, extracts batch, and calls saveBatch().
+   * Clears timer, extracts batch, groups by tenant, and calls saveBatch() for each tenant.
    */
   private async flushBatch(): Promise<Result<void, Error>> {
     if (this.batchQueue.length === 0) {
@@ -906,8 +934,29 @@ export class TimescaleLocationHistoryRepository
 
     this.logger.debug('Flushing batch', { count: batch.length });
 
-    // Save batch
-    return this.saveBatch(batch);
+    // Group by tenant
+    const batchesByTenant = new Map<string, BatchItem[]>();
+    for (const item of batch) {
+      const tenantBatch = batchesByTenant.get(item.tenantId) || [];
+      tenantBatch.push(item);
+      batchesByTenant.set(item.tenantId, tenantBatch);
+    }
+
+    // Save batches per tenant
+    for (const [tenantId, tenantBatch] of batchesByTenant) {
+      const reads = tenantBatch.map(({ tagRead, itemId, zoneId, eventType }) => ({
+        tagRead,
+        itemId,
+        zoneId,
+        eventType,
+      }));
+      const result = await this.saveBatch(reads, tenantId);
+      if (result.isErr()) {
+        return result;
+      }
+    }
+
+    return ok(undefined);
   }
 
   /**
@@ -919,8 +968,8 @@ export class TimescaleLocationHistoryRepository
   private rowToDomain(row: LocationHistoryRow): LocationHistoryEntry {
     return {
       time: row.time,
-      itemId: row.docket_id, // Database column still named 'docket_id'
-      labNumber: row.lab_number,
+      itemId: row.item_id,
+      itemNumber: row.item_number,
       zoneId: row.zone_id,
       zoneName: row.zone_name,
       readerId: row.reader_id,
@@ -975,14 +1024,15 @@ export class TimescaleLocationHistoryRepository
    * Gets zone name for denormalization
    *
    * @param zoneId - Zone ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Zone name
    *
    * @description
    * In production, this should use a cache to avoid repeated queries.
    */
-  private async getZoneName(zoneId: string): Promise<string> {
-    const sql = 'SELECT name FROM zones WHERE id = $1';
-    const result = await this.executeQueryOne<{ name: string }>(sql, [zoneId]);
+  private async getZoneName(zoneId: string, tenantId: string): Promise<string> {
+    const sql = 'SELECT name FROM zones WHERE id = $1 AND tenant_id = $2';
+    const result = await this.executeQueryOne<{ name: string }>(sql, [zoneId, tenantId]);
     return result.isOk() && result.value ? result.value.name : 'Unknown';
   }
 
@@ -990,14 +1040,15 @@ export class TimescaleLocationHistoryRepository
    * Gets reader name for denormalization
    *
    * @param readerId - Reader ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Reader name
    *
    * @description
    * In production, this should use a cache to avoid repeated queries.
    */
-  private async getReaderName(readerId: string): Promise<string> {
-    const sql = 'SELECT name FROM readers WHERE id = $1';
-    const result = await this.executeQueryOne<{ name: string }>(sql, [readerId]);
+  private async getReaderName(readerId: string, tenantId: string): Promise<string> {
+    const sql = 'SELECT name FROM readers WHERE id = $1 AND tenant_id = $2';
+    const result = await this.executeQueryOne<{ name: string }>(sql, [readerId, tenantId]);
     return result.isOk() && result.value ? result.value.name : 'Unknown';
   }
 
@@ -1005,15 +1056,16 @@ export class TimescaleLocationHistoryRepository
    * Gets item number for an item ID
    *
    * @param itemId - Item ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Item number string
    *
    * @description
    * In production, this should use a cache to avoid repeated queries.
    */
-  private async getItemNumber(itemId: string): Promise<string> {
+  private async getItemNumber(itemId: string, tenantId: string): Promise<string> {
     // Query from items table for item_number
-    const sql = 'SELECT item_number FROM items WHERE id = $1';
-    const result = await this.executeQueryOne<{ item_number: string }>(sql, [itemId]);
+    const sql = 'SELECT item_number FROM items WHERE id = $1 AND tenant_id = $2';
+    const result = await this.executeQueryOne<{ item_number: string }>(sql, [itemId, tenantId]);
     return result.isOk() && result.value ? result.value.item_number : 'UNKNOWN';
   }
 

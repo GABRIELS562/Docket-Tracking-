@@ -24,9 +24,11 @@ import type { ILogger } from '../../../application/interfaces/ILogger';
  * @description
  * Represents the structure of an item row in PostgreSQL.
  * Maps database snake_case to application camelCase.
+ * Includes tenant_id for multi-tenant isolation.
  */
 interface ItemRow {
   id: string;
+  tenant_id: string;
   item_number: string;
   rfid_tag_epc: string;
   reference_id: string;
@@ -53,63 +55,20 @@ interface ItemRow {
  * @description
  * Concrete repository implementation using PostgreSQL with TimescaleDB.
  * Provides optimized queries for time-series data and location tracking.
+ * ALL queries are tenant-scoped for multi-tenant data isolation.
+ *
+ * **Multi-Tenant Isolation:**
+ * - Every query includes tenant_id filter
+ * - Duplicate checks are scoped to tenant
+ * - No cross-tenant data access possible
  *
  * **Features:**
  * - Full-text search across multiple fields
  * - Dynamic query building for flexible search
  * - Optimized indexes for common queries
- * - Duplicate detection (item number and EPC)
+ * - Duplicate detection (item number and EPC within tenant)
  * - Soft deletes (status = DISPOSED)
  * - Time-series queries for stale detection
- *
- * **Database Schema Expected:**
- * ```sql
- * CREATE TABLE items (
- *   id VARCHAR(36) PRIMARY KEY,
- *   item_number VARCHAR(50) UNIQUE NOT NULL,
- *   rfid_tag_epc VARCHAR(24) UNIQUE NOT NULL,
- *   reference_id VARCHAR(100) NOT NULL,
- *   serial_number VARCHAR(100),
- *   description TEXT NOT NULL,
- *   category VARCHAR(20) NOT NULL,
- *   current_zone_id VARCHAR(36),
- *   last_seen_at TIMESTAMPTZ,
- *   last_seen_reader_id VARCHAR(36),
- *   location_confidence DECIMAL(3,2),
- *   status VARCHAR(20) NOT NULL,
- *   is_active BOOLEAN NOT NULL DEFAULT true,
- *   received_by VARCHAR(100),
- *   received_at TIMESTAMPTZ,
- *   handled_by VARCHAR(100),
- *   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
- *   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
- *   metadata JSONB DEFAULT '{}'::jsonb,
- *   FOREIGN KEY (current_zone_id) REFERENCES zones(id),
- *   FOREIGN KEY (last_seen_reader_id) REFERENCES readers(id)
- * );
- *
- * CREATE INDEX idx_items_status ON items(status);
- * CREATE INDEX idx_items_zone ON items(current_zone_id);
- * CREATE INDEX idx_items_last_seen ON items(last_seen_at DESC);
- * CREATE INDEX idx_items_created_at ON items(created_at DESC);
- * CREATE INDEX idx_items_reference_id ON items(reference_id);
- * CREATE INDEX idx_items_search ON items USING gin(to_tsvector('english', item_number || ' ' || reference_id || ' ' || description));
- * ```
- *
- * @example
- * ```typescript
- * const repository = new PostgresItemRepository(db, logger);
- *
- * // Save new item
- * const saveResult = await repository.save(item);
- *
- * // Search items
- * const searchResult = await repository.search({
- *   query: 'laptop',
- *   status: ItemStatus.REGISTERED,
- *   limit: 20
- * });
- * ```
  */
 @injectable()
 export class PostgresItemRepository extends BaseRepository implements IItemRepository {
@@ -124,21 +83,21 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
    * Saves a new item to the database
    *
    * @param item - Item entity to save
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result indicating success or error
    *
    * @description
-   * Performs duplicate checks before insertion:
-   * - Checks if item_number already exists
-   * - Checks if rfid_tag_epc already exists
-   *
-   * Uses INSERT with all item fields.
+   * Performs duplicate checks within tenant before insertion:
+   * - Checks if item_number already exists for this tenant
+   * - Checks if rfid_tag_epc already exists for this tenant
    */
   async save(
-    item: Item
+    item: Item,
+    tenantId: string
   ): Promise<Result<void, DuplicateItemNumberError | DuplicateEpcError | Error>> {
     try {
-      // Check for duplicate item number
-      const itemNumberExists = await this.existsByItemNumber(item.getItemNumber());
+      // Check for duplicate item number within tenant
+      const itemNumberExists = await this.existsByItemNumber(item.getItemNumber(), tenantId);
       if (itemNumberExists.isErr()) {
         return err(itemNumberExists.error);
       }
@@ -146,8 +105,8 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
         return err(new DuplicateItemNumberError(item.getItemNumber().getValue()));
       }
 
-      // Check for duplicate EPC
-      const epcExists = await this.existsByEpc(item.getRfidEpc());
+      // Check for duplicate EPC within tenant
+      const epcExists = await this.existsByEpc(item.getRfidEpc(), tenantId);
       if (epcExists.isErr()) {
         return err(epcExists.error);
       }
@@ -160,6 +119,7 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
       const sql = `
         INSERT INTO items (
           id,
+          tenant_id,
           item_number,
           rfid_tag_epc,
           reference_id,
@@ -178,11 +138,12 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
           created_at,
           updated_at,
           metadata
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
       `;
 
       const params = [
         props.id,
+        tenantId,
         props.itemNumber.getValue(),
         props.rfidEpc.getValue(),
         props.referenceId.getValue(),
@@ -206,7 +167,6 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
       const result = await this.executeQuery(sql, params);
 
       if (result.isErr()) {
-        // Check for database constraint violations
         const error = result.error;
         if (error.message.includes('item_number') && error.message.includes('unique')) {
           return err(new DuplicateItemNumberError(props.itemNumber.getValue()));
@@ -219,29 +179,31 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
 
       this.logger.info('Item saved', {
         id: props.id,
+        tenantId,
         itemNumber: props.itemNumber.getValue(),
       });
 
       return ok(undefined);
     } catch (error) {
-      this.logger.error('Failed to save item', { error });
+      this.logger.error('Failed to save item', { error, tenantId });
       return err(error as Error);
     }
   }
 
   /**
-   * Finds an item by its unique ID
+   * Finds an item by its unique ID within a tenant
    *
    * @param id - Item ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing item or null if not found
    */
-  async findById(id: string): Promise<Result<Item | null, Error>> {
+  async findById(id: string, tenantId: string): Promise<Result<Item | null, Error>> {
     const sql = `
       SELECT * FROM items
-      WHERE id = $1
+      WHERE id = $1 AND tenant_id = $2
     `;
 
-    const result = await this.executeQueryOne<ItemRow>(sql, [id]);
+    const result = await this.executeQueryOne<ItemRow>(sql, [id, tenantId]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -255,18 +217,19 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
   }
 
   /**
-   * Finds an item by its item number
+   * Finds an item by its item number within a tenant
    *
    * @param itemNumber - Item number value object
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing item or ItemNotFoundError
    */
-  async findByItemNumber(itemNumber: ItemNumber): Promise<Result<Item, ItemNotFoundError>> {
+  async findByItemNumber(itemNumber: ItemNumber, tenantId: string): Promise<Result<Item, ItemNotFoundError>> {
     const sql = `
       SELECT * FROM items
-      WHERE item_number = $1
+      WHERE item_number = $1 AND tenant_id = $2
     `;
 
-    const result = await this.executeQueryOne<ItemRow>(sql, [itemNumber.getValue()]);
+    const result = await this.executeQueryOne<ItemRow>(sql, [itemNumber.getValue(), tenantId]);
 
     if (result.isErr()) {
       return err(new ItemNotFoundError(itemNumber.getValue()));
@@ -285,18 +248,19 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
   }
 
   /**
-   * Finds an item by its RFID EPC
+   * Finds an item by its RFID EPC within a tenant
    *
    * @param epc - RFID EPC value object
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing item or ItemNotFoundError
    */
-  async findByEpc(epc: RfidEpc): Promise<Result<Item, ItemNotFoundError>> {
+  async findByEpc(epc: RfidEpc, tenantId: string): Promise<Result<Item, ItemNotFoundError>> {
     const sql = `
       SELECT * FROM items
-      WHERE rfid_tag_epc = $1
+      WHERE rfid_tag_epc = $1 AND tenant_id = $2
     `;
 
-    const result = await this.executeQueryOne<ItemRow>(sql, [epc.getValue()]);
+    const result = await this.executeQueryOne<ItemRow>(sql, [epc.getValue(), tenantId]);
 
     if (result.isErr()) {
       return err(new ItemNotFoundError(epc.getValue()));
@@ -315,28 +279,21 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
   }
 
   /**
-   * Searches for items using flexible criteria
+   * Searches for items using flexible criteria within a tenant
    *
-   * @param criteria - Search criteria with filters and pagination
+   * @param criteria - Search criteria with filters and pagination (tenantId required)
    * @returns Result containing paginated search results
    *
    * @description
    * Builds dynamic SQL query based on provided criteria.
-   * Supports:
-   * - Full-text search (query)
-   * - Status filtering
-   * - Zone filtering
-   * - Category filtering
-   * - Date range filtering (created, last seen)
-   * - Active-only filtering
-   * - Sorting (multiple fields)
-   * - Pagination
+   * All results are scoped to the specified tenant.
    */
   async search(criteria: ItemSearchCriteria): Promise<Result<ItemSearchResult, Error>> {
     try {
-      const conditions: string[] = [];
-      const params: any[] = [];
-      let paramIndex = 1;
+      // tenantId is REQUIRED - first condition
+      const conditions: string[] = ['tenant_id = $1'];
+      const params: any[] = [criteria.tenantId];
+      let paramIndex = 2;
 
       // Full-text search across multiple fields
       if (criteria.query && criteria.query.trim().length > 0) {
@@ -403,7 +360,7 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
         conditions.push(`status NOT IN ('${ItemStatus.ARCHIVED}', '${ItemStatus.DISPOSED}')`);
       }
 
-      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+      const whereClause = `WHERE ${conditions.join(' AND ')}`;
 
       // Sorting
       const sortBy = criteria.sortBy || 'createdAt';
@@ -457,6 +414,7 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
         } else {
           this.logger.warn('Failed to convert row to domain entity', {
             itemNumber: row.item_number,
+            tenantId: criteria.tenantId,
             error: itemResult.error.message,
           });
         }
@@ -472,26 +430,28 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
         hasMore,
       });
     } catch (error) {
-      this.logger.error('Search failed', { error, criteria });
+      this.logger.error('Search failed', { error, tenantId: criteria.tenantId });
       return err(error as Error);
     }
   }
 
   /**
-   * Finds all items in a specific zone
+   * Finds all items in a specific zone within a tenant
    *
    * @param zoneId - Zone ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of items in the zone
    */
-  async findByZone(zoneId: string): Promise<Result<Item[], Error>> {
+  async findByZone(zoneId: string, tenantId: string): Promise<Result<Item[], Error>> {
     const sql = `
       SELECT * FROM items
       WHERE current_zone_id = $1
+        AND tenant_id = $2
         AND is_active = true
       ORDER BY last_seen_at DESC NULLS LAST
     `;
 
-    const result = await this.executeQuery<ItemRow>(sql, [zoneId]);
+    const result = await this.executeQuery<ItemRow>(sql, [zoneId, tenantId]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -509,27 +469,25 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
   }
 
   /**
-   * Finds recently detected items in a zone
+   * Finds recently detected items in a zone within a tenant
    *
    * @param zoneId - Zone ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @param limit - Maximum number of results (default: 10)
    * @returns Result containing array of recently seen items
-   *
-   * @description
-   * Returns only active items that have been seen at least once,
-   * sorted by most recent first.
    */
-  async findRecentByZone(zoneId: string, limit: number = 10): Promise<Result<Item[], Error>> {
+  async findRecentByZone(zoneId: string, tenantId: string, limit: number = 10): Promise<Result<Item[], Error>> {
     const sql = `
       SELECT * FROM items
       WHERE current_zone_id = $1
+        AND tenant_id = $2
         AND is_active = true
         AND last_seen_at IS NOT NULL
       ORDER BY last_seen_at DESC
-      LIMIT $2
+      LIMIT $3
     `;
 
-    const result = await this.executeQuery<ItemRow>(sql, [zoneId, limit]);
+    const result = await this.executeQuery<ItemRow>(sql, [zoneId, tenantId, limit]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -547,23 +505,22 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
   }
 
   /**
-   * Finds all active items
+   * Finds all active items within a tenant
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of active items
-   *
-   * @description
-   * Returns items with status REGISTERED, IN_TRANSIT, or IN_PROCESSING.
-   * Excludes ARCHIVED, DISPOSED, and MISSING items.
    */
-  async findAllActive(): Promise<Result<Item[], Error>> {
+  async findAllActive(tenantId: string): Promise<Result<Item[], Error>> {
     const sql = `
       SELECT * FROM items
-      WHERE status IN ($1, $2, $3)
+      WHERE tenant_id = $1
+        AND status IN ($2, $3, $4)
         AND is_active = true
       ORDER BY created_at DESC
     `;
 
     const result = await this.executeQuery<ItemRow>(sql, [
+      tenantId,
       ItemStatus.REGISTERED,
       ItemStatus.IN_TRANSIT,
       ItemStatus.IN_PROCESSING,
@@ -585,18 +542,20 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
   }
 
   /**
-   * Finds all items marked as missing
+   * Finds all items marked as missing within a tenant
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of missing items
    */
-  async findAllMissing(): Promise<Result<Item[], Error>> {
+  async findAllMissing(tenantId: string): Promise<Result<Item[], Error>> {
     const sql = `
       SELECT * FROM items
-      WHERE status = $1
+      WHERE tenant_id = $1
+        AND status = $2
       ORDER BY last_seen_at ASC NULLS FIRST
     `;
 
-    const result = await this.executeQuery<ItemRow>(sql, [ItemStatus.MISSING]);
+    const result = await this.executeQuery<ItemRow>(sql, [tenantId, ItemStatus.MISSING]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -614,22 +573,17 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
   }
 
   /**
-   * Finds items that haven't been seen within the threshold
+   * Finds items that haven't been seen within the threshold for a tenant
    *
    * @param thresholdHours - Hours without detection before considered stale
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of stale items
-   *
-   * @description
-   * Returns items where:
-   * - Status is REGISTERED, IN_TRANSIT, or IN_PROCESSING
-   * - lastSeenAt is older than thresholdHours OR is null
-   *
-   * Used by background jobs to identify items that should be marked missing.
    */
-  async findStale(thresholdHours: number): Promise<Result<Item[], Error>> {
+  async findStale(thresholdHours: number, tenantId: string): Promise<Result<Item[], Error>> {
     const sql = `
       SELECT * FROM items
-      WHERE status IN ($1, $2, $3)
+      WHERE tenant_id = $1
+        AND status IN ($2, $3, $4)
         AND is_active = true
         AND (
           last_seen_at < NOW() - INTERVAL '${thresholdHours} hours'
@@ -639,6 +593,7 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
     `;
 
     const result = await this.executeQuery<ItemRow>(sql, [
+      tenantId,
       ItemStatus.REGISTERED,
       ItemStatus.IN_TRANSIT,
       ItemStatus.IN_PROCESSING,
@@ -660,40 +615,42 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
   }
 
   /**
-   * Updates an existing item
+   * Updates an existing item within a tenant
    *
    * @param item - Item entity with updated values
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result indicating success or failure
    *
    * @description
-   * Updates all mutable fields. Item is identified by ID.
-   * Item number and RFID EPC cannot be changed (immutable).
+   * Updates all mutable fields. Item is identified by ID AND tenant_id.
+   * This ensures no cross-tenant updates are possible.
    */
-  async update(item: Item): Promise<Result<void, Error>> {
+  async update(item: Item, tenantId: string): Promise<Result<void, Error>> {
     const props = item.toPersistence();
 
     const sql = `
       UPDATE items SET
-        reference_id = $2,
-        serial_number = $3,
-        description = $4,
-        category = $5,
-        current_zone_id = $6,
-        last_seen_at = $7,
-        last_seen_reader_id = $8,
-        location_confidence = $9,
-        status = $10,
-        is_active = $11,
-        received_by = $12,
-        received_at = $13,
-        handled_by = $14,
-        updated_at = $15,
-        metadata = $16
-      WHERE id = $1
+        reference_id = $3,
+        serial_number = $4,
+        description = $5,
+        category = $6,
+        current_zone_id = $7,
+        last_seen_at = $8,
+        last_seen_reader_id = $9,
+        location_confidence = $10,
+        status = $11,
+        is_active = $12,
+        received_by = $13,
+        received_at = $14,
+        handled_by = $15,
+        updated_at = $16,
+        metadata = $17
+      WHERE id = $1 AND tenant_id = $2
     `;
 
     const params = [
       props.id,
+      tenantId,
       props.referenceId.getValue(),
       props.serialNumber ?? null,
       props.description,
@@ -719,6 +676,7 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
 
     this.logger.info('Item updated', {
       id: props.id,
+      tenantId,
       itemNumber: props.itemNumber.getValue(),
     });
 
@@ -726,53 +684,49 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
   }
 
   /**
-   * Deletes an item (soft delete)
+   * Deletes an item (soft delete) within a tenant
    *
    * @param id - Item ID to delete
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result indicating success or failure
-   *
-   * @description
-   * Performs soft delete by setting status to DISPOSED and is_active to false.
-   * Does not physically remove the record from the database.
    */
-  async delete(id: string): Promise<Result<void, Error>> {
+  async delete(id: string, tenantId: string): Promise<Result<void, Error>> {
     const sql = `
       UPDATE items
-      SET status = $2,
+      SET status = $3,
           is_active = false,
           updated_at = NOW()
-      WHERE id = $1
+      WHERE id = $1 AND tenant_id = $2
     `;
 
-    const result = await this.executeQuery(sql, [id, ItemStatus.DISPOSED]);
+    const result = await this.executeQuery(sql, [id, tenantId, ItemStatus.DISPOSED]);
 
     if (result.isErr()) {
       return err(result.error);
     }
 
-    this.logger.info('Item deleted (soft)', { id });
+    this.logger.info('Item deleted (soft)', { id, tenantId });
 
     return ok(undefined);
   }
 
   /**
-   * Counts the total number of active items
+   * Counts the total number of active items within a tenant
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing the count
-   *
-   * @description
-   * Returns count of items with status REGISTERED, IN_TRANSIT, or IN_PROCESSING.
-   * Excludes ARCHIVED, DISPOSED, and MISSING items.
    */
-  async countActive(): Promise<Result<number, Error>> {
+  async countActive(tenantId: string): Promise<Result<number, Error>> {
     const sql = `
       SELECT COUNT(*) as count
       FROM items
-      WHERE status IN ($1, $2, $3)
+      WHERE tenant_id = $1
+        AND status IN ($2, $3, $4)
         AND is_active = true
     `;
 
     const result = await this.executeQueryOne<{ count: string }>(sql, [
+      tenantId,
       ItemStatus.REGISTERED,
       ItemStatus.IN_TRANSIT,
       ItemStatus.IN_PROCESSING,
@@ -786,19 +740,20 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
   }
 
   /**
-   * Checks if an item number already exists
+   * Checks if an item number already exists within a tenant
    *
    * @param itemNumber - Item number to check
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing boolean (true if exists)
    */
-  async existsByItemNumber(itemNumber: ItemNumber): Promise<Result<boolean, Error>> {
+  async existsByItemNumber(itemNumber: ItemNumber, tenantId: string): Promise<Result<boolean, Error>> {
     const sql = `
       SELECT EXISTS(
-        SELECT 1 FROM items WHERE item_number = $1
+        SELECT 1 FROM items WHERE item_number = $1 AND tenant_id = $2
       ) as exists
     `;
 
-    const result = await this.executeQueryOne<{ exists: boolean }>(sql, [itemNumber.getValue()]);
+    const result = await this.executeQueryOne<{ exists: boolean }>(sql, [itemNumber.getValue(), tenantId]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -808,19 +763,20 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
   }
 
   /**
-   * Checks if an RFID EPC is already assigned
+   * Checks if an RFID EPC is already assigned within a tenant
    *
    * @param epc - RFID EPC to check
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing boolean (true if assigned)
    */
-  async existsByEpc(epc: RfidEpc): Promise<Result<boolean, Error>> {
+  async existsByEpc(epc: RfidEpc, tenantId: string): Promise<Result<boolean, Error>> {
     const sql = `
       SELECT EXISTS(
-        SELECT 1 FROM items WHERE rfid_tag_epc = $1
+        SELECT 1 FROM items WHERE rfid_tag_epc = $1 AND tenant_id = $2
       ) as exists
     `;
 
-    const result = await this.executeQueryOne<{ exists: boolean }>(sql, [epc.getValue()]);
+    const result = await this.executeQueryOne<{ exists: boolean }>(sql, [epc.getValue(), tenantId]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -838,11 +794,6 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
    *
    * @param row - Database row
    * @returns Result containing Item or Error
-   *
-   * @description
-   * Converts snake_case database columns to domain entity.
-   * Validates and creates value objects (ItemNumber, RfidEpc, ReferenceId).
-   * Parses JSON metadata.
    */
   private rowToDomain(row: ItemRow): Result<Item, Error> {
     try {
@@ -873,6 +824,7 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
           } catch (e) {
             this.logger.warn('Failed to parse metadata JSON', {
               itemNumber: row.item_number,
+              tenantId: row.tenant_id,
               error: e,
             });
             metadata = {};
@@ -909,6 +861,7 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
     } catch (error) {
       this.logger.error('Failed to map row to domain', {
         itemNumber: row.item_number,
+        tenantId: row.tenant_id,
         error,
       });
       return err(error as Error);

@@ -58,9 +58,9 @@ import type { DomainEvent } from '../../domain/events/DomainEvent';
  *     // 2. Publish event (fire-and-forget)
  *     const event = new ItemRegisteredEvent(
  *       item.getId(),
- *       input.labNumber,
+ *       input.itemNumber,
  *       input.rfidEpc,
- *       input.caseNumber,
+ *       input.referenceNumber,
  *       input.category,
  *       input.receivedBy
  *     );
@@ -105,11 +105,11 @@ export interface IEventBus {
    * ```typescript
    * const event = new ItemRegisteredEvent(
    *   'item-123-abc',
-   *   'FSL-2025-000123',
+   *   'INV-2025-000123',
    *   'E280116060002004DECA48DA',
-   *   'CAS-2025-0456',
-   *   'FIREARM',
-   *   'Officer Smith'
+   *   'REF-2025-0456',
+   *   'EQUIPMENT',
+   *   'John Smith'
    * );
    *
    * await eventBus.publish(event);
@@ -154,7 +154,7 @@ export interface IEventBus {
    * const events = [
    *   new ItemMovedEvent(
    *     'item-123',
-   *     'FSL-2025-000123',
+   *     'INV-2025-000123',
    *     'zone-examination-001',
    *     'zone-storage-001',
    *     'reader-storage-001',
@@ -163,7 +163,7 @@ export interface IEventBus {
    *   ),
    *   new ZoneOccupancyChangedEvent(
    *     'zone-storage-001',
-   *     'Evidence Storage A',
+   *     'Storage Area A',
    *     341,
    *     342,
    *     500,

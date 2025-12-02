@@ -1,6 +1,6 @@
-# Presentation Layer - SAPS RFID Platform
+# Presentation Layer - RFID Inventory Platform
 
-Complete REST API and WebSocket server implementation for the SAPS RFID Inventory Tracking Platform.
+Complete REST API and WebSocket server implementation for the RFID Inventory Tracking Platform.
 
 ## Overview
 

@@ -13,10 +13,12 @@ import type { DuplicateEpcError } from '../errors/DuplicateEpcError';
  * @description
  * Flexible search criteria allowing filtering by multiple attributes.
  * All criteria are optional and combined with AND logic.
+ * tenantId is REQUIRED for multi-tenant data isolation.
  *
  * @example
  * ```typescript
  * const criteria: ItemSearchCriteria = {
+ *   tenantId: 'tenant-uuid',
  *   query: 'INV-2025',
  *   status: ItemStatus.REGISTERED,
  *   zoneId: 'zone-001',
@@ -27,6 +29,11 @@ import type { DuplicateEpcError } from '../errors/DuplicateEpcError';
  * ```
  */
 export interface ItemSearchCriteria {
+  /**
+   * Tenant ID for multi-tenant isolation (REQUIRED)
+   */
+  readonly tenantId: string;
+
   /**
    * Full-text search in item number, reference ID, description, or serial number
    */
@@ -164,6 +171,7 @@ export interface IItemRepository {
    * Saves a new item to the repository
    *
    * @param item - The item entity to save
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result indicating success or failure
    *
    * @throws {DuplicateItemNumberError} If an item with this item number already exists
@@ -171,7 +179,7 @@ export interface IItemRepository {
    *
    * @example
    * ```typescript
-   * const result = await repository.save(item);
+   * const result = await repository.save(item, 'tenant-uuid');
    *
    * if (result.isErr()) {
    *   if (result.error instanceof DuplicateItemNumberError) {
@@ -180,26 +188,28 @@ export interface IItemRepository {
    * }
    * ```
    */
-  save(item: Item): Promise<Result<void, DuplicateItemNumberError | DuplicateEpcError | Error>>;
+  save(item: Item, tenantId: string): Promise<Result<void, DuplicateItemNumberError | DuplicateEpcError | Error>>;
 
   /**
    * Finds an item by its unique ID
    *
    * @param id - The item ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing the item or null if not found
    */
-  findById(id: string): Promise<Result<Item | null, Error>>;
+  findById(id: string, tenantId: string): Promise<Result<Item | null, Error>>;
 
   /**
    * Finds an item by its item number
    *
    * @param itemNumber - The item number value object
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing the item or ItemNotFoundError
    *
    * @example
    * ```typescript
    * const itemNumber = ItemNumber.create('INV-2025-000123').unwrap();
-   * const result = await repository.findByItemNumber(itemNumber);
+   * const result = await repository.findByItemNumber(itemNumber, 'tenant-uuid');
    *
    * if (result.isOk()) {
    *   const item = result.value;
@@ -207,21 +217,22 @@ export interface IItemRepository {
    * }
    * ```
    */
-  findByItemNumber(itemNumber: ItemNumber): Promise<Result<Item, ItemNotFoundError>>;
+  findByItemNumber(itemNumber: ItemNumber, tenantId: string): Promise<Result<Item, ItemNotFoundError>>;
 
   /**
    * Finds an item by its RFID EPC
    *
    * @param epc - The RFID EPC value object
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing the item or ItemNotFoundError
    *
    * @example
    * ```typescript
    * const epc = RfidEpc.create('E280116060002004DECA48DA').unwrap();
-   * const result = await repository.findByEpc(epc);
+   * const result = await repository.findByEpc(epc, 'tenant-uuid');
    * ```
    */
-  findByEpc(epc: RfidEpc): Promise<Result<Item, ItemNotFoundError>>;
+  findByEpc(epc: RfidEpc, tenantId: string): Promise<Result<Item, ItemNotFoundError>>;
 
   /**
    * Searches for items using flexible criteria
@@ -250,14 +261,16 @@ export interface IItemRepository {
    * Finds all items in a specific zone
    *
    * @param zoneId - The zone ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of items in the zone
    */
-  findByZone(zoneId: string): Promise<Result<Item[], Error>>;
+  findByZone(zoneId: string, tenantId: string): Promise<Result<Item[], Error>>;
 
   /**
    * Finds recently detected items in a zone
    *
    * @param zoneId - The zone ID
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @param limit - Maximum number of results (default: 10)
    * @returns Result containing array of recently seen items
    *
@@ -265,26 +278,29 @@ export interface IItemRepository {
    * Returns items sorted by lastSeenAt descending (most recent first).
    * Only includes items that have been seen at least once.
    */
-  findRecentByZone(zoneId: string, limit?: number): Promise<Result<Item[], Error>>;
+  findRecentByZone(zoneId: string, tenantId: string, limit?: number): Promise<Result<Item[], Error>>;
 
   /**
    * Finds all active items (not archived or disposed)
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of active items
    */
-  findAllActive(): Promise<Result<Item[], Error>>;
+  findAllActive(tenantId: string): Promise<Result<Item[], Error>>;
 
   /**
    * Finds all items marked as missing
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of missing items
    */
-  findAllMissing(): Promise<Result<Item[], Error>>;
+  findAllMissing(tenantId: string): Promise<Result<Item[], Error>>;
 
   /**
    * Finds items that haven't been seen within the threshold
    *
    * @param thresholdHours - Hours without detection before considered stale
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing array of stale items
    *
    * @description
@@ -298,22 +314,23 @@ export interface IItemRepository {
    * @example
    * ```typescript
    * // Find items not seen in 48 hours
-   * const result = await repository.findStale(48);
+   * const result = await repository.findStale(48, 'tenant-uuid');
    *
    * if (result.isOk()) {
    *   for (const item of result.value) {
    *     await item.markAsMissing();
-   *     await repository.update(item);
+   *     await repository.update(item, 'tenant-uuid');
    *   }
    * }
    * ```
    */
-  findStale(thresholdHours: number): Promise<Result<Item[], Error>>;
+  findStale(thresholdHours: number, tenantId: string): Promise<Result<Item[], Error>>;
 
   /**
    * Updates an existing item
    *
    * @param item - The item entity with updated values
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result indicating success or failure
    *
    * @description
@@ -321,12 +338,13 @@ export interface IItemRepository {
    * The item is identified by its ID.
    * Item number and RFID EPC cannot be changed (immutable identifiers).
    */
-  update(item: Item): Promise<Result<void, Error>>;
+  update(item: Item, tenantId: string): Promise<Result<void, Error>>;
 
   /**
    * Deletes an item (typically a soft delete)
    *
    * @param id - The item ID to delete
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result indicating success or failure
    *
    * @description
@@ -334,45 +352,48 @@ export interface IItemRepository {
    * the item status to DISPOSED or ARCHIVED rather than physically
    * removing the record.
    */
-  delete(id: string): Promise<Result<void, Error>>;
+  delete(id: string, tenantId: string): Promise<Result<void, Error>>;
 
   /**
    * Counts the total number of active items
    *
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing the count
    *
    * @description
    * Returns the count of items with status REGISTERED, IN_TRANSIT, or IN_PROCESSING.
    * Excludes ARCHIVED, DISPOSED, and MISSING items.
    */
-  countActive(): Promise<Result<number, Error>>;
+  countActive(tenantId: string): Promise<Result<number, Error>>;
 
   /**
    * Checks if an item number already exists
    *
    * @param itemNumber - The item number to check
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing boolean (true if exists)
    *
    * @example
    * ```typescript
    * const itemNumber = ItemNumber.create('INV-2025-000123').unwrap();
-   * const result = await repository.existsByItemNumber(itemNumber);
+   * const result = await repository.existsByItemNumber(itemNumber, 'tenant-uuid');
    *
    * if (result.isOk() && result.value) {
    *   console.error('Item number already in use');
    * }
    * ```
    */
-  existsByItemNumber(itemNumber: ItemNumber): Promise<Result<boolean, Error>>;
+  existsByItemNumber(itemNumber: ItemNumber, tenantId: string): Promise<Result<boolean, Error>>;
 
   /**
    * Checks if an RFID EPC is already assigned
    *
    * @param epc - The RFID EPC to check
+   * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing boolean (true if assigned)
    *
    * @description
    * Used to prevent assigning the same RFID tag to multiple items.
    */
-  existsByEpc(epc: RfidEpc): Promise<Result<boolean, Error>>;
+  existsByEpc(epc: RfidEpc, tenantId: string): Promise<Result<boolean, Error>>;
 }

@@ -25,7 +25,7 @@ export interface ZoneDTO {
 
   /**
    * Zone name
-   * @example "Evidence Storage A"
+   * @example "Storage Area A"
    */
   readonly name: string;
 
@@ -61,7 +61,7 @@ export interface ZoneDTO {
 
   /**
    * Building name
-   * @example "Main Forensic Lab"
+   * @example "Main Building"
    */
   readonly building: string | null;
 
@@ -125,7 +125,7 @@ export interface CreateZoneDTO {
 
   /**
    * Zone name
-   * @example "Evidence Storage B"
+   * @example "Storage Area B"
    */
   readonly name: string;
 
@@ -143,7 +143,7 @@ export interface CreateZoneDTO {
 
   /**
    * Building name
-   * @example "Main Forensic Lab"
+   * @example "Main Building"
    */
   readonly building?: string;
 
@@ -287,7 +287,7 @@ export interface ZoneWithItemsDTO {
  * Simplified item DTO for zone listings
  */
 interface SimpleItemDTO {
-  readonly labNumber: string;
+  readonly itemNumber: string;
   readonly description: string;
   readonly category: string;
   readonly lastSeenAt: string | null;

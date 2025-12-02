@@ -127,7 +127,7 @@ export class Server {
     // Root endpoint - API information
     this.app.get('/', (req: Request, res: Response) => {
       res.json({
-        name: 'SAPS RFID Platform API',
+        name: 'RFID Inventory Platform API',
         version: '1.0.0',
         status: 'running',
         documentation: '/api-docs',

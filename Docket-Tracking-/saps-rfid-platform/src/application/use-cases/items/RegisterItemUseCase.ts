@@ -17,6 +17,11 @@ import { ItemRegisteredEvent } from '../../../domain/events/ItemRegisteredEvent'
  */
 export interface RegisterItemInput {
   /**
+   * Tenant ID for multi-tenant isolation (REQUIRED)
+   */
+  readonly tenantId: string;
+
+  /**
    * Item number (flexible format)
    * @example "INV-2025-000123"
    */
@@ -135,8 +140,8 @@ export class RegisterItemUseCase {
     }
     const epc = epcResult.value;
 
-    // Step 2: Check if item number already exists
-    const itemNumberExistsResult = await this.itemRepo.existsByItemNumber(itemNumber);
+    // Step 2: Check if item number already exists within tenant
+    const itemNumberExistsResult = await this.itemRepo.existsByItemNumber(itemNumber, input.tenantId);
     if (itemNumberExistsResult.isErr()) {
       return err(itemNumberExistsResult.error);
     }
@@ -144,18 +149,19 @@ export class RegisterItemUseCase {
       const error = new Error(`Item number ${itemNumber.getValue()} already exists`);
       this.logger.warn('Duplicate item number attempted', {
         itemNumber: itemNumber.getValue(),
+        tenantId: input.tenantId,
       });
       return err(error);
     }
 
-    // Step 3: Check if EPC already exists
-    const epcExistsResult = await this.itemRepo.existsByEpc(epc);
+    // Step 3: Check if EPC already exists within tenant
+    const epcExistsResult = await this.itemRepo.existsByEpc(epc, input.tenantId);
     if (epcExistsResult.isErr()) {
       return err(epcExistsResult.error);
     }
     if (epcExistsResult.value) {
       const error = new Error(`EPC ${epc.getValue()} is already assigned`);
-      this.logger.warn('Duplicate EPC attempted', { epc: epc.getValue() });
+      this.logger.warn('Duplicate EPC attempted', { epc: epc.getValue(), tenantId: input.tenantId });
       return err(error);
     }
 
@@ -180,11 +186,12 @@ export class RegisterItemUseCase {
     }
     const item = itemResult.value;
 
-    // Step 5: Save to repository
-    const saveResult = await this.itemRepo.save(item);
+    // Step 5: Save to repository (with tenant isolation)
+    const saveResult = await this.itemRepo.save(item, input.tenantId);
     if (saveResult.isErr()) {
       this.logger.error('Failed to save item', {
         itemNumber: itemNumber.getValue(),
+        tenantId: input.tenantId,
         error: saveResult.error.message,
       });
       return err(saveResult.error);
@@ -205,6 +212,7 @@ export class RegisterItemUseCase {
       itemId: item.getId(),
       itemNumber: itemNumber.getValue(),
       epc: epc.getValue(),
+      tenantId: input.tenantId,
     });
 
     // Step 7: Return DTO

@@ -64,7 +64,7 @@ export interface ZoneProps {
  * Zone Entity
  *
  * @description
- * Represents a physical zone or location within the forensic laboratory.
+ * Represents a physical zone or location within the inventory facility.
  * Zones contain business rules for capacity management, occupancy tracking,
  * and hierarchical organization.
  *
@@ -79,7 +79,7 @@ export interface ZoneProps {
  * ```typescript
  * const result = Zone.create({
  *   id: 'zone-001',
- *   name: 'Evidence Storage A',
+ *   name: 'Storage Area A',
  *   code: 'STOR-A',
  *   zoneType: ZoneType.STORAGE,
  *   capacity: 500

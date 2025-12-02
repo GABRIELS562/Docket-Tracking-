@@ -404,8 +404,8 @@ export abstract class BaseRepository {
    *
    * @example
    * ```typescript
-   * const condition = this.buildLikeClause('lab_number', 'SAPS', 1);
-   * // Returns: { sql: 'lab_number LIKE $1', params: ['%SAPS%'] }
+   * const condition = this.buildLikeClause('item_number', 'INV', 1);
+   * // Returns: { sql: 'item_number LIKE $1', params: ['%INV%'] }
    * ```
    */
   protected buildLikeClause(

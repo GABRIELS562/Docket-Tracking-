@@ -14,6 +14,11 @@ import { ItemNotFoundError } from '../../../domain/errors/ItemNotFoundError';
  */
 export interface GetItemDetailsInput {
   /**
+   * Tenant ID for multi-tenant isolation (REQUIRED)
+   */
+  readonly tenantId: string;
+
+  /**
    * Item number to look up
    * @example "INV-2025-000123"
    */
@@ -75,9 +80,9 @@ export class GetItemDetailsUseCase {
       const itemNumber = itemNumberResult.value;
 
       // Step 2: Find item by item number
-      const itemResult = await this.itemRepo.findByItemNumber(itemNumber);
+      const itemResult = await this.itemRepo.findByItemNumber(itemNumber, input.tenantId);
       if (itemResult.isErr()) {
-        this.logger.warn('Item not found', { itemNumber: input.itemNumber });
+        this.logger.warn('Item not found', { itemNumber: input.itemNumber, tenantId: input.tenantId });
         return err(new ItemNotFoundError(input.itemNumber, 'itemNumber'));
       }
       const item = itemResult.value;
@@ -87,7 +92,7 @@ export class GetItemDetailsUseCase {
       const currentZoneId = item.getCurrentZoneId();
 
       if (currentZoneId) {
-        const zoneResult = await this.zoneRepo.findById(currentZoneId);
+        const zoneResult = await this.zoneRepo.findById(currentZoneId, input.tenantId);
         if (zoneResult.isOk() && zoneResult.value) {
           const zone = zoneResult.value;
           zoneInfo = {
@@ -101,6 +106,7 @@ export class GetItemDetailsUseCase {
       // Step 4: Fetch recent location history
       const historyResult = await this.historyRepo.getHistoryForItem(
         item.getId(),
+        input.tenantId,
         undefined, // startTime
         undefined, // endTime
         GetItemDetailsUseCase.HISTORY_LIMIT
