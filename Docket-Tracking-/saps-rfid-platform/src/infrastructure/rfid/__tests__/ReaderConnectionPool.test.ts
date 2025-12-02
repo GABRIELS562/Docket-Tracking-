@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+
 import { ReaderConnectionPool } from '../ReaderConnectionPool';
 import type { IReaderConnection } from '../ReaderConnection';
 import type { Reader } from '../../../domain/entities/Reader';
@@ -23,10 +23,10 @@ describe('ReaderConnectionPool', () => {
 
   beforeEach(() => {
     mockLogger = {
-      debug: vi.fn(),
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
+      debug: jest.fn(),
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
     } as unknown as ILogger;
 
     pool = new ReaderConnectionPool(mockLogger);
@@ -41,8 +41,8 @@ describe('ReaderConnectionPool', () => {
       getLocation: () => 'Test Location',
       getZoneId: () => 'zone-001',
       getStatus: () => 'ONLINE' as any,
-      updateStatus: vi.fn(),
-      toJSON: vi.fn(),
+      updateStatus: jest.fn(),
+      toJSON: jest.fn(),
     } as unknown as Reader;
   }
 
@@ -60,7 +60,7 @@ describe('ReaderConnectionPool', () => {
       getLastError: () => (hasError ? new Error('Connection error') : null),
       getLastSeenAt: () => new Date(),
       getReconnectionAttempts: () => 0,
-      disconnect: vi.fn().mockResolvedValue(undefined),
+      disconnect: jest.fn().mockResolvedValue(undefined),
     } as unknown as IReaderConnection;
   }
 

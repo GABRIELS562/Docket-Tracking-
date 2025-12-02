@@ -117,11 +117,11 @@ export interface PoolStats {
  * await db.initialize();
  *
  * // Execute query
- * const result = await db.query('SELECT * FROM dockets WHERE id = $1', [123]);
+ * const result = await db.query('SELECT * FROM items WHERE id = $1', [123]);
  *
  * // Execute transaction
  * const txResult = await db.transaction(async (client) => {
- *   await client.query('UPDATE dockets SET status = $1', ['processed']);
+ *   await client.query('UPDATE items SET status = $1', ['processed']);
  *   await client.query('INSERT INTO audit_log ...');
  *   return ok(true);
  * });
@@ -339,16 +339,16 @@ export class PostgresConnection {
    * @example
    * ```typescript
    * // Simple query
-   * const result = await db.query('SELECT * FROM dockets');
+   * const result = await db.query('SELECT * FROM items');
    *
    * // Parameterized query (prevents SQL injection)
    * const result = await db.query(
-   *   'SELECT * FROM dockets WHERE status = $1 AND zone_id = $2',
+   *   'SELECT * FROM items WHERE status = $1 AND zone_id = $2',
    *   ['active', 'zone-001']
    * );
    *
    * if (result.isOk()) {
-   *   console.log(`Found ${result.value.length} dockets`);
+   *   console.log(`Found ${result.value.length} items`);
    * }
    * ```
    */
@@ -408,14 +408,14 @@ export class PostgresConnection {
    * @example
    * ```typescript
    * const result = await db.queryOne(
-   *   'SELECT * FROM dockets WHERE id = $1',
-   *   ['docket-123']
+   *   'SELECT * FROM items WHERE id = $1',
+   *   ['item-123']
    * );
    *
    * if (result.isOk() && result.value) {
-   *   console.log('Docket found:', result.value);
+   *   console.log('Item found:', result.value);
    * } else if (result.isOk()) {
-   *   console.log('Docket not found');
+   *   console.log('Item not found');
    * }
    * ```
    */
@@ -462,13 +462,13 @@ export class PostgresConnection {
    * const result = await db.transaction(async (client) => {
    *   // All queries use same client (same transaction)
    *   await client.query(
-   *     'UPDATE dockets SET status = $1 WHERE id = $2',
-   *     ['processed', 'docket-123']
+   *     'UPDATE items SET status = $1 WHERE id = $2',
+   *     ['processed', 'item-123']
    *   );
    *
    *   await client.query(
-   *     'INSERT INTO audit_log (action, docket_id) VALUES ($1, $2)',
-   *     ['status_change', 'docket-123']
+   *     'INSERT INTO audit_log (action, item_id) VALUES ($1, $2)',
+   *     ['status_change', 'item-123']
    *   );
    *
    *   return ok({ success: true });

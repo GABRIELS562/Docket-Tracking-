@@ -1,7 +1,7 @@
 /**
  * Presentation Layer - Exports
  *
- * HTTP Server and WebSocket server for the SAPS RFID Platform
+ * HTTP Server and WebSocket server for the RFID Platform
  */
 
 // HTTP Server
@@ -11,7 +11,7 @@ export { Server, ServerConfig } from './http/Server';
 export { SocketServer } from './websocket/SocketServer';
 
 // Controllers
-export { DocketController } from './http/controllers/DocketController';
+export { ItemController } from './http/controllers/ItemController';
 export { ZoneController } from './http/controllers/ZoneController';
 export { ReaderController } from './http/controllers/ReaderController';
 export { HealthController } from './http/controllers/HealthController';
@@ -24,7 +24,7 @@ export { rateLimiter, strictRateLimiter } from './http/middleware/rateLimiter';
 export { validate, validateQuery, validateParams } from './http/middleware/requestValidator';
 
 // Schemas
-export * from './http/schemas/docket.schema';
+export * from './http/schemas/item.schema';
 
 // Error classes
 export { DomainError } from '../shared/errors/DomainError';

@@ -15,7 +15,7 @@ import { DomainEvent } from './DomainEvent';
  * - Independently for each antenna that detects the tag
  *
  * **Who might subscribe:**
- * - **Location Processor**: Aggregate reads to determine docket location
+ * - **Location Processor**: Aggregate reads to determine item location
  * - **Real-time Dashboard**: Update live tag detection map via WebSocket
  * - **Zone Occupancy Service**: Calculate current zone occupancy
  * - **Audit Service**: Log raw RFID reads for forensic analysis
@@ -35,7 +35,7 @@ import { DomainEvent } from './DomainEvent';
  * @example
  * ```typescript
  * const event = new TagDetectedEvent(
- *   'E28011606000204DECA48DA',
+ *   'E280116060002004DECA48DA',
  *   'reader-storage-001',
  *   'zone-storage-001',
  *   -45.5,
@@ -49,7 +49,7 @@ export class TagDetectedEvent extends DomainEvent {
   constructor(
     /**
      * RFID EPC tag value
-     * @example "E28011606000204DECA48DA"
+     * @example "E280116060002004DECA48DA"
      */
     public readonly rfidEpc: string,
 

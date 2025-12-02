@@ -391,7 +391,7 @@ export interface IReaderRepository {
    *
    * @description
    * Physical deletion is only allowed if the reader is not currently
-   * assigned to any zone with active dockets.
+   * assigned to any zone with active items.
    */
   delete(id: string): Promise<Result<void, Error>>;
 

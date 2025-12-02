@@ -2,7 +2,7 @@ import { RfidEpc } from '@domain/value-objects/RfidEpc';
 import { InvalidEpcError } from '@domain/errors/InvalidEpcError';
 
 describe('RfidEpc', () => {
-  const validEpc = 'E28011606000204DECA48DA';
+  const validEpc = 'E280116060002004DECA48DA';
 
   describe('create', () => {
     it('should create valid EPC', () => {
@@ -33,7 +33,7 @@ describe('RfidEpc', () => {
     });
 
     it('should trim whitespace', () => {
-      const result = RfidEpc.create('  E28011606000204DECA48DA  ');
+      const result = RfidEpc.create('  E280116060002004DECA48DA  ');
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
@@ -61,7 +61,7 @@ describe('RfidEpc', () => {
     });
 
     it('should reject too long EPC', () => {
-      const result = RfidEpc.create('E28011606000204DECA48DA12345');
+      const result = RfidEpc.create('E280116060002004DECA48DA12345');
 
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
@@ -145,14 +145,14 @@ describe('RfidEpc', () => {
     });
 
     it('should return true for case-insensitive equal EPCs', () => {
-      const epc1 = RfidEpc.create('E28011606000204DECA48DA')._unsafeUnwrap();
+      const epc1 = RfidEpc.create('E280116060002004DECA48DA')._unsafeUnwrap();
       const epc2 = RfidEpc.create('e28011606000204deca48da')._unsafeUnwrap();
 
       expect(epc1.equals(epc2)).toBe(true);
     });
 
     it('should return false for different EPCs', () => {
-      const epc1 = RfidEpc.create('E28011606000204DECA48DA')._unsafeUnwrap();
+      const epc1 = RfidEpc.create('E280116060002004DECA48DA')._unsafeUnwrap();
       const epc2 = RfidEpc.create('000000000000000000000000')._unsafeUnwrap();
 
       expect(epc1.equals(epc2)).toBe(false);

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+
 import { LLRPGateway, type IMetricsCollector } from '../LLRPGateway';
 import type { IReaderRepository } from '../../../domain/repositories/IReaderRepository';
 import type { IEventBus } from '../../../application/interfaces/IEventBus';
@@ -43,40 +43,40 @@ describe('LLRPGateway', () => {
   beforeEach(() => {
     // Mock ReaderRepository
     mockReaderRepo = {
-      findAll: vi.fn().mockResolvedValue(ok([])),
-      updateStatuses: vi.fn().mockResolvedValue(ok(undefined)),
+      findAll: jest.fn().mockResolvedValue(ok([])),
+      updateStatuses: jest.fn().mockResolvedValue(ok(undefined)),
     } as unknown as IReaderRepository;
 
     // Mock EventBus
     mockEventBus = {
-      publish: vi.fn().mockResolvedValue(undefined),
-      subscribe: vi.fn(),
+      publish: jest.fn().mockResolvedValue(undefined),
+      subscribe: jest.fn(),
     } as unknown as IEventBus;
 
     // Mock Logger
     mockLogger = {
-      debug: vi.fn(),
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
+      debug: jest.fn(),
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
     } as unknown as ILogger;
 
     // Mock MetricsCollector
     mockMetricsCollector = {
-      increment: vi.fn(),
-      gauge: vi.fn(),
-      histogram: vi.fn(),
-      distribution: vi.fn(),
+      increment: jest.fn(),
+      gauge: jest.fn(),
+      histogram: jest.fn(),
+      distribution: jest.fn(),
     } as unknown as IMetricsCollector;
 
-    vi.useFakeTimers();
+    jest.useFakeTimers();
   });
 
   afterEach(() => {
     if (gateway && gateway.isGatewayRunning()) {
       gateway.shutdown();
     }
-    vi.useRealTimers();
+    jest.useRealTimers();
   });
 
   describe('Initialization', () => {
@@ -238,7 +238,7 @@ describe('LLRPGateway', () => {
       await gateway.initialize();
 
       // Advance time to trigger metrics collection
-      await vi.advanceTimersByTimeAsync(10100);
+      await jest.advanceTimersByTimeAsync(10100);
 
       expect(mockMetricsCollector.gauge).toHaveBeenCalled();
     });
@@ -275,7 +275,7 @@ describe('LLRPGateway', () => {
     });
 
     it('should track uptime', async () => {
-      await vi.advanceTimersByTimeAsync(5000);
+      await jest.advanceTimersByTimeAsync(5000);
 
       const stats = gateway.getStats();
       expect(stats.uptime).toBeGreaterThanOrEqual(5000);
@@ -329,7 +329,7 @@ describe('LLRPGateway', () => {
       const gaugeCallsBefore = (mockMetricsCollector.gauge as any).mock.calls.length;
 
       // Advance time past metrics interval
-      await vi.advanceTimersByTimeAsync(1100);
+      await jest.advanceTimersByTimeAsync(1100);
 
       const gaugeCallsAfter = (mockMetricsCollector.gauge as any).mock.calls.length;
 
@@ -337,7 +337,7 @@ describe('LLRPGateway', () => {
     });
 
     it('should collect connection statistics', async () => {
-      await vi.advanceTimersByTimeAsync(1100);
+      await jest.advanceTimersByTimeAsync(1100);
 
       expect(mockMetricsCollector.gauge).toHaveBeenCalledWith(
         'rfid.readers.total',
@@ -354,7 +354,7 @@ describe('LLRPGateway', () => {
     });
 
     it('should collect processing statistics', async () => {
-      await vi.advanceTimersByTimeAsync(1100);
+      await jest.advanceTimersByTimeAsync(1100);
 
       expect(mockMetricsCollector.gauge).toHaveBeenCalledWith(
         'rfid.tags.processed',
@@ -371,7 +371,7 @@ describe('LLRPGateway', () => {
     });
 
     it('should collect deduplication statistics', async () => {
-      await vi.advanceTimersByTimeAsync(1100);
+      await jest.advanceTimersByTimeAsync(1100);
 
       expect(mockMetricsCollector.gauge).toHaveBeenCalledWith(
         'rfid.dedup.cache_size',
@@ -384,7 +384,7 @@ describe('LLRPGateway', () => {
     });
 
     it('should collect uptime', async () => {
-      await vi.advanceTimersByTimeAsync(1100);
+      await jest.advanceTimersByTimeAsync(1100);
 
       expect(mockMetricsCollector.gauge).toHaveBeenCalledWith(
         'rfid.gateway.uptime_ms',
@@ -397,7 +397,7 @@ describe('LLRPGateway', () => {
         throw new Error('Metrics error');
       });
 
-      await vi.advanceTimersByTimeAsync(1100);
+      await jest.advanceTimersByTimeAsync(1100);
 
       expect(mockLogger.error).toHaveBeenCalledWith(
         'Error collecting metrics',
@@ -447,7 +447,7 @@ describe('LLRPGateway', () => {
       await gateway.shutdown();
 
       // Advance time (metrics should not be collected)
-      await vi.advanceTimersByTimeAsync(10100);
+      await jest.advanceTimersByTimeAsync(10100);
 
       const gaugeCallsAfter = (mockMetricsCollector.gauge as any).mock.calls.length;
 
@@ -459,11 +459,11 @@ describe('LLRPGateway', () => {
       const shutdownPromise = gateway.shutdown();
 
       // Should wait at least 1 second for in-flight operations
-      await vi.advanceTimersByTimeAsync(500);
+      await jest.advanceTimersByTimeAsync(500);
 
       expect(gateway.isGatewayRunning()).toBe(false);
 
-      await vi.advanceTimersByTimeAsync(600);
+      await jest.advanceTimersByTimeAsync(600);
 
       await shutdownPromise;
 
@@ -496,7 +496,7 @@ describe('LLRPGateway', () => {
 
     it('should handle errors during shutdown', async () => {
       // Mock error in disconnect
-      vi.spyOn(gateway as any, 'connectionPool').mockImplementation(() => {
+      jest.spyOn(gateway as any, 'connectionPool').mockImplementation(() => {
         throw new Error('Disconnect error');
       });
 

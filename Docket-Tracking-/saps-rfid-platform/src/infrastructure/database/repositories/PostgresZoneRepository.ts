@@ -561,15 +561,15 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
    * @returns Result containing the current occupancy count
    *
    * @description
-   * Uses real-time count from dockets table.
+   * Uses real-time count from items table.
    * Consider using getAllOccupancies() for bulk operations.
    */
   async getOccupancy(zoneId: string): Promise<Result<number, Error>> {
     const sql = `
       SELECT COUNT(*) as occupancy
-      FROM dockets
+      FROM items
       WHERE current_zone_id = $1
-        AND status IN ('registered', 'in_transit', 'in_examination')
+        AND status IN ('registered', 'in_transit', 'in_processing')
         AND is_active = true
     `;
 
@@ -589,16 +589,16 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
    *
    * @description
    * Performance-optimized: Single query instead of N queries.
-   * Returns real-time counts from dockets table.
+   * Returns real-time counts from items table.
    */
   async getAllOccupancies(): Promise<Result<Map<string, number>, Error>> {
     const sql = `
       SELECT
         current_zone_id as zone_id,
         COUNT(*) as occupancy
-      FROM dockets
+      FROM items
       WHERE current_zone_id IS NOT NULL
-        AND status IN ('registered', 'in_transit', 'in_examination')
+        AND status IN ('registered', 'in_transit', 'in_processing')
         AND is_active = true
       GROUP BY current_zone_id
     `;
@@ -635,18 +635,18 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
         z.id as zone_id,
         z.name as zone_name,
         z.capacity,
-        COALESCE(d.occupancy, 0) as current_occupancy
+        COALESCE(i.occupancy, 0) as current_occupancy
       FROM zones z
       LEFT JOIN (
         SELECT
           current_zone_id,
           COUNT(*) as occupancy
-        FROM dockets
+        FROM items
         WHERE current_zone_id IS NOT NULL
-          AND status IN ('registered', 'in_transit', 'in_examination')
+          AND status IN ('registered', 'in_transit', 'in_processing')
           AND is_active = true
         GROUP BY current_zone_id
-      ) d ON d.current_zone_id = z.id
+      ) i ON i.current_zone_id = z.id
       WHERE z.is_active = true
       ORDER BY z.name
     `;
@@ -756,7 +756,7 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
    * @returns Result indicating success or failure
    *
    * @description
-   * Physical deletion only allowed if zone has no dockets and no child zones.
+   * Physical deletion only allowed if zone has no items and no child zones.
    * Invalidates cache after successful deletion.
    */
   async delete(id: string): Promise<Result<void, Error>> {
@@ -777,7 +777,7 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
     }
 
     if (occupancyResult.value > 0) {
-      return err(new Error('Cannot delete zone with dockets'));
+      return err(new Error('Cannot delete zone with items'));
     }
 
     const sql = `

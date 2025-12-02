@@ -36,13 +36,13 @@ export interface ZoneDTO {
   readonly zoneType: 'STORAGE' | 'EXAMINATION' | 'TRANSIT' | 'ARCHIVE' | 'OFFICE' | 'CORRIDOR' | 'ENTRANCE';
 
   /**
-   * Maximum capacity (number of dockets)
+   * Maximum capacity (number of items)
    * @example 500
    */
   readonly capacity: number;
 
   /**
-   * Current number of dockets
+   * Current number of items
    * @example 342
    */
   readonly currentOccupancy: number;
@@ -260,33 +260,33 @@ export interface ZoneOccupancyDTO {
 }
 
 /**
- * Response DTO for zone with dockets
+ * Response DTO for zone with items
  *
  * @description
- * Zone with list of dockets currently in the zone
- * Used in GET /api/zones/:id/dockets
+ * Zone with list of items currently in the zone
+ * Used in GET /api/zones/:id/items
  */
-export interface ZoneWithDocketsDTO {
+export interface ZoneWithItemsDTO {
   /**
    * Zone information
    */
   readonly zone: ZoneDTO;
 
   /**
-   * Total number of dockets in zone
+   * Total number of items in zone
    */
-  readonly totalDockets: number;
+  readonly totalItems: number;
 
   /**
-   * Recent dockets (limited list)
+   * Recent items (limited list)
    */
-  readonly recentDockets: SimpleDocketDTO[];
+  readonly recentItems: SimpleItemDTO[];
 }
 
 /**
- * Simplified docket DTO for zone listings
+ * Simplified item DTO for zone listings
  */
-interface SimpleDocketDTO {
+interface SimpleItemDTO {
   readonly labNumber: string;
   readonly description: string;
   readonly category: string;

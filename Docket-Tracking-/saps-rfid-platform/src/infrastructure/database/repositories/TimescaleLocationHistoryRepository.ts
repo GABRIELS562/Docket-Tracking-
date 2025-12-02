@@ -8,8 +8,7 @@ import type {
   AnalyticsQueryOptions,
 } from '../../../domain/repositories/ILocationHistoryRepository';
 import type { TagRead } from '../../../domain/value-objects/TagRead';
-import type { LabNumber } from '../../../domain/value-objects/LabNumber';
-import { LabNumber as LabNumberVO } from '../../../domain/value-objects/LabNumber';
+import type { ItemNumber } from '../../../domain/value-objects/ItemNumber';
 import type { RfidEpc } from '../../../domain/value-objects/RfidEpc';
 import { RfidEpc as RfidEpcVO } from '../../../domain/value-objects/RfidEpc';
 import { BaseRepository } from '../BaseRepository';
@@ -44,7 +43,7 @@ interface LocationHistoryRow {
  */
 interface BatchItem {
   tagRead: TagRead;
-  docketId: string;
+  itemId: string;
   zoneId: string | null;
   eventType: 'tag_read' | 'zone_entry' | 'zone_exit' | 'movement';
 }
@@ -115,7 +114,7 @@ interface BatchItem {
  * const repository = new TimescaleLocationHistoryRepository(db, logger);
  *
  * // Single insert (batched automatically)
- * await repository.recordTagRead(tagRead, 'docket-001', 'zone-001', 'tag_read');
+ * await repository.recordTagRead(tagRead, 'item-001', 'zone-001', 'tag_read');
  *
  * // Batch insert (immediate)
  * await repository.saveBatch(tagReads);
@@ -150,7 +149,7 @@ export class TimescaleLocationHistoryRepository
    * Records a single tag read event
    *
    * @param tagRead - The tag read value object
-   * @param docketId - The docket ID
+   * @param itemId - The item ID
    * @param zoneId - The zone where tag was detected (null if unknown)
    * @param eventType - Type of location event
    * @returns Result indicating success or failure
@@ -162,12 +161,12 @@ export class TimescaleLocationHistoryRepository
    */
   async recordTagRead(
     tagRead: TagRead,
-    docketId: string,
+    itemId: string,
     zoneId: string | null,
     eventType: 'tag_read' | 'zone_entry' | 'zone_exit' | 'movement'
   ): Promise<Result<void, Error>> {
     // Add to batch queue
-    this.batchQueue.push({ tagRead, docketId, zoneId, eventType });
+    this.batchQueue.push({ tagRead, itemId, zoneId, eventType });
 
     // If batch is full, flush immediately
     if (this.batchQueue.length >= this.BATCH_SIZE) {
@@ -199,7 +198,7 @@ export class TimescaleLocationHistoryRepository
   async saveBatch(
     reads: Array<{
       tagRead: TagRead;
-      docketId: string;
+      itemId: string;
       zoneId: string | null;
       eventType: 'tag_read' | 'zone_entry' | 'zone_exit' | 'movement';
     }>
@@ -214,7 +213,7 @@ export class TimescaleLocationHistoryRepository
       const params: any[] = [];
       let paramIndex = 1;
 
-      for (const { tagRead, docketId, zoneId, eventType } of reads) {
+      for (const { tagRead, itemId, zoneId, eventType } of reads) {
         // Fetch zone/reader names for denormalization (in production, these would be cached)
         const zoneName = zoneId ? await this.getZoneName(zoneId) : null;
         const readerName = await this.getReaderName(tagRead.getReaderId());
@@ -225,10 +224,11 @@ export class TimescaleLocationHistoryRepository
 
         const locationConfidence = this.calculateLocationConfidence(tagRead.getRssi());
 
+        // Note: Database column still named 'docket_id' until migration
         params.push(
           tagRead.getTimestamp(),
-          docketId,
-          await this.getLabNumberForDocket(docketId),
+          itemId,
+          await this.getItemNumber(itemId),
           zoneId,
           zoneName,
           tagRead.getReaderId(),
@@ -284,23 +284,24 @@ export class TimescaleLocationHistoryRepository
   }
 
   /**
-   * Gets location history for a specific docket
+   * Gets location history for a specific item
    *
-   * @param docketId - The docket ID
+   * @param itemId - The item ID
    * @param startTime - Start of time range (optional)
    * @param endTime - End of time range (optional)
    * @param limit - Maximum number of records (default: 100)
    * @returns Result containing array of history entries
    */
-  async getHistoryForDocket(
-    docketId: string,
+  async getHistoryForItem(
+    itemId: string,
     startTime?: Date,
     endTime?: Date,
     limit: number = 100
   ): Promise<Result<LocationHistoryEntry[], Error>> {
     try {
+      // Note: Database column still named 'docket_id' until migration
       const conditions: string[] = ['docket_id = $1'];
-      const params: any[] = [docketId];
+      const params: any[] = [itemId];
       let paramIndex = 2;
 
       if (startTime) {
@@ -338,23 +339,24 @@ export class TimescaleLocationHistoryRepository
   }
 
   /**
-   * Gets location history for a docket by lab number
+   * Gets location history for an item by item number
    *
-   * @param labNumber - The lab number value object
+   * @param itemNumber - The item number value object
    * @param startTime - Start of time range (optional)
    * @param endTime - End of time range (optional)
    * @param limit - Maximum number of records (default: 100)
    * @returns Result containing array of history entries
    */
-  async getHistoryByLabNumber(
-    labNumber: LabNumber,
+  async getHistoryByItemNumber(
+    itemNumber: ItemNumber,
     startTime?: Date,
     endTime?: Date,
     limit: number = 100
   ): Promise<Result<LocationHistoryEntry[], Error>> {
     try {
+      // Note: Database column still named 'lab_number' until migration
       const conditions: string[] = ['lab_number = $1'];
-      const params: any[] = [labNumber.getValue()];
+      const params: any[] = [itemNumber.getValue()];
       let paramIndex = 2;
 
       if (startTime) {
@@ -474,14 +476,15 @@ export class TimescaleLocationHistoryRepository
   }
 
   /**
-   * Gets the last known location of a docket
+   * Gets the last known location of an item
    *
-   * @param docketId - The docket ID
+   * @param itemId - The item ID
    * @returns Result containing the most recent location entry or null
    */
   async getLastKnownLocation(
-    docketId: string
+    itemId: string
   ): Promise<Result<LocationHistoryEntry | null, Error>> {
+    // Note: Database column still named 'docket_id' until migration
     const sql = `
       SELECT *
       FROM location_history
@@ -490,7 +493,7 @@ export class TimescaleLocationHistoryRepository
       LIMIT 1
     `;
 
-    const result = await this.executeQueryOne<LocationHistoryRow>(sql, [docketId]);
+    const result = await this.executeQueryOne<LocationHistoryRow>(sql, [itemId]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -504,9 +507,9 @@ export class TimescaleLocationHistoryRepository
   }
 
   /**
-   * Gets zone visit summary for a docket
+   * Gets zone visit summary for an item
    *
-   * @param docketId - The docket ID
+   * @param itemId - The item ID
    * @param startTime - Start of time range
    * @param endTime - End of time range
    * @returns Result containing array of zone visits
@@ -516,10 +519,11 @@ export class TimescaleLocationHistoryRepository
    * Calculates duration and aggregates reads per visit.
    */
   async getZoneVisits(
-    docketId: string,
+    itemId: string,
     startTime: Date,
     endTime: Date
   ): Promise<Result<ZoneVisitSummary[], Error>> {
+    // Note: Database column still named 'docket_id' until migration
     const sql = `
       WITH zone_changes AS (
         SELECT
@@ -575,7 +579,7 @@ export class TimescaleLocationHistoryRepository
       duration_seconds: string | null;
       read_count: string;
       average_rssi: string;
-    }>(sql, [docketId, startTime, endTime]);
+    }>(sql, [itemId, startTime, endTime]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -705,11 +709,12 @@ export class TimescaleLocationHistoryRepository
         paramIndex += options.readerIds.length;
       }
 
+      // Note: Database column still named 'docket_id' until migration
       const sql = `
         SELECT
           time_bucket('${bucketSize}', time) as time_bucket,
           COUNT(*) as total_reads,
-          COUNT(DISTINCT docket_id) as unique_dockets,
+          COUNT(DISTINCT docket_id) as unique_items,
           COUNT(DISTINCT zone_id) FILTER (WHERE zone_id IS NOT NULL) as active_zones,
           AVG(rssi) as average_rssi
         FROM location_history
@@ -721,7 +726,7 @@ export class TimescaleLocationHistoryRepository
       const result = await this.executeQuery<{
         time_bucket: Date;
         total_reads: string;
-        unique_dockets: string;
+        unique_items: string;
         active_zones: string;
         average_rssi: string;
       }>(sql, params);
@@ -733,7 +738,7 @@ export class TimescaleLocationHistoryRepository
       const statistics: ReadStatistics[] = result.value.map((row) => ({
         timeBucket: row.time_bucket,
         totalReads: parseInt(row.total_reads, 10),
-        uniqueDockets: parseInt(row.unique_dockets, 10),
+        uniqueItems: parseInt(row.unique_items, 10),
         activeZones: parseInt(row.active_zones, 10),
         averageRssi: parseFloat(row.average_rssi),
       }));
@@ -914,7 +919,7 @@ export class TimescaleLocationHistoryRepository
   private rowToDomain(row: LocationHistoryRow): LocationHistoryEntry {
     return {
       time: row.time,
-      docketId: row.docket_id,
+      itemId: row.docket_id, // Database column still named 'docket_id'
       labNumber: row.lab_number,
       zoneId: row.zone_id,
       zoneName: row.zone_name,
@@ -997,18 +1002,19 @@ export class TimescaleLocationHistoryRepository
   }
 
   /**
-   * Gets lab number for a docket ID
+   * Gets item number for an item ID
    *
-   * @param docketId - Docket ID
-   * @returns Lab number string
+   * @param itemId - Item ID
+   * @returns Item number string
    *
    * @description
    * In production, this should use a cache to avoid repeated queries.
    */
-  private async getLabNumberForDocket(docketId: string): Promise<string> {
-    const sql = 'SELECT lab_number FROM dockets WHERE id = $1';
-    const result = await this.executeQueryOne<{ lab_number: string }>(sql, [docketId]);
-    return result.isOk() && result.value ? result.value.lab_number : 'UNKNOWN';
+  private async getItemNumber(itemId: string): Promise<string> {
+    // Query from items table for item_number
+    const sql = 'SELECT item_number FROM items WHERE id = $1';
+    const result = await this.executeQueryOne<{ item_number: string }>(sql, [itemId]);
+    return result.isOk() && result.value ? result.value.item_number : 'UNKNOWN';
   }
 
   /**

@@ -14,13 +14,13 @@ Event handlers are subscribers that react to domain events published by use case
 
 ### 1. Notification Handlers
 Send notifications when events occur (email, SMS, push notifications)
-- `DocketRegisteredNotificationHandler`: Sends confirmation email when docket registered
-- `DocketMarkedMissingNotificationHandler`: Sends URGENT alerts when docket missing
+- `ItemRegisteredNotificationHandler`: Sends confirmation email when item registered
+- `ItemMarkedMissingNotificationHandler`: Sends URGENT alerts when item missing
 - `ZoneOccupancyAlertHandler`: Sends alerts when zones near capacity
 
 ### 2. Statistics Handlers
 Update real-time statistics and dashboards
-- `DocketStatisticsHandler`: Updates docket counts and categories
+- `ItemStatisticsHandler`: Updates item counts and categories
 - `ZoneOccupancyStatisticsHandler`: Updates occupancy charts
 - `ReaderPerformanceHandler`: Updates reader uptime and success rates
 
@@ -31,30 +31,30 @@ Log events for compliance and chain-of-custody
 
 ### 4. Integration Handlers
 Sync data to external systems
-- `CaseManagementSyncHandler`: Syncs to external case management system
+- `InventoryManagementSyncHandler`: Syncs to external inventory management system
 - `BuildingManagementSyncHandler`: Syncs zone data to building management
 - `WebhookHandler`: Sends events to configured webhooks
 
 ### 5. Workflow Handlers
 Trigger automated workflows
-- `QualityCheckWorkflowHandler`: Triggers QA workflow when docket registered
-- `MissingDocketWorkflowHandler`: Initiates search when docket marked missing
+- `QualityCheckWorkflowHandler`: Triggers QA workflow when item registered
+- `MissingItemWorkflowHandler`: Initiates search when item marked missing
 
 ## Handler Pattern
 
 ```typescript
 import { injectable, inject } from 'tsyringe';
 import type { ILogger } from '../interfaces/ILogger';
-import { DocketRegisteredEvent } from '../../domain/events/DocketRegisteredEvent';
+import { ItemRegisteredEvent } from '../../domain/events/ItemRegisteredEvent';
 
 /**
  * Example Event Handler
  *
- * Handles: DocketRegisteredEvent
- * Purpose: Send notification email when docket is registered
+ * Handles: ItemRegisteredEvent
+ * Purpose: Send notification email when item is registered
  */
 @injectable()
-export class DocketRegisteredNotificationHandler {
+export class ItemRegisteredNotificationHandler {
   constructor(
     @inject('ILogger') private readonly logger: ILogger,
     @inject('IEmailService') private readonly emailService: IEmailService,
@@ -62,13 +62,13 @@ export class DocketRegisteredNotificationHandler {
   ) {}
 
   /**
-   * Handles DocketRegisteredEvent
+   * Handles ItemRegisteredEvent
    */
-  async handle(event: DocketRegisteredEvent): Promise<void> {
+  async handle(event: ItemRegisteredEvent): Promise<void> {
     try {
-      this.logger.debug('Processing DocketRegisteredEvent', {
+      this.logger.debug('Processing ItemRegisteredEvent', {
         eventId: event.eventId,
-        labNumber: event.labNumber,
+        itemNumber: event.itemNumber,
       });
 
       // Don't send notifications in test mode
@@ -77,21 +77,21 @@ export class DocketRegisteredNotificationHandler {
         return;
       }
 
-      // Send email to lab manager
+      // Send email to manager
       await this.emailService.send({
-        to: this.config.labManagerEmail,
-        subject: `New Docket Registered: ${event.labNumber}`,
-        template: 'docket-registered',
+        to: this.config.managerEmail,
+        subject: `New Item Registered: ${event.itemNumber}`,
+        template: 'item-registered',
         data: {
-          labNumber: event.labNumber,
-          caseNumber: event.caseNumber,
+          itemNumber: event.itemNumber,
+          referenceId: event.referenceId,
           category: event.category,
           registeredBy: event.registeredBy,
         },
       });
 
-      this.logger.info('Notification sent for docket registration', {
-        labNumber: event.labNumber,
+      this.logger.info('Notification sent for item registration', {
+        itemNumber: event.itemNumber,
       });
     } catch (error) {
       // IMPORTANT: Don't throw - just log the error
@@ -99,7 +99,7 @@ export class DocketRegisteredNotificationHandler {
       this.logger.error('Failed to send notification', {
         error: error instanceof Error ? error.message : 'Unknown error',
         eventId: event.eventId,
-        labNumber: event.labNumber,
+        itemNumber: event.itemNumber,
       });
     }
   }
@@ -112,7 +112,7 @@ export class DocketRegisteredNotificationHandler {
 Handlers may be called multiple times for the same event (due to retries). Make handlers idempotent:
 
 ```typescript
-async handle(event: DocketRegisteredEvent): Promise<void> {
+async handle(event: ItemRegisteredEvent): Promise<void> {
   // Check if already processed
   const alreadyProcessed = await this.cache.get(`processed:${event.eventId}`);
   if (alreadyProcessed) {
@@ -132,7 +132,7 @@ async handle(event: DocketRegisteredEvent): Promise<void> {
 Never throw errors from handlers - they should be resilient:
 
 ```typescript
-async handle(event: DocketMovedEvent): Promise<void> {
+async handle(event: ItemMovedEvent): Promise<void> {
   try {
     await this.updateDashboard(event);
   } catch (error) {
@@ -169,31 +169,31 @@ async handle(event: TagDetectedEvent): Promise<void> {
 Test handlers in isolation:
 
 ```typescript
-describe('DocketRegisteredNotificationHandler', () => {
-  it('should send email when docket registered', async () => {
+describe('ItemRegisteredNotificationHandler', () => {
+  it('should send email when item registered', async () => {
     const mockEmail = {
       send: jest.fn().mockResolvedValue(undefined),
     };
 
-    const handler = new DocketRegisteredNotificationHandler(
+    const handler = new ItemRegisteredNotificationHandler(
       mockLogger,
       mockEmail,
       mockConfig
     );
 
-    const event = new DocketRegisteredEvent(
-      'docket-123',
-      'FSL-2025-000123',
-      'E28011606000204DECA48DA',
-      'CAS-2025-0456',
-      'FIREARM'
+    const event = new ItemRegisteredEvent(
+      'item-123',
+      '12345/25',
+      'E280116060002004DECA48DA',
+      '25/34/25',
+      'equipment'
     );
 
     await handler.handle(event);
 
     expect(mockEmail.send).toHaveBeenCalledWith(
       expect.objectContaining({
-        subject: expect.stringContaining('FSL-2025-000123'),
+        subject: expect.stringContaining('12345/25'),
       })
     );
   });
@@ -215,20 +215,20 @@ export class InMemoryEventBus implements IEventBus {
 
   private registerHandlers(): void {
     // Register notification handlers
-    this.subscribe('DocketRegistered', async (event) => {
-      const handler = container.resolve(DocketRegisteredNotificationHandler);
-      await handler.handle(event as DocketRegisteredEvent);
+    this.subscribe('ItemRegistered', async (event) => {
+      const handler = container.resolve(ItemRegisteredNotificationHandler);
+      await handler.handle(event as ItemRegisteredEvent);
     });
 
-    this.subscribe('DocketMarkedMissing', async (event) => {
-      const handler = container.resolve(DocketMarkedMissingNotificationHandler);
-      await handler.handle(event as DocketMarkedMissingEvent);
+    this.subscribe('ItemMarkedMissing', async (event) => {
+      const handler = container.resolve(ItemMarkedMissingNotificationHandler);
+      await handler.handle(event as ItemMarkedMissingEvent);
     });
 
     // Register statistics handlers
-    this.subscribe('DocketRegistered', async (event) => {
-      const handler = container.resolve(DocketStatisticsHandler);
-      await handler.handle(event as DocketRegisteredEvent);
+    this.subscribe('ItemRegistered', async (event) => {
+      const handler = container.resolve(ItemStatisticsHandler);
+      await handler.handle(event as ItemRegisteredEvent);
     });
 
     // Register audit handlers
@@ -267,16 +267,16 @@ export class InMemoryEventBus implements IEventBus {
 
 ```
 ┌─────────────────────┐
-│ RegisterDocketUseCase│
+│ RegisterItemUseCase │
 └──────────┬──────────┘
            │
-           │ 1. Save docket to DB
+           │ 1. Save item to DB
            ▼
 ┌─────────────────────┐
-│  Docket Repository  │
+│   Item Repository   │
 └──────────┬──────────┘
            │
-           │ 2. Publish DocketRegisteredEvent
+           │ 2. Publish ItemRegisteredEvent
            ▼
 ┌─────────────────────┐
 │     Event Bus       │

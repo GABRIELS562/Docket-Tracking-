@@ -192,22 +192,22 @@ Expected response:
 }
 ```
 
-### Test Docket Creation
+### Test Item Creation
 
 ```bash
-curl -X POST http://localhost:3000/api/dockets \
+curl -X POST http://localhost:3000/api/items \
   -H "Content-Type: application/json" \
   -d '{
-    "labNumber": "FSL-2024-000001",
-    "caseReference": "Test Case",
-    "rfidEpc": "E28011606000204DECA48DA"
+    "itemNumber": "12345/25",
+    "referenceId": "25/34/25",
+    "rfidEpc": "E280116060002004DECA48DA"
   }'
 ```
 
-### Test Docket Search
+### Test Item Search
 
 ```bash
-curl "http://localhost:3000/api/dockets?limit=10"
+curl "http://localhost:3000/api/items?limit=10"
 ```
 
 ### Test WebSocket Connection
@@ -307,10 +307,10 @@ Import this collection:
       }
     },
     {
-      "name": "Create Docket",
+      "name": "Create Item",
       "request": {
         "method": "POST",
-        "url": "{{baseUrl}}/api/dockets",
+        "url": "{{baseUrl}}/api/items",
         "header": [
           {
             "key": "Content-Type",
@@ -319,15 +319,15 @@ Import this collection:
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"labNumber\": \"FSL-2024-000001\",\n  \"caseReference\": \"Test Case\",\n  \"rfidEpc\": \"E28011606000204DECA48DA\"\n}"
+          "raw": "{\n  \"itemNumber\": \"12345/25\",\n  \"referenceId\": \"25/34/25\",\n  \"rfidEpc\": \"E280116060002004DECA48DA\"\n}"
         }
       }
     },
     {
-      "name": "Search Dockets",
+      "name": "Search Items",
       "request": {
         "method": "GET",
-        "url": "{{baseUrl}}/api/dockets?limit=10"
+        "url": "{{baseUrl}}/api/items?limit=10"
       }
     },
     {

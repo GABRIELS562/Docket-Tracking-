@@ -1,4 +1,3 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { BaseRepository, type WhereClause, type PaginationOptions } from '../BaseRepository';
 import type { PostgresConnection } from '../PostgresConnection';
 import type { ILogger } from '../../../application/interfaces/ILogger';
@@ -84,21 +83,21 @@ describe('BaseRepository', () => {
   beforeEach(() => {
     // Mock PostgresConnection
     mockDb = {
-      query: vi.fn(),
-      queryOne: vi.fn(),
-      transaction: vi.fn(),
-      initialize: vi.fn(),
-      shutdown: vi.fn(),
-      getPoolStats: vi.fn(),
-      healthCheck: vi.fn(),
+      query: jest.fn(),
+      queryOne: jest.fn(),
+      transaction: jest.fn(),
+      initialize: jest.fn(),
+      shutdown: jest.fn(),
+      getPoolStats: jest.fn(),
+      healthCheck: jest.fn(),
     } as unknown as PostgresConnection;
 
     // Mock Logger
     mockLogger = {
-      debug: vi.fn(),
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
+      debug: jest.fn(),
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
     } as unknown as ILogger;
 
     repository = new TestRepository(mockDb, mockLogger);
@@ -734,7 +733,7 @@ describe('BaseRepository', () => {
         { id: 'docket-002', lab_number: 'SAPS-002' },
       ];
 
-      vi.mocked(mockDb.query).mockResolvedValue(ok(mockRows));
+      jest.mocked(mockDb.query).mockResolvedValue(ok(mockRows));
 
       const result = await repository.testExecuteQuery<any>(
         'SELECT * FROM dockets WHERE status = $1',
@@ -754,7 +753,7 @@ describe('BaseRepository', () => {
         message: 'relation "dockets" does not exist',
       };
 
-      vi.mocked(mockDb.query).mockResolvedValue(err(dbError as any));
+      jest.mocked(mockDb.query).mockResolvedValue(err(dbError as any));
 
       const result = await repository.testExecuteQuery<any>('SELECT * FROM dockets');
 
@@ -767,7 +766,7 @@ describe('BaseRepository', () => {
     it('should execute query for single row successfully', async () => {
       const mockRow = { id: 'docket-001', lab_number: 'SAPS-001' };
 
-      vi.mocked(mockDb.queryOne).mockResolvedValue(ok(mockRow));
+      jest.mocked(mockDb.queryOne).mockResolvedValue(ok(mockRow));
 
       const result = await repository.testExecuteQueryOne<any>(
         'SELECT * FROM dockets WHERE id = $1',
@@ -779,7 +778,7 @@ describe('BaseRepository', () => {
     });
 
     it('should handle null result for non-existent record', async () => {
-      vi.mocked(mockDb.queryOne).mockResolvedValue(ok(null));
+      jest.mocked(mockDb.queryOne).mockResolvedValue(ok(null));
 
       const result = await repository.testExecuteQueryOne<any>(
         'SELECT * FROM dockets WHERE id = $1',
@@ -796,7 +795,7 @@ describe('BaseRepository', () => {
         message: 'column "invalid_column" does not exist',
       };
 
-      vi.mocked(mockDb.queryOne).mockResolvedValue(err(dbError as any));
+      jest.mocked(mockDb.queryOne).mockResolvedValue(err(dbError as any));
 
       const result = await repository.testExecuteQueryOne<any>(
         'SELECT invalid_column FROM dockets'
@@ -811,7 +810,7 @@ describe('BaseRepository', () => {
     it('should execute transaction successfully', async () => {
       const mockResult = { id: 'docket-001' };
 
-      vi.mocked(mockDb.transaction).mockResolvedValue(ok(mockResult));
+      jest.mocked(mockDb.transaction).mockResolvedValue(ok(mockResult));
 
       const result = await repository.testExecuteTransaction(async (client) => {
         return ok(mockResult);
@@ -827,7 +826,7 @@ describe('BaseRepository', () => {
         message: 'could not serialize access due to concurrent update',
       };
 
-      vi.mocked(mockDb.transaction).mockResolvedValue(err(dbError as any));
+      jest.mocked(mockDb.transaction).mockResolvedValue(err(dbError as any));
 
       const result = await repository.testExecuteTransaction(async (client) => {
         return ok({ id: 'test' });
@@ -847,12 +846,12 @@ describe('BaseRepository', () => {
       ];
 
       // Mock count query
-      vi.mocked(mockDb.queryOne)
+      jest.mocked(mockDb.queryOne)
         .mockResolvedValueOnce(ok({ count: '50' }))
         .mockResolvedValue(ok(null));
 
       // Mock data query
-      vi.mocked(mockDb.query).mockResolvedValue(ok(mockData));
+      jest.mocked(mockDb.query).mockResolvedValue(ok(mockData));
 
       const result = await repository.testExecutePaginatedQuery<any>(
         'SELECT * FROM dockets WHERE status = $1 ORDER BY created_at DESC',
@@ -873,10 +872,10 @@ describe('BaseRepository', () => {
 
     it('should handle empty results', async () => {
       // Mock count query
-      vi.mocked(mockDb.queryOne).mockResolvedValue(ok({ count: '0' }));
+      jest.mocked(mockDb.queryOne).mockResolvedValue(ok({ count: '0' }));
 
       // Mock data query
-      vi.mocked(mockDb.query).mockResolvedValue(ok([]));
+      jest.mocked(mockDb.query).mockResolvedValue(ok([]));
 
       const result = await repository.testExecutePaginatedQuery<any>(
         'SELECT * FROM dockets WHERE status = $1',
@@ -895,10 +894,10 @@ describe('BaseRepository', () => {
 
     it('should calculate total pages correctly', async () => {
       // Mock count query
-      vi.mocked(mockDb.queryOne).mockResolvedValue(ok({ count: '47' }));
+      jest.mocked(mockDb.queryOne).mockResolvedValue(ok({ count: '47' }));
 
       // Mock data query
-      vi.mocked(mockDb.query).mockResolvedValue(ok([]));
+      jest.mocked(mockDb.query).mockResolvedValue(ok([]));
 
       const result = await repository.testExecutePaginatedQuery<any>(
         'SELECT * FROM dockets',
@@ -920,7 +919,7 @@ describe('BaseRepository', () => {
         message: 'relation "dockets" does not exist',
       };
 
-      vi.mocked(mockDb.queryOne).mockResolvedValue(err(dbError as any));
+      jest.mocked(mockDb.queryOne).mockResolvedValue(err(dbError as any));
 
       const result = await repository.testExecutePaginatedQuery<any>(
         'SELECT * FROM dockets',
@@ -935,14 +934,14 @@ describe('BaseRepository', () => {
 
     it('should handle data query error', async () => {
       // Mock count query success
-      vi.mocked(mockDb.queryOne).mockResolvedValue(ok({ count: '50' }));
+      jest.mocked(mockDb.queryOne).mockResolvedValue(ok({ count: '50' }));
 
       // Mock data query error
       const dbError = {
         code: '57014',
         message: 'canceling statement due to statement timeout',
       };
-      vi.mocked(mockDb.query).mockResolvedValue(err(dbError as any));
+      jest.mocked(mockDb.query).mockResolvedValue(err(dbError as any));
 
       const result = await repository.testExecutePaginatedQuery<any>(
         'SELECT * FROM dockets',
@@ -958,7 +957,7 @@ describe('BaseRepository', () => {
 
   describe('Helper Methods - exists()', () => {
     it('should return true when record exists', async () => {
-      vi.mocked(mockDb.queryOne).mockResolvedValue(ok({ exists: true }));
+      jest.mocked(mockDb.queryOne).mockResolvedValue(ok({ exists: true }));
 
       const result = await repository.testExists('dockets', { id: 'docket-001' });
 
@@ -971,7 +970,7 @@ describe('BaseRepository', () => {
     });
 
     it('should return false when record does not exist', async () => {
-      vi.mocked(mockDb.queryOne).mockResolvedValue(ok({ exists: false }));
+      jest.mocked(mockDb.queryOne).mockResolvedValue(ok({ exists: false }));
 
       const result = await repository.testExists('dockets', { id: 'non-existent' });
 
@@ -980,7 +979,7 @@ describe('BaseRepository', () => {
     });
 
     it('should handle null result as false', async () => {
-      vi.mocked(mockDb.queryOne).mockResolvedValue(ok(null));
+      jest.mocked(mockDb.queryOne).mockResolvedValue(ok(null));
 
       const result = await repository.testExists('dockets', { id: 'docket-001' });
 
@@ -989,7 +988,7 @@ describe('BaseRepository', () => {
     });
 
     it('should build WHERE clause with multiple criteria', async () => {
-      vi.mocked(mockDb.queryOne).mockResolvedValue(ok({ exists: true }));
+      jest.mocked(mockDb.queryOne).mockResolvedValue(ok({ exists: true }));
 
       await repository.testExists('dockets', {
         status: 'active',
@@ -1008,7 +1007,7 @@ describe('BaseRepository', () => {
         message: 'relation "dockets" does not exist',
       };
 
-      vi.mocked(mockDb.queryOne).mockResolvedValue(err(dbError as any));
+      jest.mocked(mockDb.queryOne).mockResolvedValue(err(dbError as any));
 
       const result = await repository.testExists('dockets', { id: 'docket-001' });
 
@@ -1019,7 +1018,7 @@ describe('BaseRepository', () => {
 
   describe('Helper Methods - count()', () => {
     it('should return count of all records', async () => {
-      vi.mocked(mockDb.queryOne).mockResolvedValue(ok({ count: '42' }));
+      jest.mocked(mockDb.queryOne).mockResolvedValue(ok({ count: '42' }));
 
       const result = await repository.testCount('dockets');
 
@@ -1032,7 +1031,7 @@ describe('BaseRepository', () => {
     });
 
     it('should return count with criteria', async () => {
-      vi.mocked(mockDb.queryOne).mockResolvedValue(ok({ count: '15' }));
+      jest.mocked(mockDb.queryOne).mockResolvedValue(ok({ count: '15' }));
 
       const result = await repository.testCount('dockets', { status: 'active' });
 
@@ -1045,7 +1044,7 @@ describe('BaseRepository', () => {
     });
 
     it('should return 0 for empty result', async () => {
-      vi.mocked(mockDb.queryOne).mockResolvedValue(ok(null));
+      jest.mocked(mockDb.queryOne).mockResolvedValue(ok(null));
 
       const result = await repository.testCount('dockets');
 
@@ -1054,7 +1053,7 @@ describe('BaseRepository', () => {
     });
 
     it('should handle multiple criteria', async () => {
-      vi.mocked(mockDb.queryOne).mockResolvedValue(ok({ count: '7' }));
+      jest.mocked(mockDb.queryOne).mockResolvedValue(ok({ count: '7' }));
 
       await repository.testCount('dockets', {
         status: 'active',
@@ -1073,7 +1072,7 @@ describe('BaseRepository', () => {
         message: 'relation "dockets" does not exist',
       };
 
-      vi.mocked(mockDb.queryOne).mockResolvedValue(err(dbError as any));
+      jest.mocked(mockDb.queryOne).mockResolvedValue(err(dbError as any));
 
       const result = await repository.testCount('dockets');
 

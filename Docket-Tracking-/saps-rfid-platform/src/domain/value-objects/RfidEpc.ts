@@ -7,7 +7,7 @@ import { InvalidEpcError } from '../errors/InvalidEpcError';
  * Value Object for RFID EPC (Electronic Product Code)
  *
  * Format: 24 hexadecimal characters
- * Example: E28011606000204DECA48DA
+ * Example: E280116060002004DECA48DA
  *
  * @description
  * Immutable value object representing an RFID tag's Electronic Product Code.
@@ -22,7 +22,7 @@ import { InvalidEpcError } from '../errors/InvalidEpcError';
  * ```typescript
  * const result = RfidEpc.create('e28011606000204deca48da');
  * if (result.isOk()) {
- *   console.log(result.value.getValue()); // "E28011606000204DECA48DA"
+ *   console.log(result.value.getValue()); // "E280116060002004DECA48DA"
  * }
  * ```
  */
@@ -43,7 +43,7 @@ export class RfidEpc {
    *
    * @example
    * ```typescript
-   * const result = RfidEpc.create('E28011606000204DECA48DA');
+   * const result = RfidEpc.create('E280116060002004DECA48DA');
    * ```
    */
   static create(value: string): Result<RfidEpc, InvalidEpcError> {
@@ -111,7 +111,7 @@ export class RfidEpc {
    *
    * @example
    * ```typescript
-   * const epc = RfidEpc.create('E28011606000204DECA48DA').unwrap();
+   * const epc = RfidEpc.create('E280116060002004DECA48DA').unwrap();
    * console.log(epc.format('-')); // "E280-1160-6000-204D-ECA4-8DA"
    * console.log(epc.format(' ')); // "E280 1160 6000 204D ECA4 8DA"
    * ```

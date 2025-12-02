@@ -27,13 +27,13 @@ export interface SortParams<TField extends string = string> {
 }
 
 /**
- * Common sortable fields for Docket
+ * Common sortable fields for Item
  */
-export type DocketSortField =
-  | 'labNumber'
+export type ItemSortField =
+  | 'itemNumber'
   | 'createdAt'
   | 'lastSeenAt'
-  | 'caseNumber'
+  | 'referenceId'
   | 'status';
 
 /**

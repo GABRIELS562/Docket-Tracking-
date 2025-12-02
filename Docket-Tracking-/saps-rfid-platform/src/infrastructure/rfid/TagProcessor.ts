@@ -11,7 +11,7 @@ import type { ILogger } from '../../application/interfaces/ILogger';
 export interface ParsedTagRead {
   /**
    * Electronic Product Code (EPC) - unique tag identifier
-   * @example "E28011606000204DECA48DA"
+   * @example "E280116060002004DECA48DA"
    */
   epc: string;
 
@@ -153,7 +153,7 @@ export interface TagProcessorStats {
  * const message = {
  *   type: 'RO_ACCESS_REPORT',
  *   tagReportData: [{
- *     epcData: Buffer.from('E28011606000204DECA48DA', 'hex'),
+ *     epcData: Buffer.from('E280116060002004DECA48DA', 'hex'),
  *     peakRSSI: -58,
  *     antennaID: 2,
  *     tagSeenCount: 15

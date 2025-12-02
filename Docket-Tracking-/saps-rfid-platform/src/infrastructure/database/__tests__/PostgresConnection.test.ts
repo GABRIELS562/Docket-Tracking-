@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+
 import { PostgresConnection } from '../PostgresConnection';
 import type { ILogger } from '../../../application/interfaces/ILogger';
 import { Pool, PoolClient } from 'pg';
@@ -20,17 +20,17 @@ import { Pool, PoolClient } from 'pg';
 // Mock pg module
 vi.mock('pg', () => {
   const mockPool = {
-    connect: vi.fn(),
-    query: vi.fn(),
-    end: vi.fn(),
-    on: vi.fn(),
+    connect: jest.fn(),
+    query: jest.fn(),
+    end: jest.fn(),
+    on: jest.fn(),
     totalCount: 5,
     idleCount: 3,
     waitingCount: 0,
   };
 
   return {
-    Pool: vi.fn(() => mockPool),
+    Pool: jest.fn(() => mockPool),
   };
 });
 
@@ -42,20 +42,20 @@ describe('PostgresConnection', () => {
 
   beforeEach(() => {
     // Reset mocks
-    vi.clearAllMocks();
+    jest.clearAllMocks();
 
     // Mock logger
     mockLogger = {
-      debug: vi.fn(),
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
+      debug: jest.fn(),
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
     } as unknown as ILogger;
 
     // Mock client
     mockClient = {
-      query: vi.fn(),
-      release: vi.fn(),
+      query: jest.fn(),
+      release: jest.fn(),
     } as unknown as PoolClient;
 
     // Get mock pool instance
@@ -173,7 +173,7 @@ describe('PostgresConnection', () => {
         .mockResolvedValueOnce({ rows: [] });
 
       await connection.initialize();
-      vi.clearAllMocks();
+      jest.clearAllMocks();
     });
 
     it('should execute query successfully', async () => {
@@ -275,7 +275,7 @@ describe('PostgresConnection', () => {
         .mockResolvedValueOnce({ rows: [] });
 
       await connection.initialize();
-      vi.clearAllMocks();
+      jest.clearAllMocks();
 
       mockPool.connect.mockResolvedValue(mockClient);
     });

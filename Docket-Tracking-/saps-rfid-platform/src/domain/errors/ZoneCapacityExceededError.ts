@@ -1,7 +1,7 @@
 import { DomainError } from './DomainError';
 
 /**
- * Error thrown when attempting to add a docket to a zone that is at capacity
+ * Error thrown when attempting to add an item to a zone that is at capacity
  */
 export class ZoneCapacityExceededError extends DomainError {
   constructor(zoneId: string, currentOccupancy: number, capacity: number) {

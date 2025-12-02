@@ -121,7 +121,7 @@ export enum ApiErrorCode {
   INVALID_IP_ADDRESS = 'INVALID_IP_ADDRESS',
 
   // Not Found Errors (404)
-  DOCKET_NOT_FOUND = 'DOCKET_NOT_FOUND',
+  ITEM_NOT_FOUND = 'ITEM_NOT_FOUND',
   ZONE_NOT_FOUND = 'ZONE_NOT_FOUND',
   READER_NOT_FOUND = 'READER_NOT_FOUND',
 
@@ -156,7 +156,7 @@ export enum ApiErrorCode {
  *
  * @example
  * ```typescript
- * return createSuccessResponse(docketDTO);
+ * return createSuccessResponse(itemDTO);
  * ```
  */
 export function createSuccessResponse<T>(
@@ -183,8 +183,8 @@ export function createSuccessResponse<T>(
  * @example
  * ```typescript
  * return createErrorResponse(
- *   ApiErrorCode.DOCKET_NOT_FOUND,
- *   'Docket with lab number FSL-2025-000123 not found',
+ *   ApiErrorCode.ITEM_NOT_FOUND,
+ *   'Item with lab number FSL-2025-000123 not found',
  *   { labNumber: 'FSL-2025-000123' }
  * );
  * ```

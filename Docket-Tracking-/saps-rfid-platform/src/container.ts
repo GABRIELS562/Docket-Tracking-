@@ -5,7 +5,7 @@ import { config } from './config';
 // Interfaces
 import { ILogger } from './application/interfaces/ILogger';
 import { IEventBus } from './application/interfaces/IEventBus';
-import { IDocketRepository } from './domain/repositories/IDocketRepository';
+import { IItemRepository } from './domain/repositories/IItemRepository';
 import { IZoneRepository } from './domain/repositories/IZoneRepository';
 import { IReaderRepository } from './domain/repositories/IReaderRepository';
 import { ILocationHistoryRepository } from './domain/repositories/ILocationHistoryRepository';
@@ -27,20 +27,23 @@ import { LLRPGateway } from './infrastructure/rfid/LLRPGateway';
 import { RFIDSimulator } from './infrastructure/rfid/RFIDSimulator';
 
 // Infrastructure - Repositories
-import { PostgresDocketRepository } from './infrastructure/database/repositories/PostgresDocketRepository';
+import { PostgresItemRepository } from './infrastructure/database/repositories/PostgresItemRepository';
 import { PostgresZoneRepository } from './infrastructure/database/repositories/PostgresZoneRepository';
 import { PostgresReaderRepository } from './infrastructure/database/repositories/PostgresReaderRepository';
 import { TimescaleLocationHistoryRepository } from './infrastructure/database/repositories/TimescaleLocationHistoryRepository';
 
-// Application Services
-import { RegisterDocketUseCase } from './application/use-cases/dockets/RegisterDocketUseCase';
-import { SearchDocketsUseCase } from './application/use-cases/dockets/SearchDocketsUseCase';
-import { GetDocketDetailsUseCase } from './application/use-cases/dockets/GetDocketDetailsUseCase';
-import { GetDocketHistoryUseCase } from './application/use-cases/dockets/GetDocketHistoryUseCase';
+// Application Services - Items
+import { RegisterItemUseCase } from './application/use-cases/items/RegisterItemUseCase';
+import { SearchItemsUseCase } from './application/use-cases/items/SearchItemsUseCase';
+import { GetItemDetailsUseCase } from './application/use-cases/items/GetItemDetailsUseCase';
+import { GetItemHistoryUseCase } from './application/use-cases/items/GetItemHistoryUseCase';
+import { GetZoneItemsUseCase } from './application/use-cases/items/GetZoneItemsUseCase';
+
+// Application Services - Zones
 import { GetAllZonesUseCase } from './application/use-cases/zones/GetAllZonesUseCase';
-import { GetZoneDocketsUseCase } from './application/use-cases/zones/GetZoneDocketsUseCase';
+
+// Application Services - Readers
 import { GetAllReadersUseCase } from './application/use-cases/readers/GetAllReadersUseCase';
-// import { ProcessTagReadUseCase } from './application/use-cases/ProcessTagReadUseCase';
 
 // Presentation
 import { Server } from './presentation/http/Server';
@@ -81,9 +84,10 @@ function registerInfrastructure(): void {
  * Register repositories
  */
 function registerRepositories(): void {
-  container.registerSingleton<IDocketRepository>(
-    'IDocketRepository',
-    PostgresDocketRepository
+  // Item Repository
+  container.registerSingleton<IItemRepository>(
+    'IItemRepository',
+    PostgresItemRepository
   );
 
   container.registerSingleton<IZoneRepository>(
@@ -106,21 +110,18 @@ function registerRepositories(): void {
  * Register application use cases
  */
 function registerUseCases(): void {
-  // Docket use cases
-  container.registerSingleton(RegisterDocketUseCase);
-  container.registerSingleton(SearchDocketsUseCase);
-  container.registerSingleton(GetDocketDetailsUseCase);
-  container.registerSingleton(GetDocketHistoryUseCase);
+  // Item use cases
+  container.registerSingleton(RegisterItemUseCase);
+  container.registerSingleton(SearchItemsUseCase);
+  container.registerSingleton(GetItemDetailsUseCase);
+  container.registerSingleton(GetItemHistoryUseCase);
+  container.registerSingleton(GetZoneItemsUseCase);
 
   // Zone use cases
   container.registerSingleton(GetAllZonesUseCase);
-  container.registerSingleton(GetZoneDocketsUseCase);
 
   // Reader use cases
   container.registerSingleton(GetAllReadersUseCase);
-
-  // Tag processing
-  // container.registerSingleton(ProcessTagReadUseCase);
 }
 
 /**

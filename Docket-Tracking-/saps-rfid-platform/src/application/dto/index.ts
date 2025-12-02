@@ -13,21 +13,22 @@
  *
  * Usage:
  * ```typescript
- * import { DocketDTO, CreateDocketDTO, PaginatedResponse } from '@/application/dto';
+ * import { ItemDTO, CreateItemDTO, PaginatedResponse } from '@/application/dto';
  * ```
  */
 
 // ============================================================================
-// Docket DTOs
+// Item DTOs
 // ============================================================================
 export type {
-  DocketDTO,
-  CreateDocketDTO,
-  UpdateDocketDTO,
-  SearchDocketsDTO,
-  SearchDocketsResponseDTO,
-  DocketDetailsDTO,
-} from './DocketDTO';
+  ItemDTO,
+  CreateItemDTO,
+  UpdateItemDTO,
+  SearchItemsDTO,
+  SearchItemsResponseDTO,
+  ItemDetailsDTO,
+  ItemLocationHistoryDTO,
+} from './ItemDTO';
 
 // ============================================================================
 // Zone DTOs
@@ -37,7 +38,7 @@ export type {
   CreateZoneDTO,
   UpdateZoneDTO,
   ZoneOccupancyDTO,
-  ZoneWithDocketsDTO,
+  ZoneWithItemsDTO,
 } from './ZoneDTO';
 
 // ============================================================================
@@ -77,7 +78,7 @@ export type {
   // Sorting
   SortOrder,
   SortParams,
-  DocketSortField,
+  ItemSortField,
   ZoneSortField,
   ReaderSortField,
 } from './common';

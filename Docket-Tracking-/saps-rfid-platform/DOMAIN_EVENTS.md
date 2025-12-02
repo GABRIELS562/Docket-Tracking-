@@ -306,7 +306,7 @@ describe('DocketRegisteredEvent', () => {
     const event = new DocketRegisteredEvent(
       'docket-123',
       'FSL-2025-000123',
-      'E28011606000204DECA48DA',
+      'E280116060002004DECA48DA',
       'CAS-2025-0456',
       'FIREARM'
     );
@@ -316,7 +316,7 @@ describe('DocketRegisteredEvent', () => {
     expect(json).toMatchObject({
       eventType: 'DocketRegistered',
       labNumber: 'FSL-2025-000123',
-      rfidEpc: 'E28011606000204DECA48DA',
+      rfidEpc: 'E280116060002004DECA48DA',
     });
   });
 });

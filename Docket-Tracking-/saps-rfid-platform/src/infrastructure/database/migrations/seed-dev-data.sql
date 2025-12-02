@@ -45,7 +45,7 @@ ON CONFLICT (reader_id) DO NOTHING;
 -- ============================================================================
 
 INSERT INTO dockets (lab_number, case_reference, rfid_tag_epc, current_zone_id, status, metadata) VALUES
-  ('FSL-2024-000001', 'Armed Robbery - Main Street', 'E28011606000204DECA48DA', 1, 'active', '{"evidenceType": "firearm", "officer": "Smith", "priority": "high"}'),
+  ('FSL-2024-000001', 'Armed Robbery - Main Street', 'E280116060002004DECA48DA', 1, 'active', '{"evidenceType": "firearm", "officer": "Smith", "priority": "high"}'),
   ('FSL-2024-000002', 'Assault - Park Avenue', 'E28011606000204DECA48DB', 1, 'active', '{"evidenceType": "weapon", "officer": "Jones", "priority": "medium"}'),
   ('FSL-2024-000003', 'Burglary - Oak Road', 'E28011606000204DECA48DC', 2, 'active', '{"evidenceType": "electronics", "officer": "Brown", "priority": "low"}'),
   ('FSL-2024-000004', 'Murder - Pine Street', 'E28011606000204DECA48DD', 3, 'active', '{"evidenceType": "ballistic", "officer": "Davis", "priority": "critical"}'),

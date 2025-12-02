@@ -119,6 +119,98 @@ export class TestDatabase {
     return results[0] || null;
   }
 
+  // ============================================================================
+  // Item Helpers (Generic - Phase 0)
+  // ============================================================================
+
+  /**
+   * Seed test item
+   */
+  async seedItem(
+    itemNumber: string,
+    description: string,
+    rfidEpc: string,
+    status: string = 'registered',
+    category: string = 'other'
+  ): Promise<void> {
+    const id = `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    await this.query(
+      `INSERT INTO items (id, item_number, rfid_tag_epc, reference_id, description, category, status, is_active, created_at, updated_at, metadata)
+       VALUES ($1, $2, $3, 'N/A', $4, $5, $6, true, NOW(), NOW(), '{}')`,
+      [id, itemNumber, rfidEpc, description, category, status]
+    );
+  }
+
+  /**
+   * Seed test item in a specific zone
+   */
+  async seedItemInZone(
+    itemNumber: string,
+    description: string,
+    rfidEpc: string,
+    zoneId: string,
+    status: string = 'registered',
+    category: string = 'other'
+  ): Promise<void> {
+    const id = `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    await this.query(
+      `INSERT INTO items (id, item_number, rfid_tag_epc, reference_id, description, category, status, is_active, current_zone_id, last_seen_at, created_at, updated_at, metadata)
+       VALUES ($1, $2, $3, 'N/A', $4, $5, $6, true, $7, NOW(), NOW(), NOW(), '{}')`,
+      [id, itemNumber, rfidEpc, description, category, status, zoneId]
+    );
+  }
+
+  /**
+   * Get item by item number
+   */
+  async getItem(itemNumber: string): Promise<any> {
+    const results = await this.query(
+      'SELECT * FROM items WHERE item_number = $1',
+      [itemNumber]
+    );
+    return results[0] || null;
+  }
+
+  /**
+   * Seed item with all fields
+   */
+  async seedItemFull(params: {
+    itemNumber: string;
+    description: string;
+    rfidEpc: string;
+    referenceId?: string;
+    serialNumber?: string;
+    category?: string;
+    status?: string;
+    zoneId?: string;
+    receivedBy?: string;
+    metadata?: Record<string, unknown>;
+  }): Promise<string> {
+    const id = `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    await this.query(
+      `INSERT INTO items (
+        id, item_number, rfid_tag_epc, reference_id, serial_number,
+        description, category, status, is_active, current_zone_id,
+        received_by, received_at, created_at, updated_at, metadata
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, $9, $10, $11, NOW(), NOW(), $12)`,
+      [
+        id,
+        params.itemNumber,
+        params.rfidEpc,
+        params.referenceId ?? 'N/A',
+        params.serialNumber ?? null,
+        params.description,
+        params.category ?? 'other',
+        params.status ?? 'registered',
+        params.zoneId ?? null,
+        params.receivedBy ?? null,
+        params.receivedBy ? new Date() : null,
+        JSON.stringify(params.metadata ?? {}),
+      ]
+    );
+    return id;
+  }
+
   /**
    * Close pool (call after all tests)
    */

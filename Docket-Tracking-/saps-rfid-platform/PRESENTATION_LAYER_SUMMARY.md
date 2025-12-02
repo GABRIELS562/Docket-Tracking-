@@ -275,7 +275,7 @@ curl -X POST http://localhost:3000/api/dockets \
   -d '{
     "labNumber": "FSL-2024-000001",
     "caseReference": "Armed Robbery - Main Street",
-    "rfidEpc": "E28011606000204DECA48DA",
+    "rfidEpc": "E280116060002004DECA48DA",
     "evidenceType": "firearm",
     "metadata": {
       "officer": "Smith",
@@ -335,7 +335,7 @@ describe('Docket API', () => {
       .send({
         labNumber: 'FSL-2024-000001',
         caseReference: 'Test Case',
-        rfidEpc: 'E28011606000204DECA48DA',
+        rfidEpc: 'E280116060002004DECA48DA',
       });
 
     expect(response.status).toBe(201);

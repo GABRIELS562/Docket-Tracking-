@@ -7,14 +7,14 @@
  *
  * Usage:
  * ```typescript
- * import { DocketRegisteredEvent, DocketMovedEvent } from '@/domain/events';
+ * import { ItemRegisteredEvent, ItemMovedEvent } from '@/domain/events';
  *
- * const event = new DocketRegisteredEvent(
- *   'docket-123',
- *   'FSL-2025-000123',
- *   'E28011606000204DECA48DA',
- *   'CAS-2025-0456',
- *   'FIREARM'
+ * const event = new ItemRegisteredEvent(
+ *   'item-123',
+ *   'INV-2025-000123',
+ *   'E280116060002004DECA48DA',
+ *   'ORD-2025-0456',
+ *   'ELECTRONIC'
  * );
  * await eventBus.publish(event);
  * ```
@@ -23,11 +23,11 @@
 // Base Event
 export { DomainEvent } from './DomainEvent';
 
-// Docket Lifecycle Events
-export { DocketRegisteredEvent } from './DocketRegisteredEvent';
-export { DocketMovedEvent } from './DocketMovedEvent';
-export { DocketMarkedMissingEvent } from './DocketMarkedMissingEvent';
-export { DocketStatusChangedEvent } from './DocketStatusChangedEvent';
+// Item Lifecycle Events
+export { ItemRegisteredEvent } from './ItemRegisteredEvent';
+export { ItemMovedEvent } from './ItemMovedEvent';
+export { ItemMarkedMissingEvent } from './ItemMarkedMissingEvent';
+export { ItemStatusChangedEvent } from './ItemStatusChangedEvent';
 
 // Zone Events
 export { ZoneCreatedEvent } from './ZoneCreatedEvent';

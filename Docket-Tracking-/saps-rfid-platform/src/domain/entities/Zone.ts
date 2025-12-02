@@ -248,13 +248,13 @@ export class Zone {
   // ============================================================================
 
   /**
-   * Adds a docket to the zone
+   * Adds an item to the zone
    *
    * Business Rule: Cannot exceed zone capacity
    *
    * @returns Result indicating success or failure
    */
-  addDocket(): Result<void, ZoneCapacityExceededError> {
+  addItem(): Result<void, ZoneCapacityExceededError> {
     if (this.isAtCapacity()) {
       return err(
         new ZoneCapacityExceededError(this.props.id, this.props.currentOccupancy, this.props.capacity)
@@ -267,15 +267,15 @@ export class Zone {
   }
 
   /**
-   * Removes a docket from the zone
+   * Removes an item from the zone
    *
    * Business Rule: Occupancy cannot go negative
    *
    * @returns Result indicating success or failure
    */
-  removeDocket(): Result<void, Error> {
+  removeItem(): Result<void, Error> {
     if (this.props.currentOccupancy === 0) {
-      return err(new Error('Cannot remove docket from empty zone'));
+      return err(new Error('Cannot remove item from empty zone'));
     }
 
     this.props.currentOccupancy--;
@@ -361,13 +361,13 @@ export class Zone {
   /**
    * Deactivates the zone
    *
-   * Business Rule: Cannot deactivate a zone with dockets
+   * Business Rule: Cannot deactivate a zone with items
    *
    * @returns Result indicating success or failure
    */
   deactivate(): Result<void, Error> {
     if (this.props.currentOccupancy > 0) {
-      return err(new Error('Cannot deactivate zone with dockets'));
+      return err(new Error('Cannot deactivate zone with items'));
     }
 
     this.props.isActive = false;

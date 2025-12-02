@@ -3,11 +3,11 @@
  *
  * @description
  * This is the API contract for location history responses.
- * Used for tracking RFID tag reads and docket movements over time.
+ * Used for tracking RFID tag reads and item movements over time.
  *
  * Used in:
  * - GET /api/location-history
- * - GET /api/dockets/:labNumber/history
+ * - GET /api/items/:labNumber/history
  * - GET /api/zones/:id/activity
  */
 export interface LocationHistoryDTO {
@@ -18,7 +18,7 @@ export interface LocationHistoryDTO {
   readonly timestamp: string;
 
   /**
-   * Lab number of the docket
+   * Lab number of the item
    * @example "FSL-2025-000123"
    */
   readonly labNumber: string;
@@ -49,7 +49,7 @@ export interface LocationHistoryDTO {
 
   /**
    * RFID EPC tag value
-   * @example "E28011606000204DECA48DA"
+   * @example "E280116060002004DECA48DA"
    */
   readonly rfidEpc: string;
 
@@ -117,7 +117,7 @@ export interface QueryLocationHistoryDTO {
 
   /**
    * Filter by RFID EPC
-   * @example "E28011606000204DECA48DA"
+   * @example "E280116060002004DECA48DA"
    */
   readonly rfidEpc?: string;
 
@@ -162,7 +162,7 @@ export interface QueryLocationHistoryDTO {
  * Response DTO for zone visit summary
  *
  * @description
- * Aggregated data about docket visits to a zone
+ * Aggregated data about item visits to a zone
  * Used in GET /api/zones/:id/visits
  */
 export interface ZoneVisitSummaryDTO {
@@ -207,7 +207,7 @@ export interface ZoneVisitSummaryDTO {
   readonly averageRssi: number;
 
   /**
-   * Number of unique readers that detected this docket
+   * Number of unique readers that detected this item
    */
   readonly uniqueReaders: number;
 }
@@ -236,9 +236,9 @@ export interface ReadStatisticsDTO {
   readonly totalReads: number;
 
   /**
-   * Number of unique dockets read
+   * Number of unique items read
    */
-  readonly uniqueDockets: number;
+  readonly uniqueItems: number;
 
   /**
    * Number of unique zones
@@ -256,9 +256,9 @@ export interface ReadStatisticsDTO {
   readonly averageRssi: number;
 
   /**
-   * Average reads per docket
+   * Average reads per item
    */
-  readonly averageReadsPerDocket: number;
+  readonly averageReadsPerItem: number;
 
   /**
    * Peak read time (hour of day, 0-23)

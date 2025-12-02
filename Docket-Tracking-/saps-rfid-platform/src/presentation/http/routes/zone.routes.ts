@@ -15,12 +15,13 @@ const getController = () => container.resolve(ZoneController);
 router.get('/', (req, res, next) => getController().getAll(req, res, next));
 
 /**
- * @route   GET /api/zones/:id/dockets
- * @desc    Get dockets currently in a specific zone
+ * @route   GET /api/zones/:id/items
+ * @desc    Get items currently in a specific zone
  * @access  Public
  * @param   id - Zone ID
- * @query   { limit? } - Maximum dockets to return (default 5)
+ * @query   { limit? } - Maximum items to return (default 50)
+ * @query   { recentOnly? } - Only return recently seen items (default false)
  */
-router.get('/:id/dockets', (req, res, next) => getController().getDockets(req, res, next));
+router.get('/:id/items', (req, res, next) => getController().getItems(req, res, next));
 
 export default router;

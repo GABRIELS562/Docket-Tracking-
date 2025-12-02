@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+
 import { LLRPReaderConnection } from '../LLRPReaderConnection';
 import type { Reader } from '../../../domain/entities/Reader';
 import type { IEventBus } from '../../../application/interfaces/IEventBus';
@@ -40,34 +40,34 @@ describe('LLRPReaderConnection', () => {
 
     // Mock EventBus
     mockEventBus = {
-      publish: vi.fn(),
-      subscribe: vi.fn(),
+      publish: jest.fn(),
+      subscribe: jest.fn(),
     } as unknown as IEventBus;
 
     // Mock Logger
     mockLogger = {
-      debug: vi.fn(),
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
+      debug: jest.fn(),
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
     } as unknown as ILogger;
 
     // Mock LLRP Client
     mockLLRPClient = new EventEmitter();
-    mockLLRPClient.connect = vi.fn();
-    mockLLRPClient.send = vi.fn();
-    mockLLRPClient.disconnect = vi.fn(() => {
+    mockLLRPClient.connect = jest.fn();
+    mockLLRPClient.send = jest.fn();
+    mockLLRPClient.disconnect = jest.fn(() => {
       mockLLRPClient.emit('close');
     });
 
-    vi.useFakeTimers();
+    jest.useFakeTimers();
   });
 
   afterEach(() => {
     if (connection) {
       connection.removeAllListeners();
     }
-    vi.useRealTimers();
+    jest.useRealTimers();
   });
 
   describe('Connection Management', () => {
@@ -83,14 +83,14 @@ describe('LLRPReaderConnection', () => {
     });
 
     it('should connect successfully', async () => {
-      const connectedSpy = vi.fn();
+      const connectedSpy = jest.fn();
       connection.on('connected', connectedSpy);
 
       // Mock successful connection
       const connectPromise = connection.connect();
 
       // Simulate LLRP client connection after timeout
-      await vi.advanceTimersByTimeAsync(50);
+      await jest.advanceTimersByTimeAsync(50);
 
       // Wait for promise to resolve
       const result = await connectPromise;
@@ -114,7 +114,7 @@ describe('LLRPReaderConnection', () => {
       const connectPromise = connection.connect();
 
       // Advance past timeout (10 seconds)
-      await vi.advanceTimersByTimeAsync(11000);
+      await jest.advanceTimersByTimeAsync(11000);
 
       const result = await connectPromise;
 
@@ -129,7 +129,7 @@ describe('LLRPReaderConnection', () => {
       const connectPromise = connection.connect();
 
       // Will emit error during connect attempt
-      await vi.advanceTimersByTimeAsync(50);
+      await jest.advanceTimersByTimeAsync(50);
 
       const result = await connectPromise;
 
@@ -179,7 +179,7 @@ describe('LLRPReaderConnection', () => {
     });
 
     it('should emit connected event on successful connection', async () => {
-      const connectedSpy = vi.fn();
+      const connectedSpy = jest.fn();
       connection.on('connected', connectedSpy);
 
       connection.setConnected(true);
@@ -189,7 +189,7 @@ describe('LLRPReaderConnection', () => {
     });
 
     it('should emit disconnected event on connection close', () => {
-      const disconnectedSpy = vi.fn();
+      const disconnectedSpy = jest.fn();
       connection.on('disconnected', disconnectedSpy);
 
       connection.setConnected(true);
@@ -200,7 +200,7 @@ describe('LLRPReaderConnection', () => {
     });
 
     it('should emit error event on client error', () => {
-      const errorSpy = vi.fn();
+      const errorSpy = jest.fn();
       connection.on('error', errorSpy);
 
       const testError = new Error('Test error');
@@ -212,7 +212,7 @@ describe('LLRPReaderConnection', () => {
     });
 
     it('should emit tagRead event for RO_ACCESS_REPORT', () => {
-      const tagReadSpy = vi.fn();
+      const tagReadSpy = jest.fn();
       connection.on('tagRead', tagReadSpy);
 
       const message = {
@@ -402,9 +402,9 @@ describe('LLRPReaderConnection', () => {
     });
 
     it('should handle multiple event listeners', () => {
-      const spy1 = vi.fn();
-      const spy2 = vi.fn();
-      const spy3 = vi.fn();
+      const spy1 = jest.fn();
+      const spy2 = jest.fn();
+      const spy3 = jest.fn();
 
       connection.on('connected', spy1);
       connection.on('connected', spy2);
@@ -418,7 +418,7 @@ describe('LLRPReaderConnection', () => {
     });
 
     it('should clean up listeners on removal', () => {
-      const spy = vi.fn();
+      const spy = jest.fn();
 
       connection.on('tagRead', spy);
       connection.removeListener('tagRead', spy);
@@ -445,7 +445,7 @@ describe('LLRPReaderConnection', () => {
     });
 
     it('should handle concurrent event emissions', () => {
-      const spy = vi.fn();
+      const spy = jest.fn();
       connection.on('tagRead', spy);
 
       // Emit multiple events rapidly
@@ -489,7 +489,7 @@ describe('LLRPReaderConnection', () => {
     });
 
     it('should handle high-frequency tag reads', () => {
-      const spy = vi.fn();
+      const spy = jest.fn();
       connection.on('tagRead', spy);
 
       // Simulate 1000 tag reads
@@ -506,7 +506,7 @@ describe('LLRPReaderConnection', () => {
     it('should maintain performance with multiple listeners', () => {
       const spies = Array(10)
         .fill(null)
-        .map(() => vi.fn());
+        .map(() => jest.fn());
 
       spies.forEach((spy) => connection.on('tagRead', spy));
 

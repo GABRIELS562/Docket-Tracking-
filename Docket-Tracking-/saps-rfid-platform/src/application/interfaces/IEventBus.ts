@@ -43,21 +43,21 @@ import type { DomainEvent } from '../../domain/events/DomainEvent';
  * ```typescript
  * // In a use case:
  * @injectable()
- * class RegisterDocketUseCase {
+ * class RegisterItemUseCase {
  *   constructor(
- *     @inject('IDocketRepository') private docketRepo: IDocketRepository,
+ *     @inject('IItemRepository') private itemRepo: IItemRepository,
  *     @inject('IEventBus') private eventBus: IEventBus,
  *     @inject('ILogger') private logger: ILogger
  *   ) {}
  *
- *   async execute(input: RegisterDocketInput): Promise<Result<DocketDTO, Error>> {
+ *   async execute(input: RegisterItemInput): Promise<Result<ItemDTO, Error>> {
  *     // 1. Business logic
- *     const docket = Docket.create({...});
- *     await this.docketRepo.save(docket);
+ *     const item = Item.create({...});
+ *     await this.itemRepo.save(item);
  *
  *     // 2. Publish event (fire-and-forget)
- *     const event = new DocketRegisteredEvent(
- *       docket.getId(),
+ *     const event = new ItemRegisteredEvent(
+ *       item.getId(),
  *       input.labNumber,
  *       input.rfidEpc,
  *       input.caseNumber,
@@ -67,7 +67,7 @@ import type { DomainEvent } from '../../domain/events/DomainEvent';
  *     await this.eventBus.publish(event);
  *
  *     // 3. Return result (don't wait for handlers)
- *     return ok(DocketMapper.toDTO(docket));
+ *     return ok(ItemMapper.toDTO(item));
  *   }
  * }
  * ```
@@ -103,10 +103,10 @@ export interface IEventBus {
    *
    * @example
    * ```typescript
-   * const event = new DocketRegisteredEvent(
-   *   'docket-123-abc',
+   * const event = new ItemRegisteredEvent(
+   *   'item-123-abc',
    *   'FSL-2025-000123',
-   *   'E28011606000204DECA48DA',
+   *   'E280116060002004DECA48DA',
    *   'CAS-2025-0456',
    *   'FIREARM',
    *   'Officer Smith'
@@ -133,7 +133,7 @@ export interface IEventBus {
    *
    * **When to use:**
    * - Publishing multiple events from a single use case
-   * - Ensuring event ordering for related events (e.g., DocketMoved + ZoneOccupancyChanged)
+   * - Ensuring event ordering for related events (e.g., ItemMoved + ZoneOccupancyChanged)
    * - Better performance than multiple publish() calls (single round-trip)
    * - When events must be processed together
    *
@@ -152,8 +152,8 @@ export interface IEventBus {
    * ```typescript
    * // Publish related events atomically
    * const events = [
-   *   new DocketMovedEvent(
-   *     'docket-123',
+   *   new ItemMovedEvent(
+   *     'item-123',
    *     'FSL-2025-000123',
    *     'zone-examination-001',
    *     'zone-storage-001',
@@ -167,7 +167,7 @@ export interface IEventBus {
    *     341,
    *     342,
    *     500,
-   *     'docket_added'
+   *     'item_added'
    *   ),
    * ];
    *

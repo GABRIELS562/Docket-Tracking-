@@ -14,7 +14,7 @@
  * - **Integration**: Events can be published to external systems (webhooks, message queues)
  *
  * **Naming Convention**:
- * - Events are named in the past tense (DocketRegistered, not RegisterDocket)
+ * - Events are named in the past tense (ItemRegistered, not RegisterItem)
  * - Events describe what happened, not what should happen
  * - Events are facts, not commands
  *
@@ -25,26 +25,26 @@
  *
  * @example
  * ```typescript
- * class DocketRegisteredEvent extends DomainEvent {
+ * class ItemRegisteredEvent extends DomainEvent {
  *   constructor(
- *     public readonly docketId: string,
- *     public readonly labNumber: string,
+ *     public readonly itemId: string,
+ *     public readonly itemNumber: string,
  *     public readonly rfidEpc: string
  *   ) {
- *     super('DocketRegistered');
+ *     super('ItemRegistered');
  *   }
  *
  *   protected getPayload(): Record<string, unknown> {
  *     return {
- *       docketId: this.docketId,
- *       labNumber: this.labNumber,
+ *       itemId: this.itemId,
+ *       itemNumber: this.itemNumber,
  *       rfidEpc: this.rfidEpc,
  *     };
  *   }
  * }
  *
  * // Usage in a use case:
- * const event = new DocketRegisteredEvent(docket.getId(), labNumber, epc);
+ * const event = new ItemRegisteredEvent(item.getId(), itemNumber, epc);
  * await eventBus.publish(event);
  * ```
  */
@@ -52,7 +52,7 @@ export abstract class DomainEvent {
   /**
    * Unique identifier for this event instance
    * Format: {eventType}-{timestamp}-{random}
-   * @example "DocketRegistered-1704197531234-a7f3c2d"
+   * @example "ItemRegistered-1704197531234-a7f3c2d"
    */
   public readonly eventId: string;
 
@@ -71,7 +71,7 @@ export abstract class DomainEvent {
 
   constructor(
     /**
-     * Type/name of the event (e.g., 'DocketRegistered')
+     * Type/name of the event (e.g., 'ItemRegistered')
      * Used for routing to event handlers
      */
     public readonly eventType: string,

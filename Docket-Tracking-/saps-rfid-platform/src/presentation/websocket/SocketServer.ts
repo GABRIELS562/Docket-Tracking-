@@ -5,7 +5,7 @@ import { IEventBus } from '../../application/interfaces/IEventBus';
 import { ILogger } from '../../application/interfaces/ILogger';
 import { DomainEvent } from '../../domain/events/DomainEvent';
 import { TagDetectedEvent } from '../../domain/events/TagDetectedEvent';
-import { DocketMovedEvent } from '../../domain/events/DocketMovedEvent';
+import { ItemMovedEvent } from '../../domain/events/ItemMovedEvent';
 import { ZoneOccupancyChangedEvent } from '../../domain/events/ZoneOccupancyChangedEvent';
 
 /**
@@ -15,13 +15,13 @@ import { ZoneOccupancyChangedEvent } from '../../domain/events/ZoneOccupancyChan
  *
  * Events broadcast to clients:
  * - `tag:detected` - When an RFID tag is detected by a reader
- * - `docket:moved` - When a docket changes zones
+ * - `item:moved` - When an item changes zones
  * - `zone:occupancy` - When zone occupancy changes
  * - `reader:status` - When reader status changes
  *
  * Client subscriptions (rooms):
  * - `subscribe:zones` - Subscribe to specific zone(s) updates
- * - `subscribe:docket` - Subscribe to specific docket updates
+ * - `subscribe:item` - Subscribe to specific item updates
  * - `subscribe:readers` - Subscribe to all reader updates
  *
  * Features:
@@ -109,9 +109,9 @@ export class SocketServer {
         this.handleZoneSubscription(socket, zoneIds);
       });
 
-      // Handle docket subscriptions
-      socket.on('subscribe:docket', (labNumber: string) => {
-        this.handleDocketSubscription(socket, labNumber);
+      // Handle item subscriptions
+      socket.on('subscribe:item', (itemNumber: string) => {
+        this.handleItemSubscription(socket, itemNumber);
       });
 
       // Handle reader subscriptions
@@ -127,9 +127,9 @@ export class SocketServer {
         this.logger.debug('Client unsubscribed from zones', { socketId, zoneIds });
       });
 
-      socket.on('unsubscribe:docket', (labNumber: string) => {
-        socket.leave(`docket:${labNumber}`);
-        this.logger.debug('Client unsubscribed from docket', { socketId, labNumber });
+      socket.on('unsubscribe:item', (itemNumber: string) => {
+        socket.leave(`item:${itemNumber}`);
+        this.logger.debug('Client unsubscribed from item', { socketId, itemNumber });
       });
 
       socket.on('unsubscribe:readers', () => {
@@ -161,59 +161,57 @@ export class SocketServer {
    * Subscribe to domain events and broadcast to clients
    */
   private subscribeToEvents(): void {
-    // Tag detected event
+    // Tag detected event (raw hardware detection)
     this.eventBus.subscribe('TagDetected', async (event: DomainEvent) => {
       const tagEvent = event as TagDetectedEvent;
 
       const payload = {
-        labNumber: tagEvent.payload.labNumber,
-        epc: tagEvent.payload.epc,
-        zoneId: tagEvent.payload.zoneId,
-        readerId: tagEvent.payload.readerId,
-        timestamp: tagEvent.payload.timestamp.toISOString(),
-        rssi: tagEvent.payload.rssi,
+        epc: tagEvent.rfidEpc,
+        zoneId: tagEvent.zoneId,
+        readerId: tagEvent.readerId,
+        timestamp: tagEvent.timestamp.toISOString(),
+        rssi: tagEvent.rssi,
+        antennaPort: tagEvent.antennaPort,
+        signalQuality: tagEvent.getSignalQuality(),
       };
 
       // Broadcast to zone subscribers
-      if (tagEvent.payload.zoneId) {
-        this.io!.to(`zone:${tagEvent.payload.zoneId}`).emit('tag:detected', payload);
+      if (tagEvent.zoneId) {
+        this.io!.to(`zone:${tagEvent.zoneId}`).emit('tag:detected', payload);
       }
 
-      // Broadcast to docket subscribers
-      this.io!.to(`docket:${tagEvent.payload.labNumber}`).emit('tag:detected', payload);
-
       this.logger.debug('Tag detected event broadcast', {
-        labNumber: tagEvent.payload.labNumber,
-        zoneId: tagEvent.payload.zoneId,
+        epc: tagEvent.rfidEpc,
+        zoneId: tagEvent.zoneId,
       });
     });
 
-    // Docket moved event
-    this.eventBus.subscribe('DocketMoved', async (event: DomainEvent) => {
-      const moveEvent = event as DocketMovedEvent;
+    // Item moved event
+    this.eventBus.subscribe('ItemMoved', async (event: DomainEvent) => {
+      const moveEvent = event as ItemMovedEvent;
 
       const payload = {
-        labNumber: moveEvent.payload.labNumber,
-        fromZoneId: moveEvent.payload.fromZoneId,
-        toZoneId: moveEvent.payload.toZoneId,
-        timestamp: moveEvent.payload.timestamp.toISOString(),
+        itemNumber: moveEvent.itemNumber,
+        fromZoneId: moveEvent.fromZoneId,
+        toZoneId: moveEvent.toZoneId,
+        timestamp: moveEvent.movedAt.toISOString(),
       };
 
       // Broadcast to old zone subscribers
-      if (moveEvent.payload.fromZoneId) {
-        this.io!.to(`zone:${moveEvent.payload.fromZoneId}`).emit('docket:moved', payload);
+      if (moveEvent.fromZoneId) {
+        this.io!.to(`zone:${moveEvent.fromZoneId}`).emit('item:moved', payload);
       }
 
       // Broadcast to new zone subscribers
-      this.io!.to(`zone:${moveEvent.payload.toZoneId}`).emit('docket:moved', payload);
+      this.io!.to(`zone:${moveEvent.toZoneId}`).emit('item:moved', payload);
 
-      // Broadcast to docket subscribers
-      this.io!.to(`docket:${moveEvent.payload.labNumber}`).emit('docket:moved', payload);
+      // Broadcast to item subscribers
+      this.io!.to(`item:${moveEvent.itemNumber}`).emit('item:moved', payload);
 
-      this.logger.debug('Docket moved event broadcast', {
-        labNumber: moveEvent.payload.labNumber,
-        fromZoneId: moveEvent.payload.fromZoneId,
-        toZoneId: moveEvent.payload.toZoneId,
+      this.logger.debug('Item moved event broadcast', {
+        itemNumber: moveEvent.itemNumber,
+        fromZoneId: moveEvent.fromZoneId,
+        toZoneId: moveEvent.toZoneId,
       });
     });
 
@@ -289,28 +287,28 @@ export class SocketServer {
   }
 
   /**
-   * Handle docket subscription request
+   * Handle item subscription request
    */
-  private handleDocketSubscription(socket: Socket, labNumber: string): void {
-    // Validate input
-    if (typeof labNumber !== 'string' || !labNumber.match(/^FSL-\d{4}-\d{6}$/)) {
+  private handleItemSubscription(socket: Socket, itemNumber: string): void {
+    // Validate input - generic item number format: INV-YYYY-NNNNNN
+    if (typeof itemNumber !== 'string' || !itemNumber.match(/^INV-\d{4}-\d{6}$/)) {
       socket.emit('error', {
-        code: 'INVALID_LAB_NUMBER',
-        message: 'Invalid lab number format',
+        code: 'INVALID_ITEM_NUMBER',
+        message: 'Invalid item number format',
       });
       return;
     }
 
-    socket.join(`docket:${labNumber}`);
+    socket.join(`item:${itemNumber}`);
 
-    this.logger.debug('Client subscribed to docket', {
+    this.logger.debug('Client subscribed to item', {
       socketId: socket.id,
-      labNumber,
+      itemNumber,
     });
 
     socket.emit('subscribed', {
-      type: 'docket',
-      labNumber,
+      type: 'item',
+      itemNumber,
       timestamp: new Date().toISOString(),
     });
   }

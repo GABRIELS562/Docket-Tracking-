@@ -4,11 +4,11 @@ import { DomainEvent } from './DomainEvent';
  * Event: Zone Occupancy Changed
  *
  * @description
- * Emitted when a zone's occupancy count changes (docket added or removed).
+ * Emitted when a zone's occupancy count changes (item added or removed).
  * This event enables capacity management, alerts, and occupancy analytics.
  *
  * **When emitted:**
- * - After a docket enters or leaves a zone (triggered by DocketMoved event)
+ * - After an item enters or leaves a zone (triggered by ItemMoved event)
  * - After manual occupancy adjustment by administrator
  * - After system reconciliation corrects occupancy count
  *
@@ -18,7 +18,7 @@ import { DomainEvent } from './DomainEvent';
  * - **Capacity Planning Service**: Analyze occupancy trends for planning
  * - **Notification Service**: Notify facility manager when zones near capacity
  * - **Reporting Service**: Generate occupancy reports and statistics
- * - **Auto-routing Service**: Redirect dockets to alternative zones if full
+ * - **Auto-routing Service**: Redirect items to alternative zones if full
  *
  * **Side effects:**
  * - Critical alert sent when zone reaches 90% capacity
@@ -31,11 +31,11 @@ import { DomainEvent } from './DomainEvent';
  * ```typescript
  * const event = new ZoneOccupancyChangedEvent(
  *   'zone-storage-001',
- *   'Evidence Storage A',
+ *   'Storage Area A',
  *   341,
  *   342,
  *   500,
- *   'docket_added'
+ *   'item_added'
  * );
  * await eventBus.publish(event);
  * ```
@@ -74,9 +74,9 @@ export class ZoneOccupancyChangedEvent extends DomainEvent {
 
     /**
      * Why the occupancy changed
-     * @example "docket_added"
+     * @example "item_added"
      */
-    public readonly changeReason: 'docket_added' | 'docket_removed' | 'manual_adjustment'
+    public readonly changeReason: 'item_added' | 'item_removed' | 'manual_adjustment'
   ) {
     super('ZoneOccupancyChanged');
   }

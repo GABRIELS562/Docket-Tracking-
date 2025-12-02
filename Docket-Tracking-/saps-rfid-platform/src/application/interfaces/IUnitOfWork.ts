@@ -38,9 +38,9 @@ export interface IUnitOfWork {
    * ```typescript
    * const result = await unitOfWork.execute(async () => {
    *   // All operations here are transactional
-   *   await docketRepo.save(docket);
+   *   await itemRepo.save(item);
    *   await historyRepo.recordMove(move);
-   *   return docket;
+   *   return item;
    * });
    *
    * if (result.isErr()) {

@@ -58,14 +58,14 @@ export interface PaginatedResult<T> {
  *
  * @example
  * ```typescript
- * export class DocketRepository extends BaseRepository implements IDocketRepository {
+ * export class ItemRepository extends BaseRepository implements IItemRepository {
  *   constructor(db: PostgresConnection, logger: ILogger) {
  *     super(db, logger);
  *   }
  *
- *   async findById(id: string): Promise<Result<Docket | null, Error>> {
- *     const result = await this.executeQueryOne<DocketRow>(
- *       'SELECT * FROM dockets WHERE id = $1',
+ *   async findById(id: string): Promise<Result<Item | null, Error>> {
+ *     const result = await this.executeQueryOne<ItemRow>(
+ *       'SELECT * FROM items WHERE id = $1',
  *       [id]
  *     );
  *
@@ -361,7 +361,7 @@ export abstract class BaseRepository {
    * const where = this.buildWhereClause(criteria);
    * // Returns: { sql: 'WHERE status = $1 AND zone_id = $2', params: ['active', 'zone-001'] }
    *
-   * const sql = `SELECT * FROM dockets ${where.sql}`;
+   * const sql = `SELECT * FROM items ${where.sql}`;
    * const result = await this.executeQuery(sql, where.params);
    * ```
    */
@@ -507,9 +507,9 @@ export abstract class BaseRepository {
    *
    * @example
    * ```typescript
-   * const result = await this.executePaginatedQuery<DocketRow>(
-   *   'SELECT * FROM dockets WHERE status = $1 ORDER BY created_at DESC',
-   *   'SELECT COUNT(*) FROM dockets WHERE status = $1',
+   * const result = await this.executePaginatedQuery<ItemRow>(
+   *   'SELECT * FROM items WHERE status = $1 ORDER BY created_at DESC',
+   *   'SELECT COUNT(*) FROM items WHERE status = $1',
    *   ['active'],
    *   { page: 1, pageSize: 20 }
    * );
@@ -570,9 +570,9 @@ export abstract class BaseRepository {
    *
    * @example
    * ```typescript
-   * const exists = await this.exists('dockets', { id: 'docket-123' });
+   * const exists = await this.exists('items', { id: 'item-123' });
    * if (exists.isOk() && exists.value) {
-   *   console.log('Docket exists');
+   *   console.log('Item exists');
    * }
    * ```
    */
@@ -603,9 +603,9 @@ export abstract class BaseRepository {
    *
    * @example
    * ```typescript
-   * const count = await this.count('dockets', { status: 'active' });
+   * const count = await this.count('items', { status: 'active' });
    * if (count.isOk()) {
-   *   console.log(`Active dockets: ${count.value}`);
+   *   console.log(`Active items: ${count.value}`);
    * }
    * ```
    */

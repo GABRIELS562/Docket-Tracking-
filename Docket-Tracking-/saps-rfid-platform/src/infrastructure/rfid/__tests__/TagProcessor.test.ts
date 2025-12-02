@@ -1,4 +1,3 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TagProcessor } from '../TagProcessor';
 import type { ILogger } from '../../../application/interfaces/ILogger';
 
@@ -17,16 +16,16 @@ import type { ILogger } from '../../../application/interfaces/ILogger';
  * - Performance monitoring
  */
 describe('TagProcessor', () => {
-  let mockLogger: ILogger;
+  let mockLogger: jest.Mocked<ILogger>;
   let processor: TagProcessor;
 
   beforeEach(() => {
     mockLogger = {
-      debug: vi.fn(),
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-    } as unknown as ILogger;
+      debug: jest.fn(),
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+    } as unknown as jest.Mocked<ILogger>;
 
     processor = new TagProcessor(mockLogger);
   });
@@ -49,7 +48,7 @@ describe('TagProcessor', () => {
         type: 'RO_ACCESS_REPORT',
         tagReportData: [
           {
-            epcData: 'E28011606000204DECA48DA',
+            epcData: 'E280116060002004DECA48DA',
             peakRSSI: -58,
             antennaID: 1,
             firstSeenTimestamp: 123456789,
@@ -65,7 +64,7 @@ describe('TagProcessor', () => {
 
       expect(tagReads).toHaveLength(1);
       expect(tagReads[0]).toEqual({
-        epc: 'E28011606000204DECA48DA',
+        epc: 'E280116060002004DECA48DA',
         rssi: -58,
         antennaPort: 1,
         timestamp: expect.any(Date),
@@ -183,7 +182,7 @@ describe('TagProcessor', () => {
 
   describe('EPC Data Type Handling', () => {
     it('should handle Buffer EPC data', async () => {
-      const epcBuffer = Buffer.from('E28011606000204DECA48DA', 'hex');
+      const epcBuffer = Buffer.from('E280116060002004DECA48DA', 'hex');
 
       const message = {
         type: 'RO_ACCESS_REPORT',

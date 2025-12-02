@@ -4,7 +4,7 @@ import type { TagRead } from '../value-objects/TagRead';
  * Domain Service for calculating location confidence
  *
  * @description
- * Determines the confidence level (0.0 to 1.0) that a docket is actually
+ * Determines the confidence level (0.0 to 1.0) that an item is actually
  * in a particular zone based on tag read characteristics.
  *
  * Factors considered:

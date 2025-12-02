@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+
 import { TagDeduplicator } from '../TagDeduplicator';
 import type { ParsedTagRead } from '../TagProcessor';
 import type { ILogger } from '../../../application/interfaces/ILogger';
@@ -21,20 +21,20 @@ describe('TagDeduplicator', () => {
 
   beforeEach(() => {
     mockLogger = {
-      debug: vi.fn(),
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
+      debug: jest.fn(),
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
     } as unknown as ILogger;
 
-    vi.useFakeTimers();
+    jest.useFakeTimers();
   });
 
   afterEach(() => {
     if (deduplicator) {
       deduplicator.dispose();
     }
-    vi.useRealTimers();
+    jest.useRealTimers();
   });
 
   function createMockTagRead(epc: string, rssi = -50): ParsedTagRead {
@@ -130,7 +130,7 @@ describe('TagDeduplicator', () => {
       expect(result1).toHaveLength(1);
 
       // Advance time beyond deduplication window (2 seconds)
-      vi.advanceTimersByTime(2100);
+      jest.advanceTimersByTime(2100);
 
       // Second read of same tag - should pass
       const tag2 = createMockTagRead('ABC123');
@@ -189,7 +189,7 @@ describe('TagDeduplicator', () => {
       expect(deduplicator.isInCache('UNKNOWN')).toBe(false);
 
       // Advance time beyond window
-      vi.advanceTimersByTime(2100);
+      jest.advanceTimersByTime(2100);
 
       expect(deduplicator.isInCache('ABC123')).toBe(false);
     });
@@ -274,10 +274,10 @@ describe('TagDeduplicator', () => {
       expect(deduplicator.getStats().cacheSize).toBe(3);
 
       // Advance time beyond 2x deduplication window (4+ seconds)
-      vi.advanceTimersByTime(5000);
+      jest.advanceTimersByTime(5000);
 
       // Trigger cleanup (runs every 10 seconds)
-      vi.advanceTimersByTime(10000);
+      jest.advanceTimersByTime(10000);
 
       const stats = deduplicator.getStats();
       expect(stats.cacheSize).toBe(0); // All entries cleaned up
@@ -296,13 +296,13 @@ describe('TagDeduplicator', () => {
       deduplicator.filter([createMockTagRead('OLD_TAG')]);
 
       // Advance time
-      vi.advanceTimersByTime(3000);
+      jest.advanceTimersByTime(3000);
 
       // Add recent tag
       deduplicator.filter([createMockTagRead('NEW_TAG')]);
 
       // Trigger cleanup
-      vi.advanceTimersByTime(10000);
+      jest.advanceTimersByTime(10000);
 
       // Old tag removed, new tag kept
       expect(deduplicator.isInCache('OLD_TAG')).toBe(false);
@@ -319,7 +319,7 @@ describe('TagDeduplicator', () => {
       const logCallsBefore = (mockLogger.debug as any).mock.calls.length;
 
       // Trigger cleanup (nothing to clean)
-      vi.advanceTimersByTime(10000);
+      jest.advanceTimersByTime(10000);
 
       const logCallsAfter = (mockLogger.debug as any).mock.calls.length;
 
@@ -383,7 +383,7 @@ describe('TagDeduplicator', () => {
     it('should provide cache information', () => {
       deduplicator.filter([createMockTagRead('TAG1')]);
 
-      vi.advanceTimersByTime(500);
+      jest.advanceTimersByTime(500);
 
       deduplicator.filter([createMockTagRead('TAG2')]);
 
@@ -488,7 +488,7 @@ describe('TagDeduplicator', () => {
       // Cleanup should not run after stopping
       deduplicator.filter([createMockTagRead('TAG1')]);
 
-      vi.advanceTimersByTime(20000); // Wait for cleanup interval
+      jest.advanceTimersByTime(20000); // Wait for cleanup interval
 
       // Tag should still be in cache (cleanup didn't run)
       expect(deduplicator.isInCache('TAG1')).toBe(true);

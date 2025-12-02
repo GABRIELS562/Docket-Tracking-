@@ -87,7 +87,7 @@ export interface PaginationMeta {
  *
  * @example
  * ```typescript
- * // GET /api/dockets returns:
+ * // GET /api/items returns:
  * {
  *   "data": [...],
  *   "pagination": {

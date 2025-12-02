@@ -21,7 +21,7 @@ export { ApiErrorCode, createSuccessResponse, createErrorResponse } from './ApiR
 export type {
   SortOrder,
   SortParams,
-  DocketSortField,
+  ItemSortField,
   ZoneSortField,
   ReaderSortField,
 } from './SortingDTO';

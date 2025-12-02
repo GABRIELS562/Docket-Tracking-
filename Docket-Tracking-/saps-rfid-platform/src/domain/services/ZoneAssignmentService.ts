@@ -30,7 +30,7 @@ export interface ZoneAssignmentDecision {
  * Domain Service for determining zone assignment from tag reads
  *
  * @description
- * Business logic for determining which zone a docket is located in
+ * Business logic for determining which zone an item is located in
  * based on RFID tag reads from multiple readers.
  *
  * This service handles complex scenarios:
@@ -66,7 +66,7 @@ export class ZoneAssignmentService {
    * if (result.isOk()) {
    *   const decision = result.value;
    *   if (decision.isZoneChange) {
-   *     console.log(`Docket moved from ${decision.previousZoneId} to ${decision.zoneId}`);
+   *     console.log(`Item moved from ${decision.previousZoneId} to ${decision.zoneId}`);
    *   }
    * }
    * ```
@@ -272,13 +272,13 @@ export class ZoneAssignmentService {
   }
 
   /**
-   * Determines if a docket should be marked as having left a zone
+   * Determines if an item should be marked as having left a zone
    *
    * Business rule: If no reads in a zone for X seconds, consider it left
    *
    * @param lastReadAgeMs - Milliseconds since last read in the zone
    * @param thresholdMs - Threshold in milliseconds (default: 10000ms = 10s)
-   * @returns true if docket should be considered as having left
+   * @returns true if item should be considered as having left
    */
   shouldMarkAsLeft(lastReadAgeMs: number, thresholdMs: number = 10000): boolean {
     return lastReadAgeMs > thresholdMs;

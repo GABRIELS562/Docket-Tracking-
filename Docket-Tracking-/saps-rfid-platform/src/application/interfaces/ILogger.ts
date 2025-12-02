@@ -42,9 +42,9 @@ export interface ILogger {
    *
    * @example
    * ```typescript
-   * logger.info('Docket registered successfully', {
+   * logger.info('Item registered successfully', {
    *   labNumber: 'FSL-2025-000123',
-   *   epc: 'E28011606000204DECA48DA'
+   *   epc: 'E280116060002004DECA48DA'
    * });
    * ```
    */
@@ -62,7 +62,7 @@ export interface ILogger {
    * @example
    * ```typescript
    * logger.warn('Duplicate EPC attempted', {
-   *   epc: 'E28011606000204DECA48DA'
+   *   epc: 'E280116060002004DECA48DA'
    * });
    * ```
    */
@@ -79,7 +79,7 @@ export interface ILogger {
    *
    * @example
    * ```typescript
-   * logger.error('Failed to save docket', {
+   * logger.error('Failed to save item', {
    *   labNumber: 'FSL-2025-000123',
    *   error: error.message
    * });

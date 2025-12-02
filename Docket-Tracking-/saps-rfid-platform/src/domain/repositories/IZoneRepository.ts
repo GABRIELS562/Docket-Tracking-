@@ -22,7 +22,7 @@ export interface ZoneOccupancyInfo {
   readonly zoneName: string;
 
   /**
-   * Current number of dockets in the zone
+   * Current number of items in the zone
    */
   readonly currentOccupancy: number;
 
@@ -250,12 +250,12 @@ export interface IZoneRepository {
    * @returns Result containing the current occupancy count
    *
    * @description
-   * Returns the real-time count of dockets in the zone.
+   * Returns the real-time count of items in the zone.
    * Implementation may use a cached/aggregated value for performance.
    * The count should be updated whenever:
-   * - A docket's location is updated
-   * - A docket is archived/disposed
-   * - A docket enters/leaves the zone
+   * - An item's location is updated
+   * - An item is archived/disposed
+   * - An item enters/leaves the zone
    */
   getOccupancy(zoneId: string): Promise<Result<number, Error>>;
 
@@ -275,7 +275,7 @@ export interface IZoneRepository {
    * if (result.isOk()) {
    *   const occupancies = result.value;
    *   for (const [zoneId, count] of occupancies) {
-   *     console.log(`Zone ${zoneId}: ${count} dockets`);
+   *     console.log(`Zone ${zoneId}: ${count} items`);
    *   }
    * }
    * ```
@@ -328,7 +328,7 @@ export interface IZoneRepository {
    *
    * @description
    * Physical deletion is only allowed if:
-   * - The zone has no dockets (occupancy = 0)
+   * - The zone has no items (occupancy = 0)
    * - The zone has no child zones
    *
    * Otherwise, the zone should be deactivated instead.
@@ -354,7 +354,7 @@ export interface IZoneRepository {
    *
    * @description
    * Atomically increments the occupancy counter.
-   * Called when a docket enters the zone.
+   * Called when an item enters the zone.
    * Should fail if zone is at capacity.
    */
   incrementOccupancy(zoneId: string): Promise<Result<void, Error>>;
@@ -367,7 +367,7 @@ export interface IZoneRepository {
    *
    * @description
    * Atomically decrements the occupancy counter.
-   * Called when a docket leaves the zone.
+   * Called when an item leaves the zone.
    * Should fail if occupancy is already 0.
    */
   decrementOccupancy(zoneId: string): Promise<Result<void, Error>>;

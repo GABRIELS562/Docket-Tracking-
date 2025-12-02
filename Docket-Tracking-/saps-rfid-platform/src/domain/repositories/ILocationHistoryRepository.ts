@@ -1,7 +1,7 @@
 import type { Result } from 'neverthrow';
 
 import type { TagRead } from '../value-objects/TagRead';
-import type { LabNumber } from '../value-objects/LabNumber';
+import type { ItemNumber } from '../value-objects/ItemNumber';
 import type { RfidEpc } from '../value-objects/RfidEpc';
 
 /**
@@ -18,12 +18,12 @@ export interface LocationHistoryEntry {
   readonly time: Date;
 
   /**
-   * Docket ID (if known at time of read)
+   * Item ID (if known at time of read)
    */
-  readonly docketId: string;
+  readonly itemId: string;
 
   /**
-   * Lab number of the docket
+   * Lab number of the item
    */
   readonly labNumber: string;
 
@@ -82,7 +82,7 @@ export interface LocationHistoryEntry {
  * Zone visit summary for analytics
  *
  * @description
- * Aggregated information about a docket's time spent in a zone.
+ * Aggregated information about a item's time spent in a zone.
  */
 export interface ZoneVisitSummary {
   /**
@@ -136,9 +136,9 @@ export interface ReadStatistics {
   readonly totalReads: number;
 
   /**
-   * Number of unique dockets detected
+   * Number of unique items detected
    */
-  readonly uniqueDockets: number;
+  readonly uniqueItems: number;
 
   /**
    * Number of unique zones with activity
@@ -205,7 +205,7 @@ export interface AnalyticsQueryOptions {
  * ```typescript
  * // Implementation will be in infrastructure layer
  * class TimescaleLocationHistoryRepository implements ILocationHistoryRepository {
- *   async recordTagRead(tagRead: TagRead, docketId: string): Promise<Result<void, Error>> {
+ *   async recordTagRead(tagRead: TagRead, itemId: string): Promise<Result<void, Error>> {
  *     // Implementation with TimescaleDB
  *   }
  * }
@@ -216,7 +216,7 @@ export interface ILocationHistoryRepository {
    * Records a single tag read event
    *
    * @param tagRead - The tag read value object
-   * @param docketId - The docket ID
+   * @param itemId - The item ID
    * @param zoneId - The zone where tag was detected (null if unknown)
    * @param eventType - Type of location event
    * @returns Result indicating success or failure
@@ -237,7 +237,7 @@ export interface ILocationHistoryRepository {
    *
    * const result = await repository.recordTagRead(
    *   tagRead,
-   *   'docket-001',
+   *   'item-001',
    *   'zone-001',
    *   'tag_read'
    * );
@@ -245,7 +245,7 @@ export interface ILocationHistoryRepository {
    */
   recordTagRead(
     tagRead: TagRead,
-    docketId: string,
+    itemId: string,
     zoneId: string | null,
     eventType: 'tag_read' | 'zone_entry' | 'zone_exit' | 'movement'
   ): Promise<Result<void, Error>>;
@@ -265,7 +265,7 @@ export interface ILocationHistoryRepository {
    * ```typescript
    * const batch = tagReads.map(tagRead => ({
    *   tagRead,
-   *   docketId: 'docket-001',
+   *   itemId: 'item-001',
    *   zoneId: 'zone-001',
    *   eventType: 'tag_read' as const
    * }));
@@ -276,29 +276,29 @@ export interface ILocationHistoryRepository {
   saveBatch(
     reads: Array<{
       tagRead: TagRead;
-      docketId: string;
+      itemId: string;
       zoneId: string | null;
       eventType: 'tag_read' | 'zone_entry' | 'zone_exit' | 'movement';
     }>
   ): Promise<Result<void, Error>>;
 
   /**
-   * Gets location history for a specific docket
+   * Gets location history for a specific item
    *
-   * @param docketId - The docket ID
+   * @param itemId - The item ID
    * @param startTime - Start of time range (optional)
    * @param endTime - End of time range (optional)
    * @param limit - Maximum number of records (default: 100)
    * @returns Result containing array of history entries
    *
    * @description
-   * Returns historical location data for a docket, ordered by time descending.
+   * Returns historical location data for a item, ordered by time descending.
    * If no time range specified, returns most recent entries up to limit.
    *
    * @example
    * ```typescript
-   * const result = await repository.getHistoryForDocket(
-   *   'docket-001',
+   * const result = await repository.getHistoryForItem(
+   *   'item-001',
    *   new Date('2025-01-01'),
    *   new Date('2025-01-31'),
    *   50
@@ -311,24 +311,24 @@ export interface ILocationHistoryRepository {
    * }
    * ```
    */
-  getHistoryForDocket(
-    docketId: string,
+  getHistoryForItem(
+    itemId: string,
     startTime?: Date,
     endTime?: Date,
     limit?: number
   ): Promise<Result<LocationHistoryEntry[], Error>>;
 
   /**
-   * Gets location history for a docket by lab number
+   * Gets location history for an item by item number
    *
-   * @param labNumber - The lab number value object
+   * @param itemNumber - The item number value object
    * @param startTime - Start of time range (optional)
    * @param endTime - End of time range (optional)
    * @param limit - Maximum number of records (default: 100)
    * @returns Result containing array of history entries
    */
-  getHistoryByLabNumber(
-    labNumber: LabNumber,
+  getHistoryByItemNumber(
+    itemNumber: ItemNumber,
     startTime?: Date,
     endTime?: Date,
     limit?: number
@@ -382,33 +382,33 @@ export interface ILocationHistoryRepository {
   ): Promise<Result<LocationHistoryEntry[], Error>>;
 
   /**
-   * Gets the last known location of a docket
+   * Gets the last known location of a item
    *
-   * @param docketId - The docket ID
+   * @param itemId - The item ID
    * @returns Result containing the most recent location entry or null
    *
    * @description
-   * Returns the most recent tag read for the docket.
+   * Returns the most recent tag read for the item.
    * Useful for quick location lookup without loading full history.
    */
-  getLastKnownLocation(docketId: string): Promise<Result<LocationHistoryEntry | null, Error>>;
+  getLastKnownLocation(itemId: string): Promise<Result<LocationHistoryEntry | null, Error>>;
 
   /**
-   * Gets zone visit summary for a docket
+   * Gets zone visit summary for a item
    *
-   * @param docketId - The docket ID
+   * @param itemId - The item ID
    * @param startTime - Start of time range
    * @param endTime - End of time range
    * @returns Result containing array of zone visits
    *
    * @description
-   * Analyzes location history to determine when docket entered/exited zones.
+   * Analyzes location history to determine when item entered/exited zones.
    * Returns aggregated visit information showing time spent in each zone.
    *
    * @example
    * ```typescript
    * const result = await repository.getZoneVisits(
-   *   'docket-001',
+   *   'item-001',
    *   new Date('2025-01-01'),
    *   new Date('2025-01-31')
    * );
@@ -424,7 +424,7 @@ export interface ILocationHistoryRepository {
    * ```
    */
   getZoneVisits(
-    docketId: string,
+    itemId: string,
     startTime: Date,
     endTime: Date
   ): Promise<Result<ZoneVisitSummary[], Error>>;

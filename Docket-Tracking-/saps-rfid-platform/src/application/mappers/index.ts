@@ -13,20 +13,23 @@
  *
  * Usage:
  * ```typescript
- * import { DocketMapper, ZoneMapper } from '@/application/mappers';
+ * import { ItemMapper, ZoneMapper } from '@/application/mappers';
  *
  * // Entity to DTO (for API responses)
- * const dto = DocketMapper.toDTO(docket);
+ * const dto = ItemMapper.toDTO(item);
  *
  * // DTO to Entity (for API requests)
- * const result = DocketMapper.fromCreateDTO(createDTO, generatedId);
+ * const result = ItemMapper.fromCreateDTO(createDTO, generatedId);
  * if (result.isOk()) {
- *   const docket = result.value;
+ *   const item = result.value;
  * }
  * ```
  */
 
-export { DocketMapper } from './DocketMapper';
+// Item Mapper
+export { ItemMapper } from './ItemMapper';
+
+// Other Mappers
 export { ZoneMapper } from './ZoneMapper';
 export { ReaderMapper } from './ReaderMapper';
 export { LocationHistoryMapper } from './LocationHistoryMapper';

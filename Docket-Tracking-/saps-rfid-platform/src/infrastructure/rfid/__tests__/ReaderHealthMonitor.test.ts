@@ -1,4 +1,3 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { ReaderHealthMonitor } from '../ReaderHealthMonitor';
 import type { ReaderConnectionPool } from '../ReaderConnectionPool';
 import type { IReaderRepository } from '../../../domain/repositories/IReaderRepository';
@@ -22,35 +21,35 @@ import { ok, err } from 'neverthrow';
  * - Edge cases and error handling
  */
 describe('ReaderHealthMonitor', () => {
-  let mockLogger: ILogger;
-  let mockConnectionPool: ReaderConnectionPool;
-  let mockReaderRepo: IReaderRepository;
+  let mockLogger: jest.Mocked<ILogger>;
+  let mockConnectionPool: jest.Mocked<ReaderConnectionPool>;
+  let mockReaderRepo: jest.Mocked<IReaderRepository>;
   let monitor: ReaderHealthMonitor;
 
   beforeEach(() => {
     mockLogger = {
-      debug: vi.fn(),
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-    } as unknown as ILogger;
+      debug: jest.fn(),
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+    } as unknown as jest.Mocked<ILogger>;
 
     mockConnectionPool = {
-      getAll: vi.fn().mockReturnValue([]),
-    } as unknown as ReaderConnectionPool;
+      getAll: jest.fn().mockReturnValue([]),
+    } as unknown as jest.Mocked<ReaderConnectionPool>;
 
     mockReaderRepo = {
-      updateStatuses: vi.fn().mockResolvedValue(ok(undefined)),
-    } as unknown as IReaderRepository;
+      updateStatuses: jest.fn().mockResolvedValue(ok(undefined)),
+    } as unknown as jest.Mocked<IReaderRepository>;
 
-    vi.useFakeTimers();
+    jest.useFakeTimers();
   });
 
   afterEach(() => {
     if (monitor) {
       monitor.dispose();
     }
-    vi.useRealTimers();
+    jest.useRealTimers();
   });
 
   function createMockReader(id: string, status: ReaderStatus): Reader {
@@ -166,7 +165,7 @@ describe('ReaderHealthMonitor', () => {
       monitor.start();
 
       // Allow immediate check to complete
-      await vi.runAllTimersAsync();
+      await jest.runAllTimersAsync();
 
       const status = monitor.getStatus();
       expect(status.checkCount).toBeGreaterThan(0);
@@ -395,7 +394,7 @@ describe('ReaderHealthMonitor', () => {
       const checkPromise = monitor.forceCheck();
 
       // Advance timers to simulate slow processing
-      await vi.advanceTimersByTimeAsync(6100);
+      await jest.advanceTimersByTimeAsync(6100);
 
       const result = await checkPromise;
 
@@ -595,17 +594,17 @@ describe('ReaderHealthMonitor', () => {
       monitor.start();
 
       // Initial check
-      await vi.runAllTimersAsync();
+      await jest.runAllTimersAsync();
       expect(monitor.getStatus().checkCount).toBe(1);
 
       // Advance to next check
-      vi.advanceTimersByTime(10000);
-      await vi.runAllTimersAsync();
+      jest.advanceTimersByTime(10000);
+      await jest.runAllTimersAsync();
       expect(monitor.getStatus().checkCount).toBe(2);
 
       // Advance to next check
-      vi.advanceTimersByTime(10000);
-      await vi.runAllTimersAsync();
+      jest.advanceTimersByTime(10000);
+      await jest.runAllTimersAsync();
       expect(monitor.getStatus().checkCount).toBe(3);
     });
 
@@ -616,7 +615,7 @@ describe('ReaderHealthMonitor', () => {
 
       monitor.start();
 
-      await vi.runAllTimersAsync();
+      await jest.runAllTimersAsync();
 
       expect(mockLogger.error).toHaveBeenCalledWith(
         'Health check failed',

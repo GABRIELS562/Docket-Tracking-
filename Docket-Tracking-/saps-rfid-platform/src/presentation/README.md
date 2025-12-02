@@ -1,6 +1,6 @@
 # Presentation Layer - SAPS RFID Platform
 
-Complete REST API and WebSocket server implementation for the SAPS RFID Evidence Tracking Platform.
+Complete REST API and WebSocket server implementation for the SAPS RFID Inventory Tracking Platform.
 
 ## Overview
 
@@ -36,18 +36,18 @@ presentation/
 │   │   ├── rateLimiter.ts           # Rate limiting
 │   │   └── requestValidator.ts      # Zod validation
 │   ├── controllers/
-│   │   ├── DocketController.ts      # Docket endpoints
+│   │   ├── ItemController.ts        # Item endpoints
 │   │   ├── ZoneController.ts        # Zone endpoints
 │   │   ├── ReaderController.ts      # Reader endpoints
 │   │   └── HealthController.ts      # Health checks
 │   ├── routes/
 │   │   ├── index.ts                 # Route aggregator
-│   │   ├── docket.routes.ts         # Docket routes
+│   │   ├── item.routes.ts           # Item routes
 │   │   ├── zone.routes.ts           # Zone routes
 │   │   ├── reader.routes.ts         # Reader routes
 │   │   └── health.routes.ts         # Health routes
 │   └── schemas/
-│       └── docket.schema.ts         # Validation schemas
+│       └── item.schema.ts           # Validation schemas
 ├── websocket/
 │   └── SocketServer.ts              # WebSocket server
 └── index.ts                         # Exports
@@ -102,18 +102,18 @@ process.on('SIGTERM', async () => {
 
 ## API Endpoints
 
-### Dockets
+### Items
 
-#### Register Docket
+#### Register Item
 ```http
-POST /api/dockets
+POST /api/items
 Content-Type: application/json
 
 {
-  "labNumber": "FSL-2024-000001",
-  "caseReference": "Armed Robbery - Main Street",
-  "rfidEpc": "E28011606000204DECA48DA",
-  "evidenceType": "firearm",
+  "itemNumber": "12345/25",
+  "referenceId": "25/34/25",
+  "rfidEpc": "E280116060002004DECA48DA",
+  "category": "equipment",
   "metadata": {
     "officer": "Smith",
     "priority": "high"
@@ -126,9 +126,9 @@ Content-Type: application/json
 {
   "success": true,
   "data": {
-    "labNumber": "FSL-2024-000001",
-    "caseReference": "Armed Robbery - Main Street",
-    "status": "active"
+    "itemNumber": "12345/25",
+    "referenceId": "25/34/25",
+    "status": "registered"
   },
   "meta": {
     "timestamp": "2024-01-15T10:30:00.000Z",
@@ -137,9 +137,9 @@ Content-Type: application/json
 }
 ```
 
-#### Search Dockets
+#### Search Items
 ```http
-GET /api/dockets?q=robbery&status=active&limit=10&offset=0
+GET /api/items?q=equipment&status=registered&limit=10&offset=0
 ```
 
 **Response:**
@@ -148,10 +148,10 @@ GET /api/dockets?q=robbery&status=active&limit=10&offset=0
   "success": true,
   "data": [
     {
-      "labNumber": "FSL-2024-000001",
-      "caseReference": "Armed Robbery - Main Street",
-      "status": "active",
-      "currentZone": "Evidence Storage A",
+      "itemNumber": "12345/25",
+      "referenceId": "25/34/25",
+      "status": "registered",
+      "currentZone": "Storage A",
       "lastSeen": "2024-01-15T10:25:00.000Z"
     }
   ],
@@ -168,14 +168,14 @@ GET /api/dockets?q=robbery&status=active&limit=10&offset=0
 }
 ```
 
-#### Get Docket Details
+#### Get Item Details
 ```http
-GET /api/dockets/FSL-2024-000001
+GET /api/items/12345/25
 ```
 
 #### Get Location History
 ```http
-GET /api/dockets/FSL-2024-000001/history?hours=24
+GET /api/items/12345/25/history?hours=24
 ```
 
 ### Zones
@@ -192,7 +192,7 @@ GET /api/zones
   "data": [
     {
       "zoneId": 1,
-      "zoneName": "Evidence Storage A",
+      "zoneName": "Storage A",
       "zoneType": "storage",
       "capacity": 10000,
       "currentOccupancy": 234,
@@ -207,9 +207,9 @@ GET /api/zones
 }
 ```
 
-#### Get Zone Dockets
+#### Get Zone Items
 ```http
-GET /api/zones/1/dockets?limit=5
+GET /api/zones/1/items?limit=5
 ```
 
 ### Readers
@@ -312,8 +312,8 @@ All errors follow a consistent structure:
     "message": "Validation failed",
     "details": [
       {
-        "field": "labNumber",
-        "message": "Lab number must be in format FSL-YYYY-NNNNNN"
+        "field": "itemNumber",
+        "message": "Item number must be in format NNNNNN/YY"
       }
     ]
   },
@@ -347,9 +347,9 @@ All errors follow a consistent structure:
 | Event | Description | Payload |
 |-------|-------------|---------|
 | `connected` | Client connected successfully | `{ socketId, timestamp }` |
-| `subscribed` | Subscription confirmed | `{ type, zoneIds/labNumber, timestamp }` |
-| `tag:detected` | RFID tag detected | `{ labNumber, epc, zoneId, readerId, timestamp, rssi }` |
-| `docket:moved` | Docket moved between zones | `{ labNumber, fromZoneId, toZoneId, timestamp }` |
+| `subscribed` | Subscription confirmed | `{ type, zoneIds/itemNumber, timestamp }` |
+| `tag:detected` | RFID tag detected | `{ itemNumber, epc, zoneId, readerId, timestamp, rssi }` |
+| `item:moved` | Item moved between zones | `{ itemNumber, fromZoneId, toZoneId, timestamp }` |
 | `zone:occupancy` | Zone occupancy changed | `{ zoneId, occupancy, capacity, occupancyPercentage, status, timestamp }` |
 | `server:shutdown` | Server shutting down | `{ message, timestamp }` |
 | `error` | Error occurred | `{ code, message }` |
@@ -372,8 +372,8 @@ socket.on('connected', (data) => {
 // Subscribe to zones
 socket.emit('subscribe:zones', [1, 2, 3]);
 
-// Subscribe to specific docket
-socket.emit('subscribe:docket', 'FSL-2024-000001');
+// Subscribe to specific item
+socket.emit('subscribe:item', '12345/25');
 
 // Subscribe to all readers
 socket.emit('subscribe:readers');
@@ -381,13 +381,13 @@ socket.emit('subscribe:readers');
 // Listen for tag detections
 socket.on('tag:detected', (data) => {
   console.log('Tag detected:', data);
-  // { labNumber, epc, zoneId, readerId, timestamp, rssi }
+  // { itemNumber, epc, zoneId, readerId, timestamp, rssi }
 });
 
-// Listen for docket movements
-socket.on('docket:moved', (data) => {
-  console.log('Docket moved:', data);
-  // { labNumber, fromZoneId, toZoneId, timestamp }
+// Listen for item movements
+socket.on('item:moved', (data) => {
+  console.log('Item moved:', data);
+  // { itemNumber, fromZoneId, toZoneId, timestamp }
 });
 
 // Listen for zone occupancy changes
@@ -403,7 +403,7 @@ socket.on('error', (error) => {
 
 // Unsubscribe
 socket.emit('unsubscribe:zones', [1, 2, 3]);
-socket.emit('unsubscribe:docket', 'FSL-2024-000001');
+socket.emit('unsubscribe:item', '12345/25');
 socket.emit('unsubscribe:readers');
 
 // Disconnect
@@ -448,20 +448,20 @@ export const useRealTimeUpdates = (zoneIds: number[]) => {
 
 All request validation uses Zod for type-safe validation.
 
-### Docket Schema
+### Item Schema
 
 ```typescript
 import { z } from 'zod';
 
-const createDocketSchema = z.object({
-  labNumber: z.string()
-    .regex(/^FSL-\d{4}-\d{6}$/, 'Invalid format'),
-  caseReference: z.string()
+const createItemSchema = z.object({
+  itemNumber: z.string()
+    .regex(/^\d{1,6}\/\d{2}$/, 'Invalid format (NNNNNN/YY)'),
+  referenceId: z.string()
     .min(1).max(500),
   rfidEpc: z.string()
     .length(24)
     .regex(/^[0-9A-Fa-f]{24}$/),
-  evidenceType: z.string().optional(),
+  category: z.string().optional(),
   metadata: z.record(z.unknown()).optional(),
 });
 ```
@@ -550,7 +550,7 @@ Errors are logged with full context:
 import request from 'supertest';
 import { Server } from './Server';
 
-describe('Docket API', () => {
+describe('Item API', () => {
   let server: Server;
 
   beforeAll(async () => {
@@ -562,26 +562,26 @@ describe('Docket API', () => {
     await server.stop();
   });
 
-  it('should create a docket', async () => {
+  it('should create an item', async () => {
     const response = await request(server.getApp())
-      .post('/api/dockets')
+      .post('/api/items')
       .send({
-        labNumber: 'FSL-2024-000001',
-        caseReference: 'Test Case',
-        rfidEpc: 'E28011606000204DECA48DA',
+        itemNumber: '12345/25',
+        referenceId: '25/34/25',
+        rfidEpc: 'E280116060002004DECA48DA',
       });
 
     expect(response.status).toBe(201);
     expect(response.body.success).toBe(true);
   });
 
-  it('should validate lab number format', async () => {
+  it('should validate item number format', async () => {
     const response = await request(server.getApp())
-      .post('/api/dockets')
+      .post('/api/items')
       .send({
-        labNumber: 'INVALID',
-        caseReference: 'Test Case',
-        rfidEpc: 'E28011606000204DECA48DA',
+        itemNumber: 'INVALID',
+        referenceId: 'Test Reference',
+        rfidEpc: 'E280116060002004DECA48DA',
       });
 
     expect(response.status).toBe(400);
