@@ -5,14 +5,20 @@ import {
   BarChart3,
   Settings,
   Package,
-  Radio
+  Radio,
+  Shield,
+  Building2,
 } from 'lucide-react';
+import { useAuthStore } from '../../stores/authStore';
 
 const Sidebar = () => {
+  // Use individual selector to avoid re-renders
+  const tenant = useAuthStore((s) => s.tenant);
   const navItems = [
     { path: '/dashboard', icon: LayoutDashboard, label: '3D Dashboard' },
     { path: '/search', icon: Search, label: 'Search Items' },
     { path: '/analytics', icon: BarChart3, label: 'Analytics' },
+    { path: '/setup', icon: Building2, label: 'Warehouse Setup' },
     { path: '/admin', icon: Settings, label: 'Admin' },
   ];
 
@@ -54,16 +60,27 @@ const Sidebar = () => {
         </ul>
       </nav>
 
-      {/* Footer - Connection Status */}
+      {/* Footer - Connection Status & Tenant */}
       <div className="p-4 border-t border-slate-700">
         <div className="flex items-center gap-2 text-sm">
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
           <span className="text-slate-400">RFID Gateway Connected</span>
         </div>
-        <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
-          <Package className="w-4 h-4" />
-          <span>SAPS Forensics Lab</span>
-        </div>
+        {tenant && (
+          <div className="mt-3 p-2 bg-slate-800/50 rounded-lg">
+            <div className="flex items-center gap-2 text-xs">
+              {tenant.slug === 'saps-forensics' ? (
+                <Shield className="w-4 h-4 text-blue-400" />
+              ) : (
+                <Package className="w-4 h-4 text-slate-400" />
+              )}
+              <span className="text-slate-300 font-medium">{tenant.name}</span>
+            </div>
+            <div className="mt-1 text-xs text-slate-500 capitalize">
+              {tenant.plan} Plan
+            </div>
+          </div>
+        )}
       </div>
     </aside>
   );

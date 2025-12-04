@@ -1,42 +1,42 @@
-import { Pool, PoolClient, PoolConfig, QueryResult } from 'pg';
+import { Pool, PoolClient, PoolConfig } from 'pg';
 import { Result, ok, err } from 'neverthrow';
 import { injectable, inject } from 'tsyringe';
 import type { ILogger } from '../../application/interfaces/ILogger';
 import { getDatabaseConfig } from '../../config/database.config';
 
 /**
- * Database Configuration
+ * Internal Database Configuration (extends PoolConfig for pool creation)
  */
-export interface DatabaseConfig extends PoolConfig {
+interface InternalDatabaseConfig extends PoolConfig {
   /**
    * Maximum number of connections in pool
    * @default 20
    */
-  max?: number;
+  max: number;
 
   /**
    * Minimum number of connections in pool
    * @default 2
    */
-  min?: number;
+  min: number;
 
   /**
    * Query timeout in milliseconds
    * @default 10000 (10 seconds)
    */
-  queryTimeout?: number;
+  queryTimeout: number;
 
   /**
    * Enable query logging
    * @default false
    */
-  enableQueryLogging?: boolean;
+  enableQueryLogging: boolean;
 
   /**
    * Slow query threshold in milliseconds
    * @default 100
    */
-  slowQueryThreshold?: number;
+  slowQueryThreshold: number;
 }
 
 /**
@@ -133,23 +133,28 @@ export interface PoolStats {
 export class PostgresConnection {
   private pool: Pool;
   private isInitialized: boolean = false;
-  private readonly config: Required<DatabaseConfig>;
+  private readonly config: InternalDatabaseConfig;
   private queryCount: number = 0;
   private slowQueryCount: number = 0;
   private errorCount: number = 0;
 
   constructor(@inject('ILogger') private logger: ILogger) {
-    const config = getDatabaseConfig();
-    // Apply default configuration
+    const externalConfig = getDatabaseConfig();
+    // Apply default configuration, mapping from external to internal format
     this.config = {
-      ...config,
-      max: config.max ?? 20,
-      min: config.min ?? 2,
-      queryTimeout: config.queryTimeout ?? 10000,
-      enableQueryLogging: config.enableQueryLogging ?? false,
-      slowQueryThreshold: config.slowQueryThreshold ?? 100,
-      idleTimeoutMillis: config.idleTimeoutMillis ?? 30000,
-      connectionTimeoutMillis: config.connectionTimeoutMillis ?? 10000,
+      host: externalConfig.host,
+      port: externalConfig.port,
+      database: externalConfig.database,
+      user: externalConfig.user,
+      password: externalConfig.password,
+      ssl: externalConfig.ssl ? { rejectUnauthorized: false } : undefined,
+      max: externalConfig.pool.max ?? 20,
+      min: externalConfig.pool.min ?? 2,
+      queryTimeout: 10000,
+      enableQueryLogging: process.env.DB_QUERY_LOGGING === 'true',
+      slowQueryThreshold: 100,
+      idleTimeoutMillis: externalConfig.pool.idleTimeoutMillis ?? 30000,
+      connectionTimeoutMillis: externalConfig.pool.connectionTimeoutMillis ?? 10000,
       allowExitOnIdle: false,
     };
 
@@ -195,26 +200,26 @@ export class PostgresConnection {
    * - `error` - Unexpected error on idle client
    */
   private setupPoolHandlers(): void {
-    this.pool.on('connect', (client) => {
+    this.pool.on('connect', (_client) => {
       this.logger.debug('New database connection established', {
         totalConnections: this.pool.totalCount,
       });
     });
 
-    this.pool.on('acquire', (client) => {
+    this.pool.on('acquire', (_client) => {
       this.logger.debug('Connection acquired from pool', {
         idleConnections: this.pool.idleCount,
         waitingClients: this.pool.waitingCount,
       });
     });
 
-    this.pool.on('remove', (client) => {
+    this.pool.on('remove', (_client) => {
       this.logger.debug('Connection removed from pool', {
         totalConnections: this.pool.totalCount,
       });
     });
 
-    this.pool.on('error', (err, client) => {
+    this.pool.on('error', (err, _client) => {
       this.errorCount++;
       this.logger.error('Unexpected database pool error', {
         error: err.message,
@@ -272,7 +277,7 @@ export class PostgresConnection {
           version: version.substring(0, 50), // Truncate long version string
         });
 
-        // Verify TimescaleDB extension
+        // Verify TimescaleDB extension (optional for development)
         const extensionResult = await client.query(
           `SELECT extname, extversion
            FROM pg_extension
@@ -280,15 +285,23 @@ export class PostgresConnection {
         );
 
         if (extensionResult.rows.length === 0) {
-          throw new Error(
-            'TimescaleDB extension not found. ' +
-              'Please install TimescaleDB: CREATE EXTENSION IF NOT EXISTS timescaledb;'
-          );
+          // In development mode, warn but continue without TimescaleDB
+          if (process.env.NODE_ENV === 'development') {
+            this.logger.warn(
+              'TimescaleDB extension not found. Running in development mode without time-series optimizations. ' +
+                'For production, install TimescaleDB: CREATE EXTENSION IF NOT EXISTS timescaledb;'
+            );
+          } else {
+            throw new Error(
+              'TimescaleDB extension not found. ' +
+                'Please install TimescaleDB: CREATE EXTENSION IF NOT EXISTS timescaledb;'
+            );
+          }
+        } else {
+          this.logger.info('TimescaleDB extension verified', {
+            version: extensionResult.rows[0].extversion,
+          });
         }
-
-        this.logger.info('TimescaleDB extension verified', {
-          version: extensionResult.rows[0].extversion,
-        });
 
         // Set up any required database settings
         await client.query(`SET timezone = 'UTC'`);
@@ -364,7 +377,7 @@ export class PostgresConnection {
         });
       }
 
-      const result: QueryResult<T> = await this.pool.query(sql, params);
+      const result = await this.pool.query(sql, params);
 
       const duration = Date.now() - startTime;
 
@@ -380,7 +393,7 @@ export class PostgresConnection {
         });
       }
 
-      return ok(result.rows);
+      return ok(result.rows as T[]);
     } catch (error) {
       this.errorCount++;
 

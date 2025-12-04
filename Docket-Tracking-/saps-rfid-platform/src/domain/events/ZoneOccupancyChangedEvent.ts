@@ -81,7 +81,7 @@ export class ZoneOccupancyChangedEvent extends DomainEvent {
     super('ZoneOccupancyChanged');
   }
 
-  protected getPayload(): Record<string, unknown> {
+  protected override getPayload(): Record<string, unknown> {
     const occupancyPercentage = (this.currentOccupancy / this.capacity) * 100;
 
     return {

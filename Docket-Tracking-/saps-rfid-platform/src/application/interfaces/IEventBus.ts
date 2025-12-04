@@ -178,4 +178,24 @@ export interface IEventBus {
    * @throws Error if event bus is unavailable or batch publishing fails
    */
   publishBatch(events: DomainEvent[]): Promise<void>;
+
+  /**
+   * Subscribes to a specific event type
+   *
+   * @param eventType - The event type name to subscribe to
+   * @param handler - The handler function to call when event is published
+   *
+   * @description
+   * Registers a handler to be called whenever an event of the specified type
+   * is published. The handler runs asynchronously and should be fast (<100ms).
+   *
+   * @example
+   * ```typescript
+   * eventBus.subscribe('ItemMoved', async (event) => {
+   *   const movedEvent = event as ItemMovedEvent;
+   *   console.log(`Item ${movedEvent.itemNumber} moved to ${movedEvent.toZoneId}`);
+   * });
+   * ```
+   */
+  subscribe(eventType: string, handler: (event: DomainEvent) => Promise<void>): void;
 }

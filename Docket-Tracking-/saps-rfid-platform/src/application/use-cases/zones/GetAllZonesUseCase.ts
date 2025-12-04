@@ -86,7 +86,7 @@ export class GetAllZonesUseCase {
         id: zone.getId(),
         name: zone.getName(),
         code: zone.getCode(),
-        type: zone.getType(),
+        type: zone.getZoneType(),
         parentZoneId: zone.getParentZoneId(),
         capacity: zone.getCapacity(),
         currentOccupancy: zone.getCurrentOccupancy(),

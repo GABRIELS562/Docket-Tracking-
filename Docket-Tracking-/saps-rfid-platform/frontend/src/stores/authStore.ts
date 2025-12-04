@@ -45,7 +45,7 @@ interface AuthState {
  */
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set, get) => ({
+    (set, _get) => ({
       // Initial state
       user: null,
       tenant: null,
@@ -64,7 +64,7 @@ export const useAuthStore = create<AuthState>()(
         set({ tenant }),
 
       // Login (mock implementation - replace with real API)
-      login: async (email, password) => {
+      login: async (email, _password) => {
         set({ isLoading: true });
 
         // Mock authentication - Replace with actual API call

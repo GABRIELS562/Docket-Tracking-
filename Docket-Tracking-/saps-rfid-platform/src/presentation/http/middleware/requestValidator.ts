@@ -21,7 +21,7 @@ import { ValidationError } from '../../../shared/errors/ValidationError';
  * @returns Express middleware function
  */
 export const validate = (schema: ZodSchema) => {
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
     try {
       // Validate and transform request body
       req.body = await schema.parseAsync(req.body);
@@ -49,7 +49,7 @@ export const validate = (schema: ZodSchema) => {
  * Validate query parameters
  */
 export const validateQuery = (schema: ZodSchema) => {
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
     try {
       req.query = await schema.parseAsync(req.query);
       next();
@@ -74,7 +74,7 @@ export const validateQuery = (schema: ZodSchema) => {
  * Validate URL parameters
  */
 export const validateParams = (schema: ZodSchema) => {
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
     try {
       req.params = await schema.parseAsync(req.params);
       next();

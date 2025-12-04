@@ -258,10 +258,10 @@ export class ReaderHealthMonitor {
       }
     }
 
-    // Batch update statuses in database
+    // Batch update statuses in database (system-wide, across all tenants)
     if (statusUpdates.length > 0) {
       try {
-        const updateResult = await this.readerRepo.updateStatuses(
+        const updateResult = await this.readerRepo.updateStatusesSystemWide(
           statusUpdates.map(({ readerId, status }) => ({ readerId, status }))
         );
 

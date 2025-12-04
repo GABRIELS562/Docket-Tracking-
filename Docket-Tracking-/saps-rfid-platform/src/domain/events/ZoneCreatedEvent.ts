@@ -59,7 +59,7 @@ export class ZoneCreatedEvent extends DomainEvent {
 
     /**
      * Zone name
-     * @example "Evidence Storage C"
+     * @example "Storage Area C"
      */
     public readonly zoneName: string,
 
@@ -96,7 +96,7 @@ export class ZoneCreatedEvent extends DomainEvent {
     super('ZoneCreated');
   }
 
-  protected getPayload(): Record<string, unknown> {
+  protected override getPayload(): Record<string, unknown> {
     return {
       zoneId: this.zoneId,
       zoneCode: this.zoneCode,

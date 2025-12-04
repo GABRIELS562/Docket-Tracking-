@@ -27,7 +27,7 @@ export interface ReaderDTO {
    * Reader model
    * @example "Impinj R700"
    */
-  readonly readerModel: string;
+  readonly readerModel: string | null;
 
   /**
    * IP address
@@ -49,7 +49,7 @@ export interface ReaderDTO {
 
   /**
    * Zone name (denormalized for convenience)
-   * @example "Evidence Storage A"
+   * @example "Storage Area A"
    */
   readonly zoneName: string | null;
 

@@ -74,7 +74,7 @@ export class ItemRegisteredEvent extends DomainEvent {
     super('ItemRegistered');
   }
 
-  protected getPayload(): Record<string, unknown> {
+  protected override getPayload(): Record<string, unknown> {
     return {
       itemId: this.itemId,
       itemNumber: this.itemNumber,

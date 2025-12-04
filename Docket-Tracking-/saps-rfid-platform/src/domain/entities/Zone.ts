@@ -8,7 +8,7 @@ import { ZoneCapacityExceededError } from '../errors/ZoneCapacityExceededError';
  * Zone type enumeration
  */
 export enum ZoneType {
-  /** Evidence storage area */
+  /** Item storage area */
   STORAGE = 'storage',
 
   /** Examination laboratory */
@@ -61,6 +61,13 @@ export interface ZoneProps {
 }
 
 /**
+ * Internal mutable version of ZoneProps for entity state management
+ */
+type MutableZoneProps = {
+  -readonly [K in keyof ZoneProps]: ZoneProps[K];
+};
+
+/**
  * Zone Entity
  *
  * @description
@@ -87,7 +94,7 @@ export interface ZoneProps {
  * ```
  */
 export class Zone {
-  private constructor(private props: ZoneProps) {}
+  private constructor(private props: MutableZoneProps) {}
 
   /**
    * Creates a new Zone entity

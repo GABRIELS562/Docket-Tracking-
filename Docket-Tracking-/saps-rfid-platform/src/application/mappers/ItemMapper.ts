@@ -1,4 +1,4 @@
-import { Result, ok, err } from 'neverthrow';
+import { Result, err } from 'neverthrow';
 import { Item, type ItemCategory } from '../../domain/entities/Item';
 import { ItemNumber } from '../../domain/value-objects/ItemNumber';
 import { RfidEpc } from '../../domain/value-objects/RfidEpc';

@@ -232,16 +232,16 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
     const result = await this.executeQueryOne<ItemRow>(sql, [itemNumber.getValue(), tenantId]);
 
     if (result.isErr()) {
-      return err(new ItemNotFoundError(itemNumber.getValue()));
+      return err(new ItemNotFoundError(itemNumber.getValue(), 'itemNumber'));
     }
 
     if (!result.value) {
-      return err(new ItemNotFoundError(itemNumber.getValue()));
+      return err(new ItemNotFoundError(itemNumber.getValue(), 'itemNumber'));
     }
 
     const itemResult = this.rowToDomain(result.value);
     if (itemResult.isErr()) {
-      return err(new ItemNotFoundError(itemNumber.getValue()));
+      return err(new ItemNotFoundError(itemNumber.getValue(), 'itemNumber'));
     }
 
     return ok(itemResult.value);
@@ -263,16 +263,16 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
     const result = await this.executeQueryOne<ItemRow>(sql, [epc.getValue(), tenantId]);
 
     if (result.isErr()) {
-      return err(new ItemNotFoundError(epc.getValue()));
+      return err(new ItemNotFoundError(epc.getValue(), 'epc'));
     }
 
     if (!result.value) {
-      return err(new ItemNotFoundError(epc.getValue()));
+      return err(new ItemNotFoundError(epc.getValue(), 'epc'));
     }
 
     const itemResult = this.rowToDomain(result.value);
     if (itemResult.isErr()) {
-      return err(new ItemNotFoundError(epc.getValue()));
+      return err(new ItemNotFoundError(epc.getValue(), 'epc'));
     }
 
     return ok(itemResult.value);

@@ -1,4 +1,4 @@
-import { SelectHTMLAttributes } from 'react';
+import { type SelectHTMLAttributes } from 'react';
 import { ChevronDown } from 'lucide-react';
 
 interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {

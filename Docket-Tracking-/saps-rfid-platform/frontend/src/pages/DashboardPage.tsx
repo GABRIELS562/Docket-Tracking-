@@ -1,4 +1,5 @@
 import Scene from '../components/3d/Scene';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 const DashboardPage = () => {
   return (
@@ -10,9 +11,11 @@ const DashboardPage = () => {
         </p>
       </div>
 
-      {/* 3D Scene */}
+      {/* 3D Scene with Error Boundary */}
       <div className="bg-slate-900 rounded-xl h-[calc(100vh-200px)] overflow-hidden">
-        <Scene />
+        <ErrorBoundary>
+          <Scene />
+        </ErrorBoundary>
       </div>
 
       {/* Quick Stats */}

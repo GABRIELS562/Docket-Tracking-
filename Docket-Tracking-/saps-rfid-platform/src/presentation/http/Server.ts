@@ -1,4 +1,4 @@
-import express, { Express, Request, Response, NextFunction } from 'express';
+import express, { Express, Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -10,7 +10,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { correlationId } from './middleware/correlationId';
 import { requestLogger } from './middleware/requestLogger';
 import { rateLimiter } from './middleware/rateLimiter';
-import routes from './routes';
+import { createRoutes } from './routes';
 
 /**
  * HTTP Server - Express application setup
@@ -125,7 +125,7 @@ export class Server {
    */
   private setupRoutes(): void {
     // Root endpoint - API information
-    this.app.get('/', (req: Request, res: Response) => {
+    this.app.get('/', (_req: Request, res: Response) => {
       res.json({
         name: 'RFID Inventory Platform API',
         version: '1.0.0',
@@ -140,7 +140,7 @@ export class Server {
     });
 
     // API routes (all prefixed with /api)
-    this.app.use('/api', routes);
+    this.app.use('/api', createRoutes());
 
     // 404 handler for unknown routes
     this.app.use((req: Request, res: Response) => {

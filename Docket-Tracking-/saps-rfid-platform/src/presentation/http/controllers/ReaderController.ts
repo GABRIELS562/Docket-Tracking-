@@ -1,7 +1,6 @@
 import { Response, NextFunction } from 'express';
 import { injectable, inject } from 'tsyringe';
 import { GetAllReadersUseCase } from '../../../application/use-cases/readers/GetAllReadersUseCase';
-import type { ILogger } from '../../../application/interfaces/ILogger';
 import type { AuthenticatedRequest } from '../middleware/authMiddleware';
 
 /**
@@ -15,8 +14,7 @@ import type { AuthenticatedRequest } from '../middleware/authMiddleware';
 @injectable()
 export class ReaderController {
   constructor(
-    @inject(GetAllReadersUseCase) private getAllReaders: GetAllReadersUseCase,
-    @inject('ILogger') private logger: ILogger
+    @inject(GetAllReadersUseCase) private getAllReaders: GetAllReadersUseCase
   ) {}
 
   /**

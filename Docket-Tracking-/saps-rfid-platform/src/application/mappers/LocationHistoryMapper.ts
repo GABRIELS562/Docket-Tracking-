@@ -9,6 +9,24 @@ import type { LocationHistoryDTO } from '../dto/LocationHistoryDTO';
  */
 export class LocationHistoryMapper {
   /**
+   * Maps domain event type to DTO event type
+   */
+  private static mapEventTypeToDTO(
+    eventType: 'tag_read' | 'zone_entry' | 'zone_exit' | 'movement'
+  ): 'DETECTED' | 'ENTERED' | 'EXITED' | 'MOVED' {
+    const eventMap: Record<
+      'tag_read' | 'zone_entry' | 'zone_exit' | 'movement',
+      'DETECTED' | 'ENTERED' | 'EXITED' | 'MOVED'
+    > = {
+      tag_read: 'DETECTED',
+      zone_entry: 'ENTERED',
+      zone_exit: 'EXITED',
+      movement: 'MOVED',
+    };
+    return eventMap[eventType];
+  }
+
+  /**
    * Converts a LocationHistoryEntry to a DTO
    *
    * @param entry - The location history entry
@@ -30,8 +48,8 @@ export class LocationHistoryMapper {
     return {
       timestamp: entry.time.toISOString(),
       itemNumber: entry.itemNumber,
-      zoneId: entry.zoneId,
-      zoneName: entry.zoneName,
+      zoneId: entry.zoneId ?? 'unknown',
+      zoneName: entry.zoneName ?? 'Unknown Zone',
       readerId: entry.readerId,
       readerName: entry.readerName,
       rfidEpc: entry.rfidEpc,
@@ -39,8 +57,8 @@ export class LocationHistoryMapper {
       rssi: entry.rssi,
       signalQuality,
       readCount: entry.readCount,
-      locationConfidence: entry.locationConfidence,
-      eventType: entry.eventType,
+      locationConfidence: entry.locationConfidence ?? 0,
+      eventType: LocationHistoryMapper.mapEventTypeToDTO(entry.eventType),
     };
   }
 

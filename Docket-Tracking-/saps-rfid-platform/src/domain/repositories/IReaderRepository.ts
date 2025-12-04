@@ -460,4 +460,46 @@ export interface IReaderRepository {
     successful: number,
     failed: number
   ): Promise<Result<void, Error>>;
+
+  // =========================================================================
+  // System-wide methods (for infrastructure components)
+  // =========================================================================
+
+  /**
+   * Finds all readers across all tenants
+   *
+   * @returns Result containing array of all readers
+   *
+   * @description
+   * System-level method for infrastructure components (RFID Gateway, Health Monitor)
+   * that need to operate on all physical readers regardless of tenant.
+   *
+   * **CAUTION:** This method bypasses tenant isolation and should only be used
+   * by system-level infrastructure components.
+   */
+  findAllSystemWide(): Promise<Result<Reader[], Error>>;
+
+  /**
+   * Finds all active readers across all tenants
+   *
+   * @returns Result containing array of all active readers
+   *
+   * @description
+   * System-level method for infrastructure components that need to manage
+   * all active physical readers regardless of tenant.
+   */
+  findAllActiveSystemWide(): Promise<Result<Reader[], Error>>;
+
+  /**
+   * Bulk updates reader statuses across all tenants
+   *
+   * @param updates - Array of status updates to apply
+   * @returns Result indicating success or failure
+   *
+   * @description
+   * System-level method for infrastructure components (Health Monitor)
+   * that need to update reader statuses regardless of tenant.
+   * Updates are matched by readerId which is unique across the system.
+   */
+  updateStatusesSystemWide(updates: ReaderStatusUpdate[]): Promise<Result<void, Error>>;
 }

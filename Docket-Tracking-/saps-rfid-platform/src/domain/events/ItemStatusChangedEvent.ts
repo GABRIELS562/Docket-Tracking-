@@ -78,7 +78,7 @@ export class ItemStatusChangedEvent extends DomainEvent {
     super('ItemStatusChanged');
   }
 
-  protected getPayload(): Record<string, unknown> {
+  protected override getPayload(): Record<string, unknown> {
     return {
       itemId: this.itemId,
       itemNumber: this.itemNumber,

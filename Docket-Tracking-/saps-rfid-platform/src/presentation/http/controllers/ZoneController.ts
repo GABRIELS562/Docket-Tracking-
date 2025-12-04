@@ -2,7 +2,6 @@ import { Response, NextFunction } from 'express';
 import { injectable, inject } from 'tsyringe';
 import { GetAllZonesUseCase } from '../../../application/use-cases/zones/GetAllZonesUseCase';
 import { GetZoneItemsUseCase } from '../../../application/use-cases/items/GetZoneItemsUseCase';
-import type { ILogger } from '../../../application/interfaces/ILogger';
 import type { AuthenticatedRequest } from '../middleware/authMiddleware';
 
 /**
@@ -18,8 +17,7 @@ import type { AuthenticatedRequest } from '../middleware/authMiddleware';
 export class ZoneController {
   constructor(
     @inject(GetAllZonesUseCase) private getAllZones: GetAllZonesUseCase,
-    @inject(GetZoneItemsUseCase) private getZoneItems: GetZoneItemsUseCase,
-    @inject('ILogger') private logger: ILogger
+    @inject(GetZoneItemsUseCase) private getZoneItems: GetZoneItemsUseCase
   ) {}
 
   /**
@@ -94,7 +92,7 @@ export class ZoneController {
 
       const result = await this.getZoneItems.execute({
         tenantId: req.tenantId,
-        zoneId: req.params.id,
+        zoneId: req.params.id!,
         limit: req.query.limit ? parseInt(req.query.limit as string) : 50,
         recentOnly: req.query.recentOnly === 'true',
       });

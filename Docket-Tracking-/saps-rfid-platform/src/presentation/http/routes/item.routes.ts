@@ -87,5 +87,5 @@ zoneItemsRouter.get(
   '/:zoneId/items',
   validateParams(zoneIdParamSchema),
   validateQuery(zoneItemsQuerySchema),
-  (req, res, next) => getController().getZoneItems(req, res, next)
+  (req, res, next) => getController().getZoneItemsInZone(req, res, next)
 );

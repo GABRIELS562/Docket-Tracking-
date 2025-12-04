@@ -969,4 +969,117 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
 
     return mapping[field] || 'name';
   }
+
+  // =========================================================================
+  // System-wide methods (for infrastructure components)
+  // =========================================================================
+
+  /**
+   * Finds all readers across all tenants
+   *
+   * System-level method for infrastructure components (RFID Gateway, Health Monitor)
+   * that need to operate on all physical readers regardless of tenant.
+   */
+  async findAllSystemWide(): Promise<Result<Reader[], Error>> {
+    const sql = `
+      SELECT * FROM readers
+      ORDER BY tenant_id, name
+    `;
+
+    const result = await this.executeQuery<ReaderRow>(sql, []);
+
+    if (result.isErr()) {
+      return err(result.error);
+    }
+
+    const readers: Reader[] = [];
+    for (const row of result.value) {
+      const readerResult = this.rowToDomain(row);
+      if (readerResult.isOk()) {
+        readers.push(readerResult.value);
+      }
+    }
+
+    return ok(readers);
+  }
+
+  /**
+   * Finds all active readers across all tenants
+   *
+   * System-level method for infrastructure components that need to manage
+   * all active physical readers regardless of tenant.
+   */
+  async findAllActiveSystemWide(): Promise<Result<Reader[], Error>> {
+    const sql = `
+      SELECT * FROM readers
+      WHERE is_active = true
+      ORDER BY tenant_id, name
+    `;
+
+    const result = await this.executeQuery<ReaderRow>(sql, []);
+
+    if (result.isErr()) {
+      return err(result.error);
+    }
+
+    const readers: Reader[] = [];
+    for (const row of result.value) {
+      const readerResult = this.rowToDomain(row);
+      if (readerResult.isOk()) {
+        readers.push(readerResult.value);
+      }
+    }
+
+    return ok(readers);
+  }
+
+  /**
+   * Bulk updates reader statuses across all tenants
+   *
+   * System-level method for infrastructure components (Health Monitor)
+   * that need to update reader statuses regardless of tenant.
+   */
+  async updateStatusesSystemWide(updates: ReaderStatusUpdate[]): Promise<Result<void, Error>> {
+    if (updates.length === 0) {
+      return ok(undefined);
+    }
+
+    try {
+      // Build VALUES clause for bulk update
+      const values = updates.map((_, index) => {
+        const base = index * 4 + 1;
+        return `($${base}, $${base + 1}, $${base + 2}, $${base + 3})`;
+      }).join(', ');
+
+      const params: any[] = [];
+      for (const u of updates) {
+        params.push(u.readerId, u.status, u.errorMessage ?? null, u.timestamp ?? new Date());
+      }
+
+      const sql = `
+        UPDATE readers
+        SET
+          status = v.status,
+          error_message = v.error_message,
+          updated_at = v.timestamp
+        FROM (VALUES ${values}) AS v(reader_id, status, error_message, timestamp)
+        WHERE readers.id = v.reader_id
+      `;
+
+      const result = await this.executeQuery(sql, params);
+
+      if (result.isErr()) {
+        return err(result.error);
+      }
+
+      this.logger.debug('Bulk status update (system-wide) completed', {
+        count: updates.length,
+      });
+
+      return ok(undefined);
+    } catch (error) {
+      this.logger.error('Bulk status update (system-wide) failed', { error, count: updates.length });
+      return err(error as Error);
+    }
+  }
 }

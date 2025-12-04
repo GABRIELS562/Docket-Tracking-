@@ -10,7 +10,6 @@ import type {
 import type { TagRead } from '../../../domain/value-objects/TagRead';
 import type { ItemNumber } from '../../../domain/value-objects/ItemNumber';
 import type { RfidEpc } from '../../../domain/value-objects/RfidEpc';
-import { RfidEpc as RfidEpcVO } from '../../../domain/value-objects/RfidEpc';
 import { BaseRepository } from '../BaseRepository';
 import type { PostgresConnection } from '../PostgresConnection';
 import type { ILogger } from '../../../application/interfaces/ILogger';
@@ -901,6 +900,391 @@ export class TimescaleLocationHistoryRepository
       });
     } catch (error) {
       this.logger.error('Failed to get storage stats', { error, tenantId });
+      return err(error as Error);
+    }
+  }
+
+  // ============================================================================
+  // Phase 2.2: Flow Analytics Methods
+  // ============================================================================
+
+  /**
+   * Gets zone-to-zone transitions for flow analysis
+   *
+   * @param tenantId - Tenant ID for multi-tenant isolation
+   * @param startTime - Start of time range
+   * @param endTime - End of time range
+   * @returns Result containing array of zone transitions
+   */
+  async getZoneTransitions(
+    tenantId: string,
+    startTime: Date,
+    endTime: Date
+  ): Promise<
+    Result<
+      Array<{
+        itemId: string;
+        fromZoneId: string | null;
+        toZoneId: string;
+        timestamp: Date;
+        transitionTimeSeconds: number;
+        dwellTimeMinutes?: number;
+      }>,
+      Error
+    >
+  > {
+    try {
+      const sql = `
+        WITH zone_sequence AS (
+          SELECT
+            item_id,
+            zone_id,
+            zone_name,
+            time,
+            LAG(zone_id) OVER (PARTITION BY item_id ORDER BY time) as prev_zone_id,
+            LAG(time) OVER (PARTITION BY item_id ORDER BY time) as prev_time
+          FROM location_history
+          WHERE tenant_id = $1
+            AND time >= $2
+            AND time <= $3
+            AND zone_id IS NOT NULL
+        )
+        SELECT
+          item_id,
+          prev_zone_id as from_zone_id,
+          zone_id as to_zone_id,
+          time as timestamp,
+          COALESCE(
+            EXTRACT(EPOCH FROM (time - prev_time))::integer,
+            0
+          ) as transition_time_seconds
+        FROM zone_sequence
+        WHERE zone_id != prev_zone_id OR prev_zone_id IS NULL
+        ORDER BY time
+      `;
+
+      const result = await this.executeQuery<{
+        item_id: string;
+        from_zone_id: string | null;
+        to_zone_id: string;
+        timestamp: Date;
+        transition_time_seconds: string;
+      }>(sql, [tenantId, startTime, endTime]);
+
+      if (result.isErr()) {
+        return err(result.error);
+      }
+
+      return ok(
+        result.value.map((row) => ({
+          itemId: row.item_id,
+          fromZoneId: row.from_zone_id,
+          toZoneId: row.to_zone_id,
+          timestamp: row.timestamp,
+          transitionTimeSeconds: parseInt(row.transition_time_seconds, 10),
+        }))
+      );
+    } catch (error) {
+      this.logger.error('Failed to get zone transitions', { error, tenantId });
+      return err(error as Error);
+    }
+  }
+
+  /**
+   * Gets zone dwell time statistics for bottleneck analysis
+   *
+   * @param tenantId - Tenant ID for multi-tenant isolation
+   * @param startTime - Start of time range
+   * @param endTime - End of time range
+   * @returns Result containing array of zone dwell statistics
+   */
+  async getZoneDwellStatistics(
+    tenantId: string,
+    startTime: Date,
+    endTime: Date
+  ): Promise<
+    Result<
+      Array<{
+        zoneId: string;
+        avgDwellMinutes: number;
+        maxDwellMinutes: number;
+        itemCount: number;
+        totalDwellMinutes: number;
+        entryCount: number;
+        exitCount: number;
+      }>,
+      Error
+    >
+  > {
+    try {
+      const sql = `
+        WITH zone_visits AS (
+          SELECT
+            item_id,
+            zone_id,
+            time as entry_time,
+            LEAD(time) OVER (PARTITION BY item_id ORDER BY time) as next_event_time,
+            LEAD(zone_id) OVER (PARTITION BY item_id ORDER BY time) as next_zone_id
+          FROM location_history
+          WHERE tenant_id = $1
+            AND time >= $2
+            AND time <= $3
+            AND zone_id IS NOT NULL
+        ),
+        visit_durations AS (
+          SELECT
+            zone_id,
+            item_id,
+            entry_time,
+            CASE
+              WHEN next_zone_id != zone_id OR next_zone_id IS NULL THEN
+                EXTRACT(EPOCH FROM (COALESCE(next_event_time, $3) - entry_time)) / 60
+              ELSE NULL
+            END as dwell_minutes
+          FROM zone_visits
+        ),
+        entries_exits AS (
+          SELECT
+            zone_id,
+            COUNT(*) FILTER (WHERE dwell_minutes IS NOT NULL) as entry_count,
+            COUNT(*) FILTER (WHERE dwell_minutes IS NOT NULL AND dwell_minutes < 1440) as exit_count
+          FROM visit_durations
+          GROUP BY zone_id
+        )
+        SELECT
+          vd.zone_id,
+          AVG(vd.dwell_minutes) FILTER (WHERE vd.dwell_minutes IS NOT NULL) as avg_dwell_minutes,
+          MAX(vd.dwell_minutes) FILTER (WHERE vd.dwell_minutes IS NOT NULL) as max_dwell_minutes,
+          COUNT(DISTINCT vd.item_id) as item_count,
+          SUM(vd.dwell_minutes) FILTER (WHERE vd.dwell_minutes IS NOT NULL) as total_dwell_minutes,
+          COALESCE(ee.entry_count, 0) as entry_count,
+          COALESCE(ee.exit_count, 0) as exit_count
+        FROM visit_durations vd
+        LEFT JOIN entries_exits ee ON vd.zone_id = ee.zone_id
+        WHERE vd.zone_id IS NOT NULL
+        GROUP BY vd.zone_id, ee.entry_count, ee.exit_count
+        ORDER BY avg_dwell_minutes DESC NULLS LAST
+      `;
+
+      const result = await this.executeQuery<{
+        zone_id: string;
+        avg_dwell_minutes: string | null;
+        max_dwell_minutes: string | null;
+        item_count: string;
+        total_dwell_minutes: string | null;
+        entry_count: string;
+        exit_count: string;
+      }>(sql, [tenantId, startTime, endTime]);
+
+      if (result.isErr()) {
+        return err(result.error);
+      }
+
+      return ok(
+        result.value.map((row) => ({
+          zoneId: row.zone_id,
+          avgDwellMinutes: parseFloat(row.avg_dwell_minutes || '0'),
+          maxDwellMinutes: parseFloat(row.max_dwell_minutes || '0'),
+          itemCount: parseInt(row.item_count, 10),
+          totalDwellMinutes: parseFloat(row.total_dwell_minutes || '0'),
+          entryCount: parseInt(row.entry_count, 10),
+          exitCount: parseInt(row.exit_count, 10),
+        }))
+      );
+    } catch (error) {
+      this.logger.error('Failed to get zone dwell statistics', { error, tenantId });
+      return err(error as Error);
+    }
+  }
+
+  /**
+   * Gets zone occupancy timeline for congestion analysis
+   *
+   * @param tenantId - Tenant ID for multi-tenant isolation
+   * @param startTime - Start of time range
+   * @param endTime - End of time range
+   * @returns Result containing array of occupancy snapshots
+   */
+  async getZoneOccupancyTimeline(
+    tenantId: string,
+    startTime: Date,
+    endTime: Date
+  ): Promise<
+    Result<
+      Array<{
+        timestamp: Date;
+        zoneId: string;
+        itemCount: number;
+        capacity: number;
+      }>,
+      Error
+    >
+  > {
+    try {
+      const sql = `
+        WITH time_buckets AS (
+          SELECT
+            time_bucket('1 hour', time) as bucket_time,
+            zone_id,
+            COUNT(DISTINCT item_id) as item_count
+          FROM location_history
+          WHERE tenant_id = $1
+            AND time >= $2
+            AND time <= $3
+            AND zone_id IS NOT NULL
+          GROUP BY time_bucket('1 hour', time), zone_id
+        )
+        SELECT
+          tb.bucket_time as timestamp,
+          tb.zone_id,
+          tb.item_count,
+          COALESCE(z.capacity, 100) as capacity
+        FROM time_buckets tb
+        LEFT JOIN zones z ON tb.zone_id = z.id AND z.tenant_id = $1
+        ORDER BY tb.bucket_time, tb.zone_id
+      `;
+
+      const result = await this.executeQuery<{
+        timestamp: Date;
+        zone_id: string;
+        item_count: string;
+        capacity: string;
+      }>(sql, [tenantId, startTime, endTime]);
+
+      if (result.isErr()) {
+        return err(result.error);
+      }
+
+      return ok(
+        result.value.map((row) => ({
+          timestamp: row.timestamp,
+          zoneId: row.zone_id,
+          itemCount: parseInt(row.item_count, 10),
+          capacity: parseInt(row.capacity, 10),
+        }))
+      );
+    } catch (error) {
+      this.logger.error('Failed to get zone occupancy timeline', { error, tenantId });
+      return err(error as Error);
+    }
+  }
+
+  /**
+   * Gets item paths for pattern analysis
+   *
+   * @param tenantId - Tenant ID for multi-tenant isolation
+   * @param startTime - Start of time range
+   * @param endTime - End of time range
+   * @param maxPathLength - Maximum number of zones in a path
+   * @returns Result containing array of item paths
+   */
+  async getItemPaths(
+    tenantId: string,
+    startTime: Date,
+    endTime: Date,
+    maxPathLength: number = 15
+  ): Promise<
+    Result<
+      Array<{
+        itemId: string;
+        path: Array<{
+          zoneId: string;
+          entryTime: Date;
+          exitTime: Date | null;
+          dwellMinutes: number;
+        }>;
+      }>,
+      Error
+    >
+  > {
+    try {
+      const sql = `
+        WITH zone_visits AS (
+          SELECT
+            item_id,
+            zone_id,
+            time as entry_time,
+            LAG(zone_id) OVER (PARTITION BY item_id ORDER BY time) as prev_zone_id,
+            LEAD(time) OVER (PARTITION BY item_id ORDER BY time) as next_time,
+            LEAD(zone_id) OVER (PARTITION BY item_id ORDER BY time) as next_zone_id,
+            ROW_NUMBER() OVER (PARTITION BY item_id ORDER BY time) as visit_num
+          FROM location_history
+          WHERE tenant_id = $1
+            AND time >= $2
+            AND time <= $3
+            AND zone_id IS NOT NULL
+        ),
+        filtered_visits AS (
+          SELECT
+            item_id,
+            zone_id,
+            entry_time,
+            CASE
+              WHEN next_zone_id != zone_id OR next_zone_id IS NULL THEN next_time
+              ELSE NULL
+            END as exit_time,
+            CASE
+              WHEN next_zone_id != zone_id OR next_zone_id IS NULL THEN
+                EXTRACT(EPOCH FROM (COALESCE(next_time, $3) - entry_time)) / 60
+              ELSE 0
+            END as dwell_minutes,
+            visit_num
+          FROM zone_visits
+          WHERE zone_id != prev_zone_id OR prev_zone_id IS NULL
+        )
+        SELECT
+          item_id,
+          zone_id,
+          entry_time,
+          exit_time,
+          dwell_minutes
+        FROM filtered_visits
+        WHERE visit_num <= $4
+        ORDER BY item_id, entry_time
+      `;
+
+      const result = await this.executeQuery<{
+        item_id: string;
+        zone_id: string;
+        entry_time: Date;
+        exit_time: Date | null;
+        dwell_minutes: string;
+      }>(sql, [tenantId, startTime, endTime, maxPathLength]);
+
+      if (result.isErr()) {
+        return err(result.error);
+      }
+
+      // Group by item
+      const itemPathsMap = new Map<
+        string,
+        Array<{
+          zoneId: string;
+          entryTime: Date;
+          exitTime: Date | null;
+          dwellMinutes: number;
+        }>
+      >();
+
+      for (const row of result.value) {
+        const path = itemPathsMap.get(row.item_id) || [];
+        path.push({
+          zoneId: row.zone_id,
+          entryTime: row.entry_time,
+          exitTime: row.exit_time,
+          dwellMinutes: parseFloat(row.dwell_minutes),
+        });
+        itemPathsMap.set(row.item_id, path);
+      }
+
+      return ok(
+        Array.from(itemPathsMap.entries()).map(([itemId, path]) => ({
+          itemId,
+          path,
+        }))
+      );
+    } catch (error) {
+      this.logger.error('Failed to get item paths', { error, tenantId });
       return err(error as Error);
     }
   }

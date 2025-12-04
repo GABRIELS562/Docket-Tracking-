@@ -1,6 +1,7 @@
 import { injectable, inject } from 'tsyringe';
 import type { ILogger } from '../../application/interfaces/ILogger';
 import type { IEventBus } from '../../application/interfaces/IEventBus';
+import { TagDetectedEvent } from '../../domain/events/TagDetectedEvent';
 
 /**
  * RFID Simulator Configuration
@@ -166,7 +167,6 @@ export class RFIDSimulator {
    * - Descriptive labels
    */
   private generateItems(): void {
-    const itemTypes: Array<'box' | 'pallet' | 'asset'> = ['box', 'pallet', 'asset'];
     const categories = [
       'Electronics',
       'Equipment',
@@ -350,33 +350,37 @@ export class RFIDSimulator {
   private emitTagRead(item: SimulatedItem): void {
     // Select reader based on zone
     const readerIndex = item.currentZone % this.config.readerIds.length;
-    const readerId = this.config.readerIds[readerIndex];
+    const readerId = this.config.readerIds[readerIndex] ?? `reader-${readerIndex}`;
+    const zoneId = `zone-${item.currentZone.toString().padStart(3, '0')}`;
 
     // Realistic RSSI (-70dBm to -30dBm, higher = closer)
-    const rssi = -70 + Math.random() * 40;
+    const rssi = Math.round(-70 + Math.random() * 40);
 
     // Random antenna port (1-4)
     const antennaPort = 1 + Math.floor(Math.random() * 4);
 
-    const eventData: RFIDEventData = {
-      epc: item.epc,
+    const timestamp = new Date();
+
+    // Create and publish proper domain event
+    const event = new TagDetectedEvent(
+      item.epc,
       readerId,
-      zoneId: `zone-${item.currentZone.toString().padStart(3, '0')}`,
-      rssi: Math.round(rssi),
+      zoneId,
+      rssi,
       antennaPort,
-      timestamp: new Date(),
-    };
+      timestamp
+    );
 
     // Emit via event bus
-    this.eventBus.publish('rfid.tag.read', eventData);
+    this.eventBus.publish(event);
 
     this.eventCounter++;
 
     this.logger.debug('Tag read simulated', {
       epc: item.epc,
-      zone: eventData.zoneId,
+      zone: zoneId,
       reader: readerId,
-      rssi: eventData.rssi,
+      rssi,
     });
   }
 

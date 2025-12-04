@@ -51,11 +51,11 @@ export interface ReaderConfiguration {
  * Reader health statistics
  */
 export interface ReaderHealth {
-  readonly totalReads: number;
-  readonly successfulReads: number;
-  readonly failedReads: number;
-  readonly uptimeSeconds: number;
-  readonly lastHealthCheckAt: Date | null;
+  totalReads: number;
+  successfulReads: number;
+  failedReads: number;
+  uptimeSeconds: number;
+  lastHealthCheckAt: Date | null;
 }
 
 /**
@@ -81,6 +81,13 @@ export interface ReaderProps {
   readonly createdAt: Date;
   readonly updatedAt: Date;
 }
+
+/**
+ * Internal mutable version of ReaderProps for entity state management
+ */
+type MutableReaderProps = {
+  -readonly [K in keyof ReaderProps]: ReaderProps[K];
+};
 
 /**
  * Reader Entity
@@ -117,7 +124,7 @@ export class Reader {
   private static readonly MIN_RSSI = -100;
   private static readonly MAX_RSSI = 0;
 
-  private constructor(private props: ReaderProps) {}
+  private constructor(private props: MutableReaderProps) {}
 
   /**
    * Creates a new Reader entity

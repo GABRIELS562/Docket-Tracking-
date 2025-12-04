@@ -75,6 +75,13 @@ export interface ItemProps {
 }
 
 /**
+ * Internal mutable version of ItemProps for entity state management
+ */
+type MutableItemProps = {
+  -readonly [K in keyof ItemProps]: ItemProps[K];
+};
+
+/**
  * Item Entity - Core Aggregate Root
  *
  * @description
@@ -102,7 +109,7 @@ export interface ItemProps {
  * ```
  */
 export class Item {
-  private constructor(private props: ItemProps) {}
+  private constructor(private props: MutableItemProps) {}
 
   /**
    * Creates a new Item entity

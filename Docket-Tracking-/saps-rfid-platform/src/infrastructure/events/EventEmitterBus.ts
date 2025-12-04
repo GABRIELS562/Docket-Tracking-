@@ -42,7 +42,6 @@ export class EventEmitterBus implements IEventBus {
     this.logger.debug('Publishing event', {
       eventType: eventName,
       eventId: event.eventId,
-      aggregateId: event.aggregateId,
     });
 
     // Get handlers for this event type
@@ -69,6 +68,27 @@ export class EventEmitterBus implements IEventBus {
       eventType: eventName,
       eventId: event.eventId,
       handlerCount: handlers.length,
+    });
+  }
+
+  /**
+   * Publish multiple events as an atomic batch
+   *
+   * @param events - Array of domain events to publish (in order)
+   */
+  async publishBatch(events: DomainEvent[]): Promise<void> {
+    this.logger.debug('Publishing event batch', {
+      count: events.length,
+      eventTypes: events.map((e) => e.eventType),
+    });
+
+    // Publish each event in order
+    for (const event of events) {
+      await this.publish(event);
+    }
+
+    this.logger.debug('Event batch published', {
+      count: events.length,
     });
   }
 

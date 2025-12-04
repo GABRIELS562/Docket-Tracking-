@@ -1,5 +1,5 @@
 import { Result } from 'neverthrow';
-import { Zone, type ZoneType } from '../../domain/entities/Zone';
+import { Zone, ZoneType } from '../../domain/entities/Zone';
 import type { ZoneDTO, CreateZoneDTO } from '../dto/ZoneDTO';
 
 /**
@@ -14,6 +14,48 @@ import type { ZoneDTO, CreateZoneDTO } from '../dto/ZoneDTO';
  */
 export class ZoneMapper {
   /**
+   * Maps domain ZoneType enum to DTO zone type string
+   */
+  private static mapZoneTypeToDTO(
+    zoneType: ZoneType
+  ): 'STORAGE' | 'EXAMINATION' | 'TRANSIT' | 'ARCHIVE' | 'OFFICE' | 'CORRIDOR' | 'ENTRANCE' {
+    const typeMap: Record<
+      ZoneType,
+      'STORAGE' | 'EXAMINATION' | 'TRANSIT' | 'ARCHIVE' | 'OFFICE' | 'CORRIDOR' | 'ENTRANCE'
+    > = {
+      [ZoneType.STORAGE]: 'STORAGE',
+      [ZoneType.EXAMINATION]: 'EXAMINATION',
+      [ZoneType.TRANSIT]: 'TRANSIT',
+      [ZoneType.ARCHIVE]: 'ARCHIVE',
+      [ZoneType.OFFICE]: 'OFFICE',
+      [ZoneType.CORRIDOR]: 'CORRIDOR',
+      [ZoneType.ENTRANCE]: 'ENTRANCE',
+    };
+    return typeMap[zoneType];
+  }
+
+  /**
+   * Maps DTO zone type string to domain ZoneType enum
+   */
+  private static mapZoneTypeToDomain(
+    zoneType: 'STORAGE' | 'EXAMINATION' | 'TRANSIT' | 'ARCHIVE' | 'OFFICE' | 'CORRIDOR' | 'ENTRANCE'
+  ): ZoneType {
+    const typeMap: Record<
+      'STORAGE' | 'EXAMINATION' | 'TRANSIT' | 'ARCHIVE' | 'OFFICE' | 'CORRIDOR' | 'ENTRANCE',
+      ZoneType
+    > = {
+      STORAGE: ZoneType.STORAGE,
+      EXAMINATION: ZoneType.EXAMINATION,
+      TRANSIT: ZoneType.TRANSIT,
+      ARCHIVE: ZoneType.ARCHIVE,
+      OFFICE: ZoneType.OFFICE,
+      CORRIDOR: ZoneType.CORRIDOR,
+      ENTRANCE: ZoneType.ENTRANCE,
+    };
+    return typeMap[zoneType];
+  }
+
+  /**
    * Converts a Zone entity to a DTO
    *
    * @param zone - The zone domain entity
@@ -27,19 +69,19 @@ export class ZoneMapper {
       id: zone.getId(),
       code: zone.getCode(),
       name: zone.getName(),
-      zoneType: zone.getZoneType(),
+      zoneType: ZoneMapper.mapZoneTypeToDTO(zone.getZoneType()),
       capacity: zone.getCapacity(),
       currentOccupancy: zone.getCurrentOccupancy(),
       occupancyPercentage,
-      occupancyStatus: this.getOccupancyStatus(occupancyPercentage),
-      building: zone.getBuilding(),
-      floorNumber: zone.getFloorNumber(),
+      occupancyStatus: ZoneMapper.getOccupancyStatus(occupancyPercentage),
+      building: zone.getBuilding() ?? null,
+      floorNumber: zone.getFloorNumber() ?? null,
       parentZoneId: zone.getParentZoneId(),
       isActive: zone.isActive(),
       coordinates: coordinates
         ? {
-            latitude: coordinates.latitude,
-            longitude: coordinates.longitude,
+            latitude: coordinates.x,
+            longitude: coordinates.y,
           }
         : null,
       readerIds: zone.getReaderIds(),
@@ -65,20 +107,22 @@ export class ZoneMapper {
    * @param generatedId - Generated unique ID for the zone
    * @returns Result with Zone entity or validation error
    */
-  static fromCreateDTO(
-    dto: CreateZoneDTO,
-    generatedId: string
-  ): Result<Zone, Error> {
+  static fromCreateDTO(dto: CreateZoneDTO, generatedId: string): Result<Zone, Error> {
     return Zone.create({
       id: generatedId,
       code: dto.code,
       name: dto.name,
-      zoneType: dto.zoneType as ZoneType,
+      zoneType: ZoneMapper.mapZoneTypeToDomain(dto.zoneType),
       capacity: dto.capacity,
       building: dto.building,
       floorNumber: dto.floorNumber,
       parentZoneId: dto.parentZoneId,
-      coordinates: dto.coordinates,
+      coordinates: dto.coordinates
+        ? {
+            x: dto.coordinates.latitude,
+            y: dto.coordinates.longitude,
+          }
+        : undefined,
     });
   }
 

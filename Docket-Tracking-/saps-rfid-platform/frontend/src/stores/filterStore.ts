@@ -46,7 +46,7 @@ interface FilterState {
  * Manages search queries, zone filters, status filters, and sorting preferences.
  * Used across search page, analytics, and item listings.
  */
-export const useFilterStore = create<FilterState>((set, get) => ({
+export const useFilterStore = create<FilterState>((set, _get) => ({
   // Initial state
   searchQuery: '',
   searchResults: [],

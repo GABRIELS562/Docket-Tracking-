@@ -211,7 +211,7 @@ export class TagProcessor {
       const validationResult = this.validateMessage(message);
       if (validationResult.isErr()) {
         this.stats.invalidMessages++;
-        return validationResult;
+        return err(validationResult.error);
       }
 
       const llrpMessage = message as LLRPMessage;

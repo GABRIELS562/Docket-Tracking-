@@ -1,5 +1,5 @@
-import { Result, ok, err } from 'neverthrow';
-import { Reader } from '../../domain/entities/Reader';
+import { Result, err } from 'neverthrow';
+import { Reader, ReaderStatus } from '../../domain/entities/Reader';
 import { IpAddress } from '../../domain/value-objects/IpAddress';
 import type { ReaderDTO, CreateReaderDTO } from '../dto/ReaderDTO';
 
@@ -15,6 +15,25 @@ import type { ReaderDTO, CreateReaderDTO } from '../dto/ReaderDTO';
  */
 export class ReaderMapper {
   /**
+   * Maps domain ReaderStatus enum to DTO status string
+   */
+  private static mapStatusToDTO(
+    status: ReaderStatus
+  ): 'ONLINE' | 'OFFLINE' | 'ERROR' | 'CONNECTING' | 'MAINTENANCE' {
+    const statusMap: Record<
+      ReaderStatus,
+      'ONLINE' | 'OFFLINE' | 'ERROR' | 'CONNECTING' | 'MAINTENANCE'
+    > = {
+      [ReaderStatus.ONLINE]: 'ONLINE',
+      [ReaderStatus.OFFLINE]: 'OFFLINE',
+      [ReaderStatus.ERROR]: 'ERROR',
+      [ReaderStatus.CONNECTING]: 'CONNECTING',
+      [ReaderStatus.MAINTENANCE]: 'MAINTENANCE',
+    };
+    return statusMap[status];
+  }
+
+  /**
    * Converts a Reader entity to a DTO
    *
    * @param reader - The reader domain entity
@@ -23,29 +42,32 @@ export class ReaderMapper {
    */
   static toDTO(reader: Reader, zoneName: string | null = null): ReaderDTO {
     const config = reader.getConfiguration();
-    const successRate = reader.getSuccessRate();
+    const health = reader.getHealth();
+    const totalReads = health.successfulReads + health.failedReads;
+    const successRate =
+      totalReads > 0 ? Math.round((health.successfulReads / totalReads) * 10000) / 100 : 100;
 
     return {
       id: reader.getId(),
       name: reader.getName(),
-      readerModel: reader.getReaderModel(),
+      readerModel: reader.getReaderModel() ?? null,
       ipAddress: reader.getIpAddress().getValue(),
       port: reader.getPort(),
       zoneId: reader.getZoneId(),
       zoneName,
-      status: reader.getStatus(),
+      status: ReaderMapper.mapStatusToDTO(reader.getStatus()),
       antennaCount: reader.getAntennaCount(),
       isActive: reader.isActive(),
       lastConnectedAt: reader.getLastConnectedAt()?.toISOString() ?? null,
       lastReadAt: reader.getLastReadAt()?.toISOString() ?? null,
-      successfulReads: reader.getSuccessfulReads(),
-      failedReads: reader.getFailedReads(),
+      successfulReads: health.successfulReads,
+      failedReads: health.failedReads,
       successRate,
-      uptimeSeconds: reader.getUptimeSeconds(),
-      lastError: reader.getLastError(),
+      uptimeSeconds: health.uptimeSeconds,
+      lastError: reader.getErrorMessage(),
       configuration: {
         transmitPower: config.transmitPower,
-        activeAntennas: config.activeAntennas,
+        activeAntennas: [...config.antennas],
         rssiThreshold: config.rssiThreshold,
         session: config.session,
         modeIndex: config.modeIndex,
@@ -72,15 +94,22 @@ export class ReaderMapper {
    * @param generatedId - Generated unique ID for the reader
    * @returns Result with Reader entity or validation error
    */
-  static fromCreateDTO(
-    dto: CreateReaderDTO,
-    generatedId: string
-  ): Result<Reader, Error> {
+  static fromCreateDTO(dto: CreateReaderDTO, generatedId: string): Result<Reader, Error> {
     // Validate IP address
     const ipAddressResult = IpAddress.create(dto.ipAddress);
     if (ipAddressResult.isErr()) {
       return err(ipAddressResult.error);
     }
+
+    // Build configuration with defaults
+    const configuration = {
+      transmitPower: dto.configuration?.transmitPower ?? 30,
+      antennas: dto.configuration?.activeAntennas ?? [1],
+      readInterval: 1000,
+      rssiThreshold: dto.configuration?.rssiThreshold ?? -70,
+      session: dto.configuration?.session ?? 2,
+      modeIndex: dto.configuration?.modeIndex ?? 1000,
+    };
 
     // Create reader entity
     return Reader.create({
@@ -91,7 +120,7 @@ export class ReaderMapper {
       port: dto.port,
       zoneId: dto.zoneId,
       antennaCount: dto.antennaCount,
-      configuration: dto.configuration,
+      configuration,
     });
   }
 }

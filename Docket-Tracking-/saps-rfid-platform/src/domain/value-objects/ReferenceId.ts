@@ -32,7 +32,6 @@ import { InvalidReferenceIdError } from '../errors/InvalidReferenceIdError';
 export class ReferenceId {
   // Allow any printable characters (no control chars)
   private static readonly PATTERN = /^[\x20-\x7E]+$/;
-  private static readonly MIN_LENGTH = 1;
   private static readonly MAX_LENGTH = 100;
 
   /**

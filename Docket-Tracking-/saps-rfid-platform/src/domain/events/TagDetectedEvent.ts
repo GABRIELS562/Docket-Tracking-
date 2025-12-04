@@ -87,7 +87,7 @@ export class TagDetectedEvent extends DomainEvent {
     super('TagDetected');
   }
 
-  protected getPayload(): Record<string, unknown> {
+  protected override getPayload(): Record<string, unknown> {
     return {
       rfidEpc: this.rfidEpc,
       readerId: this.readerId,

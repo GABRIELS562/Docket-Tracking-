@@ -36,7 +36,7 @@ import { NotFoundError } from '../../../shared/errors/NotFoundError';
  * @returns Express error handler middleware
  */
 export const errorHandler = (logger: ILogger) => {
-  return (err: Error, req: Request, res: Response, next: NextFunction): void => {
+  return (err: Error, req: Request, res: Response, _next: NextFunction): void => {
     const requestId = req.headers['x-request-id'] as string;
 
     // Log error with full context

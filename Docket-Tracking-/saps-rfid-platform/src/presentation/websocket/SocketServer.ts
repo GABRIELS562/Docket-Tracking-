@@ -327,15 +327,15 @@ export class SocketServer {
 
       const payload = {
         zoneId: occupancyEvent.zoneId,
-        occupancy: occupancyEvent.occupancy,
+        occupancy: occupancyEvent.currentOccupancy,
         capacity: occupancyEvent.capacity,
-        occupancyPercentage: Math.round((occupancyEvent.occupancy / occupancyEvent.capacity) * 100),
+        occupancyPercentage: Math.round((occupancyEvent.currentOccupancy / occupancyEvent.capacity) * 100),
         status:
-          occupancyEvent.occupancy >= occupancyEvent.capacity
+          occupancyEvent.currentOccupancy >= occupancyEvent.capacity
             ? 'full'
-            : occupancyEvent.occupancy / occupancyEvent.capacity >= 0.9
+            : occupancyEvent.currentOccupancy / occupancyEvent.capacity >= 0.9
             ? 'critical'
-            : occupancyEvent.occupancy / occupancyEvent.capacity >= 0.7
+            : occupancyEvent.currentOccupancy / occupancyEvent.capacity >= 0.7
             ? 'warning'
             : 'normal',
         timestamp: occupancyEvent.occurredAt.toISOString(),
@@ -346,7 +346,7 @@ export class SocketServer {
 
       this.logger.debug('Zone occupancy event broadcast', {
         zoneId: occupancyEvent.zoneId,
-        occupancy: occupancyEvent.occupancy,
+        occupancy: occupancyEvent.currentOccupancy,
       });
     });
   }

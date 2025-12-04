@@ -5,7 +5,6 @@ import { SearchItemsUseCase } from '../../../application/use-cases/items/SearchI
 import { GetItemDetailsUseCase } from '../../../application/use-cases/items/GetItemDetailsUseCase';
 import { GetItemHistoryUseCase } from '../../../application/use-cases/items/GetItemHistoryUseCase';
 import { GetZoneItemsUseCase } from '../../../application/use-cases/items/GetZoneItemsUseCase';
-import type { ILogger } from '../../../application/interfaces/ILogger';
 import type { AuthenticatedRequest } from '../middleware/authMiddleware';
 
 /**
@@ -27,8 +26,7 @@ export class ItemController {
     @inject(SearchItemsUseCase) private searchItems: SearchItemsUseCase,
     @inject(GetItemDetailsUseCase) private getItemDetails: GetItemDetailsUseCase,
     @inject(GetItemHistoryUseCase) private getItemHistory: GetItemHistoryUseCase,
-    @inject(GetZoneItemsUseCase) private getZoneItems: GetZoneItemsUseCase,
-    @inject('ILogger') private logger: ILogger
+    @inject(GetZoneItemsUseCase) private getZoneItems: GetZoneItemsUseCase
   ) {}
 
   /**
@@ -162,7 +160,7 @@ export class ItemController {
 
       const result = await this.getItemDetails.execute({
         tenantId: req.tenantId,
-        itemNumber: req.params.itemNumber,
+        itemNumber: req.params.itemNumber!,
       });
 
       if (result.isErr()) {
@@ -210,7 +208,7 @@ export class ItemController {
 
       const result = await this.getItemHistory.execute({
         tenantId: req.tenantId,
-        itemNumber: req.params.itemNumber,
+        itemNumber: req.params.itemNumber!,
         hours: req.query.hours ? parseInt(req.query.hours as string) : undefined,
         limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
         startTime: req.query.startTime as string,
@@ -259,7 +257,7 @@ export class ItemController {
 
       const result = await this.getZoneItems.execute({
         tenantId: req.tenantId,
-        zoneId: req.params.zoneId,
+        zoneId: req.params.zoneId!,
         limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
         recentOnly: req.query.recentOnly === 'true',
       });

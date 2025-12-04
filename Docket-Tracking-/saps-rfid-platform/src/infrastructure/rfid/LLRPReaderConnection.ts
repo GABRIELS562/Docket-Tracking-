@@ -1,6 +1,6 @@
 import EventEmitter from 'events';
 import { Result, ok, err } from 'neverthrow';
-import type { Reader, ReaderStatus } from '../../domain/entities/Reader';
+import type { Reader } from '../../domain/entities/Reader';
 import type { IEventBus } from '../../application/interfaces/IEventBus';
 import type { ILogger } from '../../application/interfaces/ILogger';
 
@@ -65,7 +65,7 @@ export class LLRPReaderConnection extends EventEmitter {
 
   constructor(
     private reader: Reader,
-    private eventBus: IEventBus,
+    _eventBus: IEventBus, // Reserved for future event publishing
     private logger: ILogger
   ) {
     super();
@@ -176,7 +176,7 @@ export class LLRPReaderConnection extends EventEmitter {
       // Return mock client for development/testing
       return {
         LLRPClient: class MockLLRPClient extends EventEmitter {
-          connect(host: string, port: number) {
+          connect(_host: string, _port: number) {
             // Simulate async connection
             setTimeout(() => {
               this.emit('connect');
@@ -671,7 +671,7 @@ export class LLRPReaderConnection extends EventEmitter {
           type: 'DISABLE_ROSPEC',
           roSpecID: 1,
         },
-        (error: Error | null, response: any) => {
+        (error: Error | null, _response: any) => {
           if (error) {
             this.logger.error('DISABLE_ROSPEC error', {
               readerId: this.reader.getId(),

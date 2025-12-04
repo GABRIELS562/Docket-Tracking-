@@ -24,9 +24,16 @@ import { PrometheusMetrics } from './infrastructure/metrics/PrometheusMetrics';
 // Infrastructure - Database
 import { PostgresConnection } from './infrastructure/database/PostgresConnection';
 
+// Infrastructure - Redis
+import { RedisClientFactory, getRedisConfig } from './infrastructure/redis/RedisClient';
+
 // Infrastructure - RFID
 import { LLRPGateway } from './infrastructure/rfid/LLRPGateway';
 import { RFIDSimulator } from './infrastructure/rfid/RFIDSimulator';
+import { OptimizedEventPipeline } from './infrastructure/rfid/OptimizedEventPipeline';
+
+// Infrastructure - Analytics (Phase 5: Open3D)
+import { AnalyticsClient } from './infrastructure/analytics';
 
 // Infrastructure - Repositories
 import { PostgresItemRepository } from './infrastructure/database/repositories/PostgresItemRepository';
@@ -52,6 +59,23 @@ import { GetAllZonesUseCase } from './application/use-cases/zones/GetAllZonesUse
 // Application Services - Readers
 import { GetAllReadersUseCase } from './application/use-cases/readers/GetAllReadersUseCase';
 
+// Application Services - Analytics
+import {
+  GetDashboardAnalyticsUseCase,
+  GetZoneAnalyticsUseCase,
+  GetReaderAnalyticsUseCase,
+  GetSystemMetricsUseCase,
+} from './application/use-cases/analytics';
+
+// Application Services - Flow Analytics (Phase 2.2)
+import {
+  GetItemJourneyUseCase,
+  GetZoneFlowAnalyticsUseCase,
+  GetBottleneckAnalysisUseCase,
+  GetPathPatternsUseCase,
+  GetFlowAnomaliesUseCase,
+} from './application/use-cases/flow';
+
 // Application Services - Tenants
 import { TenantProvisioningService } from './application/services/TenantProvisioningService';
 
@@ -61,10 +85,14 @@ import { AuthMiddlewareFactory } from './presentation/http/middleware/authMiddle
 // Presentation - Controllers
 import { TenantController } from './presentation/http/controllers/TenantController';
 import { AuthController } from './presentation/http/controllers/AuthController';
+import { AnalyticsController } from './presentation/http/controllers/AnalyticsController';
+import { FlowAnalyticsController } from './presentation/http/controllers/FlowAnalyticsController';
+import { SpatialAnalyticsController } from './presentation/http/controllers/SpatialAnalyticsController';
 
 // Presentation
 import { Server } from './presentation/http/Server';
 import { SocketServer } from './presentation/websocket/SocketServer';
+import { ClusteredSocketServer } from './presentation/websocket/ClusteredSocketServer';
 
 /**
  * Dependency Injection Container Configuration
@@ -95,6 +123,17 @@ function registerInfrastructure(): void {
 
   // RFID Simulator (for demo/testing)
   container.registerSingleton(RFIDSimulator);
+
+  // Optimized Event Pipeline (Phase 4.2: <1s latency, 1000+ events/min)
+  container.registerSingleton(OptimizedEventPipeline);
+
+  // Redis (Phase 4.1: WebSocket Clustering)
+  const redisConfig = getRedisConfig();
+  container.register('RedisConfig', { useValue: redisConfig });
+  container.registerSingleton(RedisClientFactory);
+
+  // Analytics Client (Phase 5: Open3D Spatial Analytics)
+  container.registerSingleton(AnalyticsClient);
 }
 
 /**
@@ -150,6 +189,19 @@ function registerUseCases(): void {
 
   // Reader use cases
   container.registerSingleton(GetAllReadersUseCase);
+
+  // Analytics use cases
+  container.registerSingleton(GetDashboardAnalyticsUseCase);
+  container.registerSingleton(GetZoneAnalyticsUseCase);
+  container.registerSingleton(GetReaderAnalyticsUseCase);
+  container.registerSingleton(GetSystemMetricsUseCase);
+
+  // Flow Analytics use cases (Phase 2.2)
+  container.registerSingleton(GetItemJourneyUseCase);
+  container.registerSingleton(GetZoneFlowAnalyticsUseCase);
+  container.registerSingleton(GetBottleneckAnalysisUseCase);
+  container.registerSingleton(GetPathPatternsUseCase);
+  container.registerSingleton(GetFlowAnomaliesUseCase);
 }
 
 /**
@@ -184,6 +236,9 @@ function registerTenantServices(): void {
   // Controllers
   container.registerSingleton(TenantController);
   container.registerSingleton(AuthController);
+  container.registerSingleton(AnalyticsController);
+  container.registerSingleton(FlowAnalyticsController);
+  container.registerSingleton(SpatialAnalyticsController);
 
   // Tenant-Scoped Cache (requires Redis)
   // Note: Redis client must be registered separately if using cache
@@ -205,8 +260,11 @@ function registerPresentation(): void {
   // HTTP Server
   container.registerSingleton(Server);
 
-  // WebSocket Server
+  // WebSocket Server (legacy - single instance)
   container.registerSingleton(SocketServer);
+
+  // Clustered WebSocket Server (Phase 4.1 - Redis-backed for horizontal scaling)
+  container.registerSingleton(ClusteredSocketServer);
 }
 
 /**

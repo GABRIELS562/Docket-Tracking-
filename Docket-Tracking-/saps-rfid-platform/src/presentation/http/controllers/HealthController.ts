@@ -30,7 +30,7 @@ export class HealthController {
    * - timestamp: Current ISO timestamp
    * - uptime: Process uptime in seconds
    */
-  async check(req: Request, res: Response): Promise<void> {
+  async check(_req: Request, res: Response): Promise<void> {
     res.json({
       status: 'healthy',
       timestamp: new Date().toISOString(),
@@ -51,13 +51,13 @@ export class HealthController {
    *
    * Use for: Monitoring dashboards, alerting
    */
-  async detailed(req: Request, res: Response): Promise<void> {
+  async detailed(_req: Request, res: Response): Promise<void> {
     // Check database
     const dbHealthResult = await this.db.healthCheck();
     const dbHealth = dbHealthResult.isOk() ? 'healthy' : 'unhealthy';
 
     // Check RFID gateway
-    const rfidStatus = this.rfidGateway.getStatus();
+    const rfidStatus = this.rfidGateway.getStats();
 
     // Check memory usage
     const memoryUsage = process.memoryUsage();
@@ -80,8 +80,17 @@ export class HealthController {
         },
         rfid: {
           status: rfidStatus.isRunning ? 'healthy' : 'stopped',
-          readers: rfidStatus.connectionPool,
-          metrics: rfidStatus.metrics,
+          readers: {
+            total: rfidStatus.totalReaders,
+            connected: rfidStatus.connectedReaders,
+            disconnected: rfidStatus.disconnectedReaders,
+            errors: rfidStatus.readersWithErrors,
+          },
+          metrics: {
+            tagsProcessed: rfidStatus.tagsProcessed,
+            errors: rfidStatus.errors,
+            uptime: rfidStatus.uptime,
+          },
         },
         memory: {
           status: memoryHealthy ? 'healthy' : 'warning',

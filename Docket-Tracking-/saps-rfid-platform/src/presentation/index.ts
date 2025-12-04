@@ -5,7 +5,8 @@
  */
 
 // HTTP Server
-export { Server, ServerConfig } from './http/Server';
+export { Server } from './http/Server';
+export type { ServerConfig } from './http/Server';
 
 // WebSocket Server
 export { SocketServer } from './websocket/SocketServer';

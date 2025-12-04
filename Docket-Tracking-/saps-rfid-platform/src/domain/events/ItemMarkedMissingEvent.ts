@@ -71,7 +71,7 @@ export class ItemMarkedMissingEvent extends DomainEvent {
     super('ItemMarkedMissing');
   }
 
-  protected getPayload(): Record<string, unknown> {
+  protected override getPayload(): Record<string, unknown> {
     return {
       itemId: this.itemId,
       itemNumber: this.itemNumber,

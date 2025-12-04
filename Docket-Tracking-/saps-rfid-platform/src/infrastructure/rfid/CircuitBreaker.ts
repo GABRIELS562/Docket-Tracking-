@@ -1,4 +1,4 @@
-import { Result, ok, err } from 'neverthrow';
+import { Result, err } from 'neverthrow';
 import type { ILogger } from '../../application/interfaces/ILogger';
 
 /**

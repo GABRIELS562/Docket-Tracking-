@@ -1,477 +1,231 @@
-# SAPS RFID Platform
+# RFID Spatial Intelligence Platform
 
-Enterprise-grade RFID tracking backend system for forensic laboratory evidence management. Built to replace Zebra MotionWorks ($50k commercial product) with a production-ready, scalable solution for tracking 10,000+ evidence dockets.
+Multi-tenant RFID tracking platform with 3D visualization and AI-powered anomaly detection. Built for industries that can't afford to lose track of high-value assets.
 
-## Features
+## What This Does
 
-- **Real-time RFID Tracking**: LLRP protocol integration with automatic reader discovery
-- **Clean Architecture**: Hexagonal architecture with clear separation of concerns
-- **Type Safety**: Strict TypeScript with zero `any` types
-- **Result Types**: Functional error handling using `neverthrow`
-- **Time-Series Database**: TimescaleDB for efficient historical location tracking
-- **WebSocket Support**: Real-time updates to connected clients
-- **Production Ready**: Comprehensive error handling, logging, and monitoring
-- **Highly Testable**: Dependency injection, mocking support, 80%+ test coverage
-- **Security Hardened**: Helmet, CORS, rate limiting, input validation
-- **Performance Optimized**: Connection pooling, caching, query optimization
+Instead of showing you spreadsheets and tables, this platform shows you a 3D digital twin of your facility. You can see exactly where every tagged item is, search for anything instantly, and get AI alerts when something looks wrong.
 
-## Technology Stack
+**Target industries:**
+- Law enforcement (evidence tracking)
+- Healthcare (medical equipment, pharmaceuticals)
+- Mining (tools, safety equipment)
+- Retail (high-value inventory)
 
-| Category | Technology |
-|----------|-----------|
-| Runtime | Node.js 20 LTS |
-| Language | TypeScript 5.3+ (strict mode) |
-| Framework | Express 4.18 |
-| Database | PostgreSQL 15 + TimescaleDB 2.13 |
-| Database Driver | pg (native, no ORM) |
-| Validation | Zod 3.x |
-| DI Container | tsyringe 4.x |
-| Testing | Jest 29.x + Supertest |
-| Logging | Winston 3.x + morgan |
-| WebSocket | Socket.io 4.6 |
-| RFID | llrp npm package |
-| Process Manager | PM2 |
-| Package Manager | pnpm |
+## Key Features
 
-## Architecture
+### 3D Digital Twin
+Real-time 3D visualization of your facility. Items appear where they actually are. Click on anything to see details. Fly through the space to inspect zones.
 
-```
-┌─────────────────────────────────────────────────────┐
-│                 Presentation Layer                   │
-│  (HTTP Controllers, WebSocket Handlers, Routes)     │
-└─────────────────────┬───────────────────────────────┘
-                      │
-┌─────────────────────▼───────────────────────────────┐
-│                 Application Layer                    │
-│     (Use Cases, DTOs, Mappers, Orchestration)       │
-└─────────────────────┬───────────────────────────────┘
-                      │
-┌─────────────────────▼───────────────────────────────┐
-│                   Domain Layer                       │
-│  (Entities, Value Objects, Business Rules, Events)  │
-└─────────────────────┬───────────────────────────────┘
-                      │
-┌─────────────────────▼───────────────────────────────┐
-│               Infrastructure Layer                   │
-│  (Database, RFID Gateway, Logging, Event Bus, etc)  │
-└─────────────────────────────────────────────────────┘
-```
+### Search-First Interface
+Type what you're looking for. Results appear instantly. Click a result and the camera flies to that item in 3D space. No more hunting through spreadsheets.
 
-### Layer Responsibilities
+### AI Anomaly Detection
+The system learns normal patterns and flags when something's off:
+- **Dwell time alerts** - Item sitting too long in one place
+- **Unauthorized movement** - Item left a secure zone without clearance
+- **Unusual sequences** - Item skipped expected workflow steps
+- **After-hours activity** - Movement detected outside normal operating hours
 
-#### **Domain Layer** (Pure Business Logic)
-- No external dependencies
-- Contains entities, value objects, domain services
-- Defines repository interfaces (not implementations)
-- Domain events and business rules
+### Multi-Tenant Architecture
+One platform, multiple clients. Each tenant gets their own:
+- Custom terminology (evidence, samples, assets, inventory)
+- Industry-specific alert thresholds
+- Branded experience
+- Isolated data
 
-#### **Application Layer** (Use Cases)
-- Orchestrates domain logic
-- Defines DTOs for input/output
-- Maps between domain entities and DTOs
-- Transaction boundaries
+## Tech Stack
 
-#### **Infrastructure Layer** (External Concerns)
-- Repository implementations
-- RFID hardware integration
-- Database connections
-- External service integrations
-
-#### **Presentation Layer** (API/WebSocket)
-- HTTP request handling
-- WebSocket event handling
-- Request validation
-- Response formatting
+| Layer | Technology |
+|-------|------------|
+| Frontend | React 18, TypeScript, React Three Fiber, Zustand |
+| Backend | Node.js, Express, Socket.IO |
+| Database | PostgreSQL + TimescaleDB |
+| RFID | LLRP protocol |
+| Validation | Zod |
+| Architecture | Hexagonal (Clean Architecture) |
 
 ## Project Structure
 
 ```
 saps-rfid-platform/
-├── src/
-│   ├── domain/                  # Pure business logic (no deps)
-│   │   ├── entities/           # Core business entities
-│   │   ├── value-objects/      # Validated value objects
-│   │   ├── repositories/       # Repository interfaces
-│   │   ├── services/           # Domain services
-│   │   ├── events/             # Domain events
-│   │   └── errors/             # Domain errors
-│   │
-│   ├── application/            # Use cases / orchestration
-│   │   ├── use-cases/         # Application use cases
-│   │   ├── dto/               # Data Transfer Objects
-│   │   ├── mappers/           # Entity ↔ DTO converters
-│   │   └── interfaces/        # Application interfaces
-│   │
-│   ├── infrastructure/        # External concerns
-│   │   ├── rfid/             # RFID hardware integration
-│   │   ├── database/         # PostgreSQL + TimescaleDB
-│   │   ├── events/           # Event bus implementation
-│   │   ├── logging/          # Winston logger
-│   │   └── metrics/          # Prometheus metrics
-│   │
-│   ├── presentation/          # API layer
-│   │   ├── http/             # REST API
-│   │   └── websocket/        # WebSocket server
-│   │
-│   ├── shared/                # Shared utilities
-│   │   ├── types/            # Common types (Result, Option)
-│   │   ├── utils/            # Utility functions
-│   │   └── constants/        # Application constants
-│   │
-│   ├── config/                # Configuration
-│   ├── container.ts           # DI container setup
-│   └── index.ts               # Application entry point
+├── frontend/                 # React 3D application
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── 3d/          # Three.js components (Scene, Warehouse, Items)
+│   │   │   ├── layout/      # Header, Sidebar, Layout
+│   │   │   └── ui/          # Buttons, Cards, Search, AI Panels
+│   │   ├── pages/           # Route pages
+│   │   ├── stores/          # Zustand state management
+│   │   ├── hooks/           # Custom React hooks
+│   │   └── services/        # API and WebSocket clients
+│   └── package.json
 │
-├── tests/
-│   ├── unit/                  # Unit tests
-│   ├── integration/           # Integration tests
-│   ├── e2e/                   # End-to-end tests
-│   └── fixtures/              # Test data
+├── src/                      # Backend application
+│   ├── domain/              # Business logic (entities, events, rules)
+│   ├── application/         # Use cases and DTOs
+│   ├── infrastructure/      # Database, RFID, logging
+│   └── presentation/        # REST API and WebSocket server
 │
-├── scripts/                   # Utility scripts
-├── docs/                      # Documentation
-└── [config files]
+├── docker-compose.yml       # Full stack deployment
+└── package.json
 ```
 
-## Prerequisites
+## Getting Started
 
-- **Node.js**: 20.x LTS
-- **pnpm**: 8.x or higher
-- **Docker**: 24.x or higher (for containerized deployment)
-- **PostgreSQL**: 15+ with TimescaleDB extension (or use Docker)
-- **Redis**: 7+ (optional, for caching)
+### Prerequisites
+- Node.js 20+
+- Docker (for database)
+- pnpm
 
-## Quick Start
-
-### 1. Install Dependencies
+### Quick Start
 
 ```bash
+# Clone and install
 cd saps-rfid-platform
 pnpm install
-```
 
-### 2. Configure Environment
+# Start database
+docker-compose up -d timescaledb
 
-```bash
-cp .env.example .env
-# Edit .env with your configuration
-```
-
-### 3. Start Services with Docker
-
-```bash
-# Start PostgreSQL (TimescaleDB) + Redis
-docker-compose up -d timescaledb redis
-
-# Wait for services to be healthy
-docker-compose ps
-```
-
-### 4. Run Database Migrations
-
-```bash
+# Run migrations
 pnpm run db:migrate
-```
 
-### 5. Seed Database (Optional)
+# Start backend
+pnpm run dev
 
-```bash
-pnpm run db:seed
-```
-
-### 6. Start Development Server
-
-```bash
+# In another terminal, start frontend
+cd frontend
+pnpm install
 pnpm run dev
 ```
 
-The server will start on `http://localhost:8080`
+Open `http://localhost:5173` and select a tenant to explore.
 
-## Development
+## Demo Mode
 
-### Available Scripts
+The platform includes a demo mode with simulated RFID data. Use the green "Demo Controls" panel (bottom-right of 3D view) to:
 
-```bash
-# Development
-pnpm run dev              # Start with hot reload
-pnpm run build            # Build for production
-pnpm run start            # Start production server
-
-# Testing
-pnpm test                 # Run all tests with coverage
-pnpm run test:watch       # Run tests in watch mode
-pnpm run test:unit        # Run unit tests only
-pnpm run test:integration # Run integration tests
-pnpm run test:e2e         # Run end-to-end tests
-
-# Code Quality
-pnpm run lint             # Lint code
-pnpm run lint:fix         # Lint and fix issues
-pnpm run format           # Format code
-pnpm run format:check     # Check formatting
-pnpm run typecheck        # Type check without emit
-
-# Database
-pnpm run db:migrate       # Run database migrations
-pnpm run db:seed          # Seed database
-pnpm run db:reset         # Reset database
-
-# Docker
-pnpm run docker:up        # Start all services
-pnpm run docker:down      # Stop all services
-pnpm run docker:logs      # View logs
-pnpm run docker:build     # Build Docker image
-
-# PM2
-pnpm run start:pm2        # Start with PM2
-pnpm run stop:pm2         # Stop PM2
-pnpm run restart:pm2      # Restart PM2
-pnpm run logs:pm2         # View PM2 logs
-```
-
-### Code Style
-
-- **TypeScript Strict Mode**: Enabled
-- **No `any` Types**: Use proper types or `unknown`
-- **Functional Error Handling**: Use `Result<T, E>` from `neverthrow`
-- **Validation**: Use Zod for all input validation
-- **Pure Functions**: Prefer pure functions where possible
-- **Immutability**: Avoid mutations, use spread operators
-- **JSDoc**: Document all public APIs
-
-### Testing
-
-```bash
-# Run tests with coverage
-pnpm test
-
-# Watch mode during development
-pnpm run test:watch
-
-# Test specific layer
-pnpm run test:unit
-pnpm run test:integration
-pnpm run test:e2e
-```
-
-**Coverage Requirements**: 80% across branches, functions, lines, and statements
-
-## Deployment
-
-### Docker Deployment
-
-```bash
-# Build production image
-docker build -t saps-rfid-platform:latest .
-
-# Run with docker-compose
-docker-compose up -d
-
-# Check logs
-docker-compose logs -f saps-rfid-app
-```
-
-### PM2 Deployment
-
-```bash
-# Build application
-pnpm run build
-
-# Start with PM2
-pnpm run start:pm2
-
-# Monitor
-pm2 monit
-
-# View logs
-pm2 logs saps-rfid-platform
-
-# Restart
-pm2 restart saps-rfid-platform
-```
+1. **Show RFID Readers** - Highlights all 14 readers in the facility
+2. **Show Tagged Inventory** - Displays 250+ tracked items
+3. **Trigger Dwell Alert** - Simulates an item stuck too long
+4. **Trigger Unauthorized Exit** - Simulates a security breach
+5. **Trigger Unusual Sequence** - Simulates workflow violation
+6. **Trigger After-Hours Alert** - Simulates suspicious timing
 
 ## API Endpoints
 
-### Health Checks
-
+### Items
 ```
-GET /health                 # Simple health check
-GET /health/detailed        # Detailed health status
-```
-
-### Dockets
-
-```
-POST   /api/v1/dockets                    # Register new docket
-GET    /api/v1/dockets                    # Search dockets
-GET    /api/v1/dockets/:id                # Get docket details
-GET    /api/v1/dockets/:id/history        # Get location history
+POST   /api/v1/items              # Register new item
+GET    /api/v1/items              # Search items
+GET    /api/v1/items/:id          # Get item details
+GET    /api/v1/items/:id/history  # Location history
 ```
 
 ### Zones
-
 ```
-GET    /api/v1/zones                      # Get all zones
-GET    /api/v1/zones/:id                  # Get zone details
-GET    /api/v1/zones/:id/occupancy        # Get zone occupancy
-GET    /api/v1/zones/:id/dockets          # Get dockets in zone
+GET    /api/v1/zones              # List all zones
+GET    /api/v1/zones/:id/items    # Items in zone
 ```
 
 ### Readers
-
 ```
-GET    /api/v1/readers                    # Get all readers
-GET    /api/v1/readers/:id                # Get reader details
-GET    /api/v1/readers/:id/status         # Get reader status
+GET    /api/v1/readers            # List all readers
 ```
 
-### Metrics
-
+### Health
 ```
-GET    /metrics                           # Prometheus metrics
+GET    /health                    # Simple health check
+GET    /health/detailed           # Full system status
 ```
 
 ## WebSocket Events
 
-### Client → Server
+Real-time updates via Socket.IO:
 
 ```javascript
-// Subscribe to docket updates
-socket.emit('subscribe:docket', { docketId: 'FSL-2025-000001' });
+// Subscribe to updates
+socket.emit('subscribe:zones', [1, 2, 3]);
 
-// Subscribe to zone updates
-socket.emit('subscribe:zone', { zoneId: 'zone-uuid' });
-
-// Unsubscribe
-socket.emit('unsubscribe:docket', { docketId: 'FSL-2025-000001' });
-socket.emit('unsubscribe:zone', { zoneId: 'zone-uuid' });
+// Receive events
+socket.on('tag:detected', (data) => { /* ... */ });
+socket.on('item:moved', (data) => { /* ... */ });
+socket.on('zone:occupancy', (data) => { /* ... */ });
 ```
 
-### Server → Client
-
-```javascript
-// Tag detected event
-socket.on('tag:detected', (data) => {
-  // { epc, readerId, timestamp, rssi }
-});
-
-// Docket moved event
-socket.on('docket:moved', (data) => {
-  // { docketId, fromZone, toZone, timestamp, confidence }
-});
-
-// Zone occupancy changed
-socket.on('zone:occupancy', (data) => {
-  // { zoneId, currentCount, capacity, percentage }
-});
-```
-
-## Configuration
-
-### Environment Variables
-
-See `.env.example` for all available configuration options.
-
-**Critical Variables:**
+## Environment Variables
 
 ```bash
 # Database
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=saps_rfid
+DB_NAME=rfid_platform
 DB_USER=postgres
 DB_PASSWORD=your_password
 
-# RFID Readers (comma-separated)
-RFID_READER_IPS=192.168.1.100,192.168.1.101,192.168.1.102
-RFID_READER_PORT=5084
+# RFID (comma-separated reader IPs)
+RFID_READER_IPS=192.168.1.100,192.168.1.101
 
-# Security
-CORS_ORIGIN=http://localhost:3000
-RATE_LIMIT_MAX_REQUESTS=100
+# Server
+PORT=8080
+CORS_ORIGIN=http://localhost:5173
 ```
 
-## Monitoring
+## Deployment
 
-### Prometheus Metrics
-
-Access metrics at `http://localhost:9090/metrics`
-
-**Available Metrics:**
-- HTTP request duration
-- RFID tag read rates
-- Database connection pool stats
-- Active WebSocket connections
-- System resource usage
-
-### Grafana Dashboards
-
-Access Grafana at `http://localhost:3000` (default: admin/admin)
-
-Pre-configured dashboards available in `monitoring/grafana/`
-
-## Troubleshooting
-
-### Database Connection Issues
-
+### Docker (Recommended)
 ```bash
-# Check if TimescaleDB is running
-docker-compose ps timescaledb
-
-# Check logs
-docker-compose logs timescaledb
-
-# Reset database
-pnpm run db:reset
+docker-compose up -d
 ```
 
-### RFID Reader Connection Issues
+This starts:
+- Backend API (port 8080)
+- Frontend (port 5173)
+- TimescaleDB (port 5432)
+- Redis (port 6379)
 
+### Manual
 ```bash
-# Test reader connectivity
-ping 192.168.1.100
+# Build backend
+pnpm run build
 
-# Check firewall rules (LLRP uses port 5084)
-telnet 192.168.1.100 5084
+# Build frontend
+cd frontend && pnpm run build
 
-# Enable debug logging
-LOG_LEVEL=debug pnpm run dev
+# Start with PM2
+pnpm run start:pm2
 ```
 
-### Performance Issues
+## Current Tenants
 
-```bash
-# Monitor PM2 processes
-pm2 monit
+| Tenant | Industry | Item Term | Dwell Threshold |
+|--------|----------|-----------|-----------------|
+| SAPS Forensics | Law Enforcement | Evidence | 14 days |
+| MediTrack | Healthcare | Specimen | 7 days |
+| MineSecure | Mining | Equipment | 30 days |
+| RetailGuard | Retail | Product | 3 days |
 
-# Check database query performance
-# See logs/app.log for slow queries
+## What Makes This Different
 
-# Analyze container resource usage
-docker stats
-```
+Most RFID platforms show you data in tables. This one shows you a 3D model of your actual facility with items positioned where they really are.
 
-## Security
+Most platforms alert you after something goes wrong. This one uses AI to catch problems while they're developing.
 
-- **Input Validation**: All inputs validated with Zod
-- **SQL Injection**: Using parameterized queries
-- **Rate Limiting**: 100 requests/minute per IP
-- **CORS**: Configurable allowed origins
-- **Helmet**: Security headers enabled
-- **No Secrets in Code**: All secrets in environment variables
+Most platforms are one-size-fits-all. This one adapts terminology and rules to your industry.
+
+## Roadmap
+
+- [ ] Mobile app for floor staff
+- [ ] CAD/BIM import for warehouse setup
+- [ ] Integration with court case management (SAPS)
+- [ ] SAHPRA compliance module (Healthcare)
+- [ ] Machine learning for predictive analytics
 
 ## License
 
-PROPRIETARY - SAPS Forensic Laboratory
-
-## Support
-
-For issues and feature requests, please contact the development team.
-
-## Contributing
-
-This is an internal project. Please follow the coding standards and testing requirements outlined in this document.
+Proprietary. Contact for licensing.
 
 ---
 
-**Built with ❤️ for SAPS Forensic Laboratory**
+Built in South Africa for industries that track things that matter.

@@ -97,7 +97,7 @@ export class ReaderRegisteredEvent extends DomainEvent {
     super('ReaderRegistered');
   }
 
-  protected getPayload(): Record<string, unknown> {
+  protected override getPayload(): Record<string, unknown> {
     return {
       readerId: this.readerId,
       readerName: this.readerName,

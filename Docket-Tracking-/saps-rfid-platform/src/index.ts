@@ -6,10 +6,8 @@ import { Server } from './presentation/http/Server';
 import { SocketServer } from './presentation/websocket/SocketServer';
 import { PostgresConnection } from './infrastructure/database/PostgresConnection';
 import { LLRPGateway } from './infrastructure/rfid/LLRPGateway';
+import { RFIDSimulator } from './infrastructure/rfid/RFIDSimulator';
 import { ILogger } from './application/interfaces/ILogger';
-// import { ProcessTagReadUseCase } from './application/use-cases/ProcessTagReadUseCase';
-// import { TagDetectedEvent } from './domain/events/TagDetectedEvent';
-// import { IEventBus } from './application/interfaces/IEventBus';
 
 /**
  * RFID Inventory Platform - Application Entry Point
@@ -30,6 +28,7 @@ let server: Server;
 let wsServer: SocketServer;
 let database: PostgresConnection;
 let rfidGateway: LLRPGateway;
+let rfidSimulator: RFIDSimulator;
 
 /**
  * Main application startup
@@ -62,8 +61,14 @@ async function main(): Promise<void> {
     }
     logger.info('Database connected successfully');
 
-    // Step 4: Initialize RFID gateway (DISABLED - no physical readers)
-    logger.warn('⚠️  RFID gateway initialization skipped - no readers configured');
+    // Step 4: Initialize RFID Simulator (Demo Mode)
+    // For production with physical readers, replace with LLRPGateway
+    logger.info('🎮 Starting RFID Simulator (Demo Mode)...');
+    rfidSimulator = container.resolve(RFIDSimulator);
+    rfidSimulator.start();
+    logger.info('RFID Simulator started - generating realistic tag events');
+
+    // For physical RFID readers, uncomment below and comment out simulator:
     // logger.info('Initializing RFID gateway...');
     // rfidGateway = container.resolve(LLRPGateway);
     // await rfidGateway.connect();
@@ -96,6 +101,9 @@ async function main(): Promise<void> {
     console.log(`   WebSocket:   ws://localhost:${server.getPort()}`);
     console.log(`   Health:      http://localhost:${server.getPort()}/health`);
     console.log(`   Metrics:     http://localhost:${server.getPort()}/metrics`);
+    console.log('');
+    console.log('   🎮 DEMO MODE: RFID Simulator is generating tag events');
+    console.log('   📦 Simulated items are moving between warehouse zones');
     console.log('\nPress Ctrl+C to stop\n');
   } catch (error) {
     if (logger) {
@@ -136,11 +144,18 @@ async function shutdown(signal: string): Promise<void> {
       if (logger) logger.info('HTTP server stopped');
     }
 
-    // Disconnect RFID gateway
+    // Stop RFID Simulator
+    if (rfidSimulator) {
+      console.log('Stopping RFID Simulator...');
+      rfidSimulator.stop();
+      if (logger) logger.info('RFID Simulator stopped');
+    }
+
+    // Shutdown RFID gateway (if using physical readers)
     if (rfidGateway) {
-      console.log('Disconnecting RFID gateway...');
-      await rfidGateway.disconnect();
-      if (logger) logger.info('RFID gateway disconnected');
+      console.log('Shutting down RFID gateway...');
+      await rfidGateway.shutdown();
+      if (logger) logger.info('RFID gateway shutdown complete');
     }
 
     // Close database connections

@@ -1,4 +1,4 @@
-import rateLimit, { type Options } from 'express-rate-limit';
+import rateLimit from 'express-rate-limit';
 import type { Request, Response } from 'express';
 import type { AuthenticatedRequest } from './authMiddleware';
 
@@ -110,6 +110,20 @@ function getSubscriptionTier(req: Request): string {
 }
 
 /**
+ * Gets rate limits for a tier with guaranteed defaults
+ *
+ * @param tier - Subscription tier name
+ * @returns TierRateLimits for the specified tier
+ */
+function getLimitsForTier(tier: string): TierRateLimits {
+  return TIER_RATE_LIMITS[tier] ?? TIER_RATE_LIMITS[DEFAULT_TIER] ?? {
+    requestsPerMinute: 30,
+    requestsPerHour: 1000,
+    burstLimit: 10,
+  };
+}
+
+/**
  * Rate Limiting middleware (IP-based)
  *
  * Protects API from abuse and DoS attacks using IP-based limiting.
@@ -169,7 +183,7 @@ export const tenantRateLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute window
   max: (req: Request): number => {
     const tier = getSubscriptionTier(req);
-    const limits = TIER_RATE_LIMITS[tier] || TIER_RATE_LIMITS[DEFAULT_TIER];
+    const limits = getLimitsForTier(tier);
     return limits.requestsPerMinute;
   },
   keyGenerator: getTenantOrIpKey,
@@ -181,7 +195,7 @@ export const tenantRateLimiter = rateLimit({
   handler: (req: Request, res: Response): void => {
     const authReq = req as AuthenticatedRequest;
     const tier = getSubscriptionTier(req);
-    const limits = TIER_RATE_LIMITS[tier] || TIER_RATE_LIMITS[DEFAULT_TIER];
+    const limits = getLimitsForTier(tier);
 
     res.status(429).json({
       success: false,
@@ -210,7 +224,7 @@ export const tenantHourlyRateLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour window
   max: (req: Request): number => {
     const tier = getSubscriptionTier(req);
-    const limits = TIER_RATE_LIMITS[tier] || TIER_RATE_LIMITS[DEFAULT_TIER];
+    const limits = getLimitsForTier(tier);
     return limits.requestsPerHour;
   },
   keyGenerator: (req: Request): string => {
@@ -229,7 +243,7 @@ export const tenantHourlyRateLimiter = rateLimit({
   handler: (req: Request, res: Response): void => {
     const authReq = req as AuthenticatedRequest;
     const tier = getSubscriptionTier(req);
-    const limits = TIER_RATE_LIMITS[tier] || TIER_RATE_LIMITS[DEFAULT_TIER];
+    const limits = getLimitsForTier(tier);
 
     res.status(429).json({
       success: false,
@@ -258,7 +272,7 @@ export const burstRateLimiter = rateLimit({
   windowMs: 5 * 1000, // 5 second window
   max: (req: Request): number => {
     const tier = getSubscriptionTier(req);
-    const limits = TIER_RATE_LIMITS[tier] || TIER_RATE_LIMITS[DEFAULT_TIER];
+    const limits = getLimitsForTier(tier);
     return limits.burstLimit;
   },
   keyGenerator: (req: Request): string => {
@@ -306,7 +320,7 @@ export function createTenantRateLimiter(
     windowMs,
     max: (req: Request): number => {
       const tier = getSubscriptionTier(req);
-      const limits = TIER_RATE_LIMITS[tier] || TIER_RATE_LIMITS[DEFAULT_TIER];
+      const limits = getLimitsForTier(tier);
       return maxCalculator(limits);
     },
     keyGenerator: (req: Request): string => {
@@ -334,7 +348,7 @@ export const apiRateLimiters = {
     windowMs: 60 * 1000,
     max: (req: Request): number => {
       const tier = getSubscriptionTier(req);
-      const limits = TIER_RATE_LIMITS[tier] || TIER_RATE_LIMITS[DEFAULT_TIER];
+      const limits = getLimitsForTier(tier);
       // Tag reads need much higher limits
       return limits.requestsPerMinute * 10;
     },
@@ -360,7 +374,7 @@ export const apiRateLimiters = {
     windowMs: 60 * 1000,
     max: (req: Request): number => {
       const tier = getSubscriptionTier(req);
-      const limits = TIER_RATE_LIMITS[tier] || TIER_RATE_LIMITS[DEFAULT_TIER];
+      const limits = getLimitsForTier(tier);
       // Search is more expensive, so lower limit
       return Math.floor(limits.requestsPerMinute * 0.5);
     },
@@ -386,7 +400,7 @@ export const apiRateLimiters = {
     windowMs: 60 * 1000,
     max: (req: Request): number => {
       const tier = getSubscriptionTier(req);
-      const limits = TIER_RATE_LIMITS[tier] || TIER_RATE_LIMITS[DEFAULT_TIER];
+      const limits = getLimitsForTier(tier);
       // Analytics queries are expensive
       return Math.floor(limits.requestsPerMinute * 0.25);
     },

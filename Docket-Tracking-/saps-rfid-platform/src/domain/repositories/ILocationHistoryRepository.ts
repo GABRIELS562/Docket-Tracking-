@@ -571,4 +571,130 @@ export interface ILocationHistoryRepository {
       Error
     >
   >;
+
+  // ==========================================================================
+  // Phase 2.2: Flow Analytics Methods
+  // ==========================================================================
+
+  /**
+   * Gets zone-to-zone transitions for flow analysis
+   *
+   * @param tenantId - Tenant ID for multi-tenant isolation
+   * @param startTime - Start of time range
+   * @param endTime - End of time range
+   * @returns Result containing array of zone transitions
+   *
+   * @description
+   * Returns all zone transitions within the time period.
+   * Used for building flow matrices and corridor analysis.
+   */
+  getZoneTransitions(
+    tenantId: string,
+    startTime: Date,
+    endTime: Date
+  ): Promise<
+    Result<
+      Array<{
+        itemId: string;
+        fromZoneId: string | null;
+        toZoneId: string;
+        timestamp: Date;
+        transitionTimeSeconds: number;
+        dwellTimeMinutes?: number;
+      }>,
+      Error
+    >
+  >;
+
+  /**
+   * Gets zone dwell time statistics for bottleneck analysis
+   *
+   * @param tenantId - Tenant ID for multi-tenant isolation
+   * @param startTime - Start of time range
+   * @param endTime - End of time range
+   * @returns Result containing array of zone dwell statistics
+   *
+   * @description
+   * Returns aggregated dwell time statistics per zone.
+   * Used for identifying bottlenecks and congestion.
+   */
+  getZoneDwellStatistics(
+    tenantId: string,
+    startTime: Date,
+    endTime: Date
+  ): Promise<
+    Result<
+      Array<{
+        zoneId: string;
+        avgDwellMinutes: number;
+        maxDwellMinutes: number;
+        itemCount: number;
+        totalDwellMinutes: number;
+        entryCount: number;
+        exitCount: number;
+      }>,
+      Error
+    >
+  >;
+
+  /**
+   * Gets zone occupancy timeline for congestion analysis
+   *
+   * @param tenantId - Tenant ID for multi-tenant isolation
+   * @param startTime - Start of time range
+   * @param endTime - End of time range
+   * @returns Result containing array of occupancy snapshots
+   *
+   * @description
+   * Returns zone occupancy over time at regular intervals.
+   * Used for congestion timeline visualization.
+   */
+  getZoneOccupancyTimeline(
+    tenantId: string,
+    startTime: Date,
+    endTime: Date
+  ): Promise<
+    Result<
+      Array<{
+        timestamp: Date;
+        zoneId: string;
+        itemCount: number;
+        capacity: number;
+      }>,
+      Error
+    >
+  >;
+
+  /**
+   * Gets item paths for pattern analysis
+   *
+   * @param tenantId - Tenant ID for multi-tenant isolation
+   * @param startTime - Start of time range
+   * @param endTime - End of time range
+   * @param maxPathLength - Maximum number of zones in a path
+   * @returns Result containing array of item paths
+   *
+   * @description
+   * Returns the sequence of zones visited by each item.
+   * Used for discovering common movement patterns.
+   */
+  getItemPaths(
+    tenantId: string,
+    startTime: Date,
+    endTime: Date,
+    maxPathLength?: number
+  ): Promise<
+    Result<
+      Array<{
+        itemId: string;
+        path: Array<{
+          zoneId: string;
+          entryTime: Date;
+          exitTime: Date | null;
+          dwellMinutes: number;
+        }>;
+      }>,
+      Error
+    >
+  >;
 }

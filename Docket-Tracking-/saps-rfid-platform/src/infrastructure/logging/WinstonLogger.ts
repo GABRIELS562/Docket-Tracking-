@@ -112,7 +112,7 @@ export class WinstonLogger implements ILogger {
       return 10 * 1024 * 1024; // Default 10MB
     }
 
-    const value = parseInt(match[1], 10);
+    const value = parseInt(match[1]!, 10);
     const unit = match[2]?.toLowerCase() || '';
 
     return value * (units[unit] || 1);
@@ -132,6 +132,11 @@ export class WinstonLogger implements ILogger {
 
   warn(message: string, meta?: Record<string, any>): void {
     this.logger.warn(message, meta);
+  }
+
+  fatal(message: string, meta?: Record<string, any>): void {
+    // Winston doesn't have a fatal level, use error with additional context
+    this.logger.error(message, { ...meta, severity: 'FATAL' });
   }
 
   /**

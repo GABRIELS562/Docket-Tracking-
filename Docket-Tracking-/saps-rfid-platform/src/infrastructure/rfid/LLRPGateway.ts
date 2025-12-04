@@ -289,8 +289,8 @@ export class LLRPGateway {
     this.startTime = Date.now();
 
     try {
-      // Step 1: Load readers from database
-      const readersResult = await this.readerRepo.findAll();
+      // Step 1: Load readers from database (system-wide, across all tenants)
+      const readersResult = await this.readerRepo.findAllSystemWide();
       if (readersResult.isErr()) {
         this.logger.error('Failed to load readers from database', {
           error: readersResult.error.message,

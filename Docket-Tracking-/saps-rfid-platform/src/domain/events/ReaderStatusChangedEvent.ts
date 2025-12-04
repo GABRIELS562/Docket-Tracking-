@@ -1,5 +1,5 @@
 import { DomainEvent } from './DomainEvent';
-import type { ReaderStatus } from '../entities/Reader';
+import { ReaderStatus } from '../entities/Reader';
 
 /**
  * Event: Reader Status Changed
@@ -87,7 +87,7 @@ export class ReaderStatusChangedEvent extends DomainEvent {
     super('ReaderStatusChanged');
   }
 
-  protected getPayload(): Record<string, unknown> {
+  protected override getPayload(): Record<string, unknown> {
     return {
       readerId: this.readerId,
       readerName: this.readerName,
@@ -102,34 +102,34 @@ export class ReaderStatusChangedEvent extends DomainEvent {
    * Checks if the reader went offline
    */
   wentOffline(): boolean {
-    return this.previousStatus !== 'OFFLINE' && this.currentStatus === 'OFFLINE';
+    return this.previousStatus !== ReaderStatus.OFFLINE && this.currentStatus === ReaderStatus.OFFLINE;
   }
 
   /**
    * Checks if the reader came online
    */
   cameOnline(): boolean {
-    return this.previousStatus !== 'ONLINE' && this.currentStatus === 'ONLINE';
+    return this.previousStatus !== ReaderStatus.ONLINE && this.currentStatus === ReaderStatus.ONLINE;
   }
 
   /**
    * Checks if the reader encountered an error
    */
   encounteredError(): boolean {
-    return this.currentStatus === 'ERROR';
+    return this.currentStatus === ReaderStatus.ERROR;
   }
 
   /**
    * Checks if the reader recovered from error
    */
   recoveredFromError(): boolean {
-    return this.previousStatus === 'ERROR' && this.currentStatus === 'ONLINE';
+    return this.previousStatus === ReaderStatus.ERROR && this.currentStatus === ReaderStatus.ONLINE;
   }
 
   /**
    * Checks if this requires immediate attention
    */
   requiresImmediateAttention(): boolean {
-    return this.currentStatus === 'ERROR' || this.currentStatus === 'OFFLINE';
+    return this.currentStatus === ReaderStatus.ERROR || this.currentStatus === ReaderStatus.OFFLINE;
   }
 }
