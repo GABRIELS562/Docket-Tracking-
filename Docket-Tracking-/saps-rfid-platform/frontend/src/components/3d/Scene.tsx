@@ -1,15 +1,21 @@
 import { Canvas } from '@react-three/fiber';
-import { Suspense, useMemo } from 'react';
+import { Suspense, useMemo, useEffect } from 'react';
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
-import { useShallow } from 'zustand/react/shallow';
 import { Spinner } from '../ui/Spinner';
 import Warehouse from './Warehouse';
-import CinematicCamera from './CinematicCamera';
-import FirstPersonControls from './FirstPersonControls';
+import { CameraController } from './Camera';
 import { Stats, BakeShadows, AdaptiveDpr, AdaptiveEvents, PerformanceMonitor } from '@react-three/drei';
 import { useSceneStore } from '../../stores/sceneStore';
-import { usePerformance, useTotalItemCount } from '../../stores/virtualizedAppStore';
+import {
+  useWarehouseStore,
+  initializeWarehouseStore,
+  useCameraStore,
+  useCameraMode,
+  useVisibleCount,
+  useTotalItemCount,
+} from '../../stores';
+import { usePerformance, useTotalItemCount as useLegacyTotalItemCount } from '../../stores/virtualizedAppStore';
 import { useTenantConfig } from '../../stores/aiAnalyticsStore';
 import { useAIAnomalyGenerator } from '../../hooks/useAIAnomalyGenerator';
 import SearchInterface from '../ui/SearchInterface';
@@ -40,9 +46,13 @@ const Scene = () => {
   // Use individual selectors to avoid subscribing to all store changes
   const renderQuality = useSceneStore((s) => s.renderQuality);
   const setFps = useSceneStore((s) => s.setFps);
-  const cameraMode = useSceneStore((s) => s.cameraMode);
-  const setCameraMode = useSceneStore((s) => s.setCameraMode);
   const tenantConfig = useTenantConfig();
+
+  // NEW: Warehouse initialization - loads SAPS Forensics config by default
+  useEffect(() => {
+    // Initialize warehouse store with default SAPS warehouse
+    initializeWarehouseStore();
+  }, []);
 
   // Initialize AI anomaly generator (generates demo anomalies)
   useAIAnomalyGenerator({
@@ -157,18 +167,8 @@ const Scene = () => {
           {/* Sky/ground gradient */}
           <hemisphereLight args={['#87ceeb', '#f5f5dc', 1.2]} />
 
-          {/* Camera controls - conditionally render based on mode */}
-          {cameraMode === 'walk' ? (
-            <FirstPersonControls
-              moveSpeed={15}
-              sprintMultiplier={1.8}
-              eyeHeight={1.7}
-              boundaries={{ minX: -42, maxX: 42, minZ: -32, maxZ: 32 }}
-              onExit={() => setCameraMode('orbit')}
-            />
-          ) : (
-            <CinematicCamera />
-          )}
+          {/* NEW: Unified Camera Controller - handles all modes */}
+          <CameraController />
 
           {/* 3D Warehouse model */}
           <Suspense fallback={<LoadingPlaceholder />}>
@@ -223,8 +223,8 @@ const Scene = () => {
       {/* AI Alerts Panel - shows anomalies and dwell alerts */}
       {tenantConfig && <AIAlertsPanel />}
 
-      {/* Demo Controls - presentation helper */}
-      {tenantConfig && <DemoControls />}
+      {/* Demo Controls - presentation helper (always render - it auto-initializes tenant) */}
+      <DemoControls />
 
       {/* Item Details Panel - shows when item is selected */}
       <ItemDetailsPanel />
@@ -257,16 +257,20 @@ const LoadingPlaceholder = () => {
  * Scene overlay with controls and info
  */
 const SceneOverlay = () => {
-  // Use individual selectors to avoid re-renders when unrelated state changes
+  // NEW: Use unified stores for camera and warehouse
+  const cameraStore = useCameraStore();
+  const cameraPresets = useWarehouseStore((s) => s.currentWarehouse?.cameraPresets);
+
+  // Camera state from new store
+  const cameraMode = useCameraMode();
+  const toggleWalkMode = cameraStore.toggleWalkMode;
+  const resetCamera = cameraStore.reset;
+
+  // Legacy scene store for display toggles (will migrate later)
   const sceneVisibleCount = useSceneStore((s) => s.visibleItemCount);
   const sceneFps = useSceneStore((s) => s.fps);
   const renderQuality = useSceneStore((s) => s.renderQuality);
   const setRenderQuality = useSceneStore((s) => s.setRenderQuality);
-  const resetCamera = useSceneStore((s) => s.resetCamera);
-  const goToPreset = useSceneStore((s) => s.goToPreset);
-  const currentPreset = useSceneStore((s) => s.currentPreset);
-  const cameraMode = useSceneStore((s) => s.cameraMode);
-  const toggleWalkMode = useSceneStore((s) => s.toggleWalkMode);
   const showGrid = useSceneStore((s) => s.showGrid);
   const showLabels = useSceneStore((s) => s.showLabels);
   const showPaths = useSceneStore((s) => s.showPaths);
@@ -278,21 +282,40 @@ const SceneOverlay = () => {
   const toggleReaders = useSceneStore((s) => s.toggleReaders);
   const toggleHeatmap = useSceneStore((s) => s.toggleHeatmap);
 
+  // NEW: Items count from unified store
+  const newVisibleCount = useVisibleCount();
+  const newTotalItemCount = useTotalItemCount();
+
   // Get performance metrics from virtualized store
   const virtualizedPerf = usePerformance();
   // Use dedicated hook that returns a stable primitive
-  const totalItemCount = useTotalItemCount();
+  const legacyTotalItemCount = useLegacyTotalItemCount();
 
-  // Use virtualized count if available, fallback to scene count
-  const visibleItemCount = virtualizedPerf.visibleItemCount || sceneVisibleCount;
+  // Use new store count if available, fallback to legacy
+  const visibleItemCount = newVisibleCount || virtualizedPerf.visibleItemCount || sceneVisibleCount;
+  const totalItemCount = newTotalItemCount || legacyTotalItemCount;
   const fps = virtualizedPerf.fps || sceneFps;
 
-  const presets = useMemo(() => [
-    { id: 'overview', name: 'Overview', key: '1' },
-    { id: 'topDown', name: 'Top', key: '2' },
-    { id: 'secureEvidence', name: 'Vault', key: '7' },
-    { id: 'cinematic', name: 'Cinematic', key: '9' },
-  ], []);
+  // NEW: Build presets from warehouse config
+  const presets = useMemo(() => {
+    if (!cameraPresets) {
+      return [
+        { id: 'overview', name: 'Overview', key: '1' },
+        { id: 'topDown', name: 'Top', key: '2' },
+        { id: 'secureEvidence', name: 'Vault', key: '7' },
+        { id: 'cinematic', name: 'Cinematic', key: '9' },
+      ];
+    }
+    // Return first 4 presets with keyboard shortcuts
+    return cameraPresets
+      .filter((p) => p.keyboardShortcut)
+      .slice(0, 4)
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        key: p.keyboardShortcut || '',
+      }));
+  }, [cameraPresets]);
 
   const toggles = useMemo(() => [
     { id: 'grid', label: 'Grid', active: showGrid, toggle: toggleGrid },
@@ -350,20 +373,20 @@ const SceneOverlay = () => {
         <div className="bg-black/60 backdrop-blur-md rounded-xl p-2 border border-white/10">
           <div className="text-gray-500 text-xs mb-2 px-2">Views</div>
           <div className="flex flex-col gap-1">
-            {presets.map((preset) => (
-              <button
-                key={preset.id}
-                onClick={() => goToPreset(preset.id)}
-                className={`px-3 py-2 rounded-lg text-xs font-medium transition-all text-left ${
-                  currentPreset === preset.id
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
-                }`}
-              >
-                <span>{preset.name}</span>
-                <span className="ml-2 text-gray-600 text-[10px]">{preset.key}</span>
-              </button>
-            ))}
+            {presets.map((preset) => {
+              // Find the preset config from warehouse
+              const presetConfig = cameraPresets?.find((p) => p.id === preset.id);
+              return (
+                <button
+                  key={preset.id}
+                  onClick={() => presetConfig && cameraStore.goToPreset(presetConfig)}
+                  className="px-3 py-2 rounded-lg text-xs font-medium transition-all text-left bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white"
+                >
+                  <span>{preset.name}</span>
+                  <span className="ml-2 text-gray-600 text-[10px]">{preset.key}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -417,7 +440,7 @@ const SceneOverlay = () => {
       <div className="absolute bottom-4 right-4 z-20">
         <div className="bg-black/60 backdrop-blur-md rounded-xl p-3 border border-white/10">
           <button
-            onClick={resetCamera}
+            onClick={() => resetCamera()}
             className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white text-xs font-medium transition-all flex items-center gap-2"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

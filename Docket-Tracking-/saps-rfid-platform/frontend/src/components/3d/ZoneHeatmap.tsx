@@ -4,6 +4,7 @@ import { Text, Billboard } from '@react-three/drei';
 import * as THREE from 'three';
 import { useShallow } from 'zustand/react/shallow';
 import { useSceneStore } from '../../stores/sceneStore';
+import { useZones, useWarehouseStore } from '../../stores';
 
 /**
  * Zone Heatmap Visualization
@@ -32,79 +33,79 @@ interface ZoneData {
   priority: 'low' | 'medium' | 'high' | 'critical';
 }
 
-// Zone configuration with capacities
-const ZONE_CONFIG: Record<string, Omit<ZoneData, 'itemCount' | 'flowIn' | 'flowOut' | 'avgDwellTime'>> = {
+// Fallback zone configuration (used when warehouse store is not ready)
+const FALLBACK_ZONE_CONFIG: Record<string, Omit<ZoneData, 'itemCount' | 'flowIn' | 'flowOut' | 'avgDwellTime'>> = {
   'receiving': {
     id: 'receiving',
     name: 'Receiving',
-    position: [-33, 0.1, -33],
+    position: [-22.5, 0.1, -27.5],
     capacity: 150,
-    color: '#3b82f6',
-    priority: 'high',
-  },
-  'storage-a': {
-    id: 'storage-a',
-    name: 'Storage A',
-    position: [-33, 0.1, 0],
-    capacity: 500,
-    color: '#10b981',
-    priority: 'medium',
-  },
-  'storage-b': {
-    id: 'storage-b',
-    name: 'Storage B',
-    position: [-33, 0.1, 33],
-    capacity: 500,
-    color: '#10b981',
-    priority: 'medium',
-  },
-  'storage-c': {
-    id: 'storage-c',
-    name: 'Storage C',
-    position: [0, 0.1, -33],
-    capacity: 500,
-    color: '#10b981',
-    priority: 'medium',
-  },
-  'secure-storage': {
-    id: 'secure-storage',
-    name: 'Secure',
-    position: [0, 0.1, 0],
-    capacity: 100,
-    color: '#ef4444',
-    priority: 'critical',
-  },
-  'storage-d': {
-    id: 'storage-d',
-    name: 'Storage D',
-    position: [0, 0.1, 33],
-    capacity: 500,
-    color: '#10b981',
-    priority: 'medium',
-  },
-  'processing': {
-    id: 'processing',
-    name: 'Processing',
-    position: [33, 0.1, -33],
-    capacity: 200,
-    color: '#f59e0b',
+    color: '#22c55e',
     priority: 'high',
   },
   'shipping': {
     id: 'shipping',
     name: 'Shipping',
-    position: [33, 0.1, 0],
+    position: [22.5, 0.1, -27.5],
     capacity: 250,
     color: '#8b5cf6',
     priority: 'high',
   },
+  'storage-a': {
+    id: 'storage-a',
+    name: 'Storage A',
+    position: [-12.5, 0.1, -5],
+    capacity: 500,
+    color: '#3b82f6',
+    priority: 'medium',
+  },
+  'storage-b': {
+    id: 'storage-b',
+    name: 'Storage B',
+    position: [12.5, 0.1, -5],
+    capacity: 500,
+    color: '#3b82f6',
+    priority: 'medium',
+  },
+  'office': {
+    id: 'office',
+    name: 'Office',
+    position: [-37.5, 0.1, -22.5],
+    capacity: 50,
+    color: '#6366f1',
+    priority: 'low',
+  },
   'returns': {
     id: 'returns',
     name: 'Returns',
-    position: [33, 0.1, 33],
+    position: [-37.5, 0.1, -5],
     capacity: 150,
-    color: '#ec4899',
+    color: '#f97316',
     priority: 'low',
+  },
+  'processing': {
+    id: 'processing',
+    name: 'Processing',
+    position: [-30, 0.1, 15],
+    capacity: 200,
+    color: '#eab308',
+    priority: 'high',
+  },
+  'secure-evidence': {
+    id: 'secure-evidence',
+    name: 'Secure Evidence',
+    position: [-30, 0.1, 28.5],
+    capacity: 100,
+    color: '#ef4444',
+    priority: 'critical',
+  },
+  'staging': {
+    id: 'staging',
+    name: 'Staging',
+    position: [32.5, 0.1, 10],
+    capacity: 200,
+    color: '#14b8a6',
+    priority: 'medium',
   },
 };
 
@@ -116,11 +117,40 @@ const ZoneHeatmap = () => {
   const setHoveredZone = useSceneStore((s) => s.setHoveredZone);
   const flyToZone = useSceneStore((s) => s.flyToZone);
 
+  // NEW: Get zones from unified warehouse store
+  const warehouseZones = useZones();
+  const getZoneCenter = useWarehouseStore((s) => s.getZoneCenter);
+
   const [zoneData, setZoneData] = useState<Map<string, ZoneData>>(new Map());
 
   // Use ref to track items without triggering effect re-runs
   const itemsRef = useRef(items);
   itemsRef.current = items;
+
+  // Build zone config from warehouse store or use fallback
+  const zoneConfig = useMemo(() => {
+    if (!warehouseZones || warehouseZones.length === 0) {
+      return FALLBACK_ZONE_CONFIG;
+    }
+
+    const config: Record<string, Omit<ZoneData, 'itemCount' | 'flowIn' | 'flowOut' | 'avgDwellTime'>> = {};
+
+    warehouseZones.forEach((zone) => {
+      const center = getZoneCenter(zone.id);
+      if (center) {
+        config[zone.id] = {
+          id: zone.id,
+          name: zone.name,
+          position: [center.x, 0.1, center.z] as [number, number, number],
+          capacity: zone.capacity || 200,
+          color: zone.color,
+          priority: zone.isSecure ? 'critical' : (zone.id.includes('storage') ? 'medium' : 'high'),
+        };
+      }
+    });
+
+    return config;
+  }, [warehouseZones, getZoneCenter]);
 
   // Calculate zone statistics from items
   const calculateZoneStats = useCallback(() => {
@@ -134,7 +164,7 @@ const ZoneHeatmap = () => {
 
     const newZoneData = new Map<string, ZoneData>();
 
-    Object.entries(ZONE_CONFIG).forEach(([zoneId, config]) => {
+    Object.entries(zoneConfig).forEach(([zoneId, config]) => {
       const itemCount = zoneCounts.get(zoneId) || 0;
 
       // Simulate flow data (in production, this would come from backend)
@@ -152,7 +182,7 @@ const ZoneHeatmap = () => {
     });
 
     setZoneData(newZoneData);
-  }, []);
+  }, [zoneConfig]);
 
   // Initial calculation and periodic updates
   useEffect(() => {

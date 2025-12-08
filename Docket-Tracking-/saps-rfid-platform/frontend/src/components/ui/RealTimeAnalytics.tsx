@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Activity, Package, MapPin, Clock, TrendingUp, AlertTriangle, Zap, Wifi } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { useSceneStore } from '../../stores/sceneStore';

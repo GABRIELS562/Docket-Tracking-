@@ -3,9 +3,10 @@ import { useFrame } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { useSceneStore } from '../../stores/sceneStore';
+import { useReaders } from '../../stores';
 
 /**
- * RFID Reader Configuration
+ * RFID Reader Configuration (runtime format for rendering)
  */
 interface RFIDReaderConfig {
   id: string;
@@ -13,54 +14,73 @@ interface RFIDReaderConfig {
   position: [number, number, number];
   rotation: number;
   zone: string;
-  status: 'online' | 'offline' | 'warning';
+  status: 'online' | 'offline' | 'warning' | 'error';
 }
 
 /**
- * Readers positioned for U-shaped warehouse layout
+ * Fallback readers positioned for U-shaped warehouse layout
+ * Used when warehouse store is not yet initialized
  */
-const DEFAULT_READERS: RFIDReaderConfig[] = [
+const FALLBACK_READERS: RFIDReaderConfig[] = [
   // Receiving docks
-  { id: 'RDR-001', name: 'R1', position: [-25, 3.5, -32], rotation: 0, zone: 'receiving', status: 'online' },
-  { id: 'RDR-002', name: 'R2', position: [-15, 3.5, -32], rotation: 0, zone: 'receiving', status: 'online' },
+  { id: 'RDR-001', name: 'R1', position: [-30, 3.5, -33], rotation: 0, zone: 'receiving', status: 'online' },
+  { id: 'RDR-002', name: 'R2', position: [-15, 3.5, -33], rotation: 0, zone: 'receiving', status: 'online' },
   // Shipping docks
-  { id: 'RDR-003', name: 'S1', position: [15, 3.5, -32], rotation: 0, zone: 'shipping', status: 'online' },
-  { id: 'RDR-004', name: 'S2', position: [25, 3.5, -32], rotation: 0, zone: 'shipping', status: 'online' },
+  { id: 'RDR-003', name: 'S1', position: [15, 3.5, -33], rotation: 0, zone: 'shipping', status: 'online' },
+  { id: 'RDR-004', name: 'S2', position: [30, 3.5, -33], rotation: 0, zone: 'shipping', status: 'online' },
   // Storage A
-  { id: 'RDR-005', name: 'A-N', position: [-12, 3, -15], rotation: 0, zone: 'storage-a', status: 'online' },
-  { id: 'RDR-006', name: 'A-S', position: [-12, 3, 15], rotation: Math.PI, zone: 'storage-a', status: 'online' },
+  { id: 'RDR-005', name: 'A-N', position: [-12.5, 3, -20], rotation: 0, zone: 'storage-a', status: 'online' },
+  { id: 'RDR-006', name: 'A-S', position: [-12.5, 3, 10], rotation: Math.PI, zone: 'storage-a', status: 'online' },
   // Storage B
-  { id: 'RDR-007', name: 'B-N', position: [12, 3, -15], rotation: 0, zone: 'storage-b', status: 'online' },
-  { id: 'RDR-008', name: 'B-S', position: [12, 3, 15], rotation: Math.PI, zone: 'storage-b', status: 'warning' },
+  { id: 'RDR-007', name: 'B-N', position: [12.5, 3, -20], rotation: 0, zone: 'storage-b', status: 'online' },
+  { id: 'RDR-008', name: 'B-S', position: [12.5, 3, 10], rotation: Math.PI, zone: 'storage-b', status: 'warning' },
   // Other zones
   { id: 'RDR-009', name: 'PROC', position: [-30, 3, 15], rotation: Math.PI / 2, zone: 'processing', status: 'online' },
-  { id: 'RDR-010', name: 'RET', position: [-30, 3, 0], rotation: Math.PI / 2, zone: 'returns', status: 'online' },
-  { id: 'RDR-011', name: 'STG', position: [26, 3, 5], rotation: Math.PI / 2, zone: 'staging', status: 'online' },
+  { id: 'RDR-010', name: 'RET', position: [-37.5, 3, -5], rotation: Math.PI / 2, zone: 'returns', status: 'online' },
+  { id: 'RDR-011', name: 'STG', position: [32.5, 3, 10], rotation: Math.PI / 2, zone: 'staging', status: 'online' },
   // Secure storage
-  { id: 'RDR-012', name: 'SEC1', position: [-30, 3, 25], rotation: Math.PI / 2, zone: 'secure-storage', status: 'online' },
-  { id: 'RDR-013', name: 'SEC2', position: [-35, 3.5, 20], rotation: 0, zone: 'secure-storage', status: 'online' },
-  { id: 'RDR-014', name: 'OFF', position: [-30, 3, -20], rotation: Math.PI / 2, zone: 'office', status: 'online' },
+  { id: 'RDR-012', name: 'SEC1', position: [-30, 3, 28.5], rotation: Math.PI / 2, zone: 'secure-evidence', status: 'online' },
+  { id: 'RDR-013', name: 'SEC2', position: [-38, 3.5, 28.5], rotation: 0, zone: 'secure-evidence', status: 'online' },
+  { id: 'RDR-014', name: 'OFF', position: [-37.5, 3, -22.5], rotation: Math.PI / 2, zone: 'office', status: 'online' },
 ];
 
 /**
  * Status colors
  */
-const STATUS_COLORS = {
+const STATUS_COLORS: Record<RFIDReaderConfig['status'], string> = {
   online: '#22c55e',
   offline: '#ef4444',
   warning: '#f59e0b',
+  error: '#dc2626',
 };
 
 /**
  * RFID Readers Component - Stable Version
  *
- * Simplified to avoid Html/Billboard crashes
+ * Now uses unified warehouse store for reader configuration
  */
 const RFIDReaders = () => {
   // Use individual selector to avoid re-renders
   const showReaders = useSceneStore((s) => s.showReaders);
 
-  const readers = useMemo(() => DEFAULT_READERS, []);
+  // NEW: Get readers from unified warehouse store
+  const warehouseReaders = useReaders();
+
+  // Transform warehouse readers to rendering format
+  const readers = useMemo<RFIDReaderConfig[]>(() => {
+    if (!warehouseReaders || warehouseReaders.length === 0) {
+      return FALLBACK_READERS;
+    }
+
+    return warehouseReaders.map((reader) => ({
+      id: reader.id,
+      name: reader.name,
+      position: [reader.position.x, reader.position.y, reader.position.z] as [number, number, number],
+      rotation: reader.rotation,
+      zone: reader.zoneId,
+      status: reader.status || 'online',
+    }));
+  }, [warehouseReaders]);
 
   if (!showReaders) return null;
 
@@ -85,7 +105,8 @@ const RFIDReader = ({ config }: { config: RFIDReaderConfig }) => {
   const beaconRef = useRef<THREE.Mesh>(null);
 
   const statusColor = STATUS_COLORS[config.status];
-  const isSecure = config.zone === 'secure-storage';
+  // Support both old and new zone IDs for secure storage
+  const isSecure = config.zone === 'secure-storage' || config.zone === 'secure-evidence';
 
   // Animate LED, scan beam, and beacon
   useFrame((state) => {

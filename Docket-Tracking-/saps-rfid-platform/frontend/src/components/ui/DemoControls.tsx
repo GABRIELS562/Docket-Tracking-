@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Play,
   Radio,
@@ -15,6 +15,7 @@ import {
 import { useShallow } from 'zustand/react/shallow';
 import { useSceneStore } from '../../stores/sceneStore';
 import { useAIAnalyticsStore } from '../../stores/aiAnalyticsStore';
+import type { TenantId } from '../../pages/TenantSelectPage';
 
 /**
  * Demo Controls Panel
@@ -22,6 +23,20 @@ import { useAIAnalyticsStore } from '../../stores/aiAnalyticsStore';
  * Presentation helper for funding pitch demos.
  * Allows presenter to trigger specific scenarios and highlight features.
  */
+// Demo zones for fallback
+const DEMO_ZONES = ['receiving', 'shipping', 'storage-a', 'storage-b', 'processing', 'staging', 'secure-storage', 'returns'];
+
+// Generate fallback demo item
+const generateDemoItem = (zone?: string) => {
+  const epc = `3050614141${Math.floor(Math.random() * 100000000).toString().padStart(8, '0')}`;
+  return {
+    id: epc,
+    epc,
+    zone: zone || DEMO_ZONES[Math.floor(Math.random() * DEMO_ZONES.length)],
+    position: [0, 0, 0] as [number, number, number],
+  };
+};
+
 const DemoControls = () => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [activeDemo, setActiveDemo] = useState<string | null>(null);
@@ -39,10 +54,25 @@ const DemoControls = () => {
   const addDwellAlert = useAIAnalyticsStore((s) => s.addDwellAlert);
   const currentTenant = useAIAnalyticsStore((s) => s.currentTenant);
   const tenantConfig = useAIAnalyticsStore((s) => s.tenantConfig);
+  const setTenant = useAIAnalyticsStore((s) => s.setTenant);
 
   // Use ref for items in callbacks
   const itemsRef = useRef(items);
   itemsRef.current = items;
+
+  // Auto-initialize tenant if not set
+  useEffect(() => {
+    if (!currentTenant) {
+      const savedTenant = localStorage.getItem('selectedTenant') as TenantId | null;
+      if (savedTenant) {
+        setTenant(savedTenant);
+      } else {
+        // Default to SAPS for demo
+        setTenant('saps-forensics');
+        localStorage.setItem('selectedTenant', 'saps-forensics');
+      }
+    }
+  }, [currentTenant, setTenant]);
 
   // Demo: Show RFID Readers
   const demoRFIDReaders = () => {
@@ -67,37 +97,42 @@ const DemoControls = () => {
   const demoDwellAlert = () => {
     setActiveDemo('dwell');
 
-    if (!tenantConfig || items.length === 0) return;
+    // Use real item or generate a fallback
+    const randomItem = items.length > 0
+      ? items[Math.floor(Math.random() * items.length)]
+      : generateDemoItem('secure-storage');
 
-    const randomItem = items[Math.floor(Math.random() * items.length)];
+    const itemTerm = tenantConfig?.itemTerm || 'Evidence Docket';
+    const thresholdDays = tenantConfig?.alertThresholds?.dwellWarningDays || 14;
+    const tenant = currentTenant || 'saps-forensics';
     const dwellDays = 32; // Over threshold
 
     // Add critical dwell alert
     addDwellAlert({
       itemEpc: randomItem.epc,
-      itemName: `${tenantConfig.itemTerm} ${randomItem.epc.slice(-6).toUpperCase()}`,
+      itemName: `${itemTerm} ${randomItem.epc.slice(-6).toUpperCase()}`,
       zone: randomItem.zone,
       zoneName: randomItem.zone.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase()),
       dwellMinutes: dwellDays * 1440,
       dwellDays,
-      thresholdDays: tenantConfig.alertThresholds.dwellWarningDays,
+      thresholdDays,
       severity: 'critical',
       enteredAt: new Date(Date.now() - dwellDays * 24 * 60 * 60 * 1000),
     });
 
     // Also add anomaly
     addAnomaly({
-      tenantId: currentTenant!,
+      tenantId: tenant,
       itemEpc: randomItem.epc,
-      itemName: `${tenantConfig.itemTerm} ${randomItem.epc.slice(-6).toUpperCase()}`,
+      itemName: `${itemTerm} ${randomItem.epc.slice(-6).toUpperCase()}`,
       type: 'dwell_exceeded',
       severity: 'critical',
       confidence: 94,
-      message: `CRITICAL: ${tenantConfig.itemTerm} has been in ${randomItem.zone.replace('-', ' ')} for ${dwellDays} days (threshold: ${tenantConfig.alertThresholds.dwellWarningDays} days)`,
+      message: `CRITICAL: ${itemTerm} has been in ${randomItem.zone.replace('-', ' ')} for ${dwellDays} days (threshold: ${thresholdDays} days)`,
       details: {
         zone: randomItem.zone,
         dwellDays,
-        expectedDays: tenantConfig.alertThresholds.dwellWarningDays,
+        expectedDays: thresholdDays,
         reason: 'AI detected item exceeding maximum allowed dwell time',
       },
     });
@@ -112,18 +147,22 @@ const DemoControls = () => {
   const demoUnauthorizedMovement = () => {
     setActiveDemo('unauthorized');
 
-    if (!tenantConfig || items.length === 0) return;
+    // Use real item or generate a fallback
+    const randomItem = items.length > 0
+      ? items[Math.floor(Math.random() * items.length)]
+      : generateDemoItem('secure-storage');
 
-    const randomItem = items[Math.floor(Math.random() * items.length)];
+    const itemTerm = tenantConfig?.itemTerm || 'Evidence Docket';
+    const tenant = currentTenant || 'saps-forensics';
 
     addAnomaly({
-      tenantId: currentTenant!,
+      tenantId: tenant,
       itemEpc: randomItem.epc,
-      itemName: `${tenantConfig.itemTerm} ${randomItem.epc.slice(-6).toUpperCase()}`,
+      itemName: `${itemTerm} ${randomItem.epc.slice(-6).toUpperCase()}`,
       type: 'unauthorized_zone',
       severity: 'critical',
       confidence: 97,
-      message: `SECURITY ALERT: ${tenantConfig.itemTerm} removed from Secure Storage without authorization`,
+      message: `SECURITY ALERT: ${itemTerm} removed from Secure Storage without authorization`,
       details: {
         fromZone: 'secure-storage',
         toZone: 'shipping',
@@ -140,14 +179,18 @@ const DemoControls = () => {
   const demoUnusualSequence = () => {
     setActiveDemo('sequence');
 
-    if (!tenantConfig || items.length === 0) return;
+    // Use real item or generate a fallback
+    const randomItem = items.length > 0
+      ? items[Math.floor(Math.random() * items.length)]
+      : generateDemoItem('processing');
 
-    const randomItem = items[Math.floor(Math.random() * items.length)];
+    const itemTerm = tenantConfig?.itemTerm || 'Evidence Docket';
+    const tenant = currentTenant || 'saps-forensics';
 
     addAnomaly({
-      tenantId: currentTenant!,
+      tenantId: tenant,
       itemEpc: randomItem.epc,
-      itemName: `${tenantConfig.itemTerm} ${randomItem.epc.slice(-6).toUpperCase()}`,
+      itemName: `${itemTerm} ${randomItem.epc.slice(-6).toUpperCase()}`,
       type: 'unusual_sequence',
       severity: 'high',
       confidence: 89,
@@ -159,6 +202,8 @@ const DemoControls = () => {
       },
     });
 
+    flyToZone('processing');
+
     console.log('🎯 Demo: Triggered unusual sequence alert');
   };
 
@@ -166,14 +211,18 @@ const DemoControls = () => {
   const demoAfterHours = () => {
     setActiveDemo('afterhours');
 
-    if (!tenantConfig || items.length === 0) return;
+    // Use real item or generate a fallback
+    const randomItem = items.length > 0
+      ? items[Math.floor(Math.random() * items.length)]
+      : generateDemoItem('shipping');
 
-    const randomItem = items[Math.floor(Math.random() * items.length)];
+    const itemTerm = tenantConfig?.itemTerm || 'Evidence Docket';
+    const tenant = currentTenant || 'saps-forensics';
 
     addAnomaly({
-      tenantId: currentTenant!,
+      tenantId: tenant,
       itemEpc: randomItem.epc,
-      itemName: `${tenantConfig.itemTerm} ${randomItem.epc.slice(-6).toUpperCase()}`,
+      itemName: `${itemTerm} ${randomItem.epc.slice(-6).toUpperCase()}`,
       type: 'unusual_time',
       severity: 'high',
       confidence: 85,
@@ -184,6 +233,8 @@ const DemoControls = () => {
         reason: 'Activity between midnight and 6 AM flagged for security review',
       },
     });
+
+    flyToZone(randomItem.zone);
 
     console.log('🎯 Demo: Triggered after-hours activity alert');
   };

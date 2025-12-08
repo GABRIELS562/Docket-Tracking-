@@ -1,12 +1,13 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Grid, Text, Float, RoundedBox } from '@react-three/drei';
+import { Grid, Text, Float } from '@react-three/drei';
 import * as THREE from 'three';
 import RFIDItemsWrapper from './RFIDItemsWrapper';
 import RFIDReaders from './RFIDReaders';
 import ZoneHeatmap from './ZoneHeatmap';
 import PathfindingVisualization from './PathfindingVisualization';
 import { useSceneStore } from '../../stores/sceneStore';
+import { useZones } from '../../stores';
 
 /**
  * Professional 3D Warehouse Model - U-Shaped Flow Design
@@ -37,31 +38,50 @@ const Warehouse = () => {
   const showGrid = useSceneStore((s) => s.showGrid);
   const showLabels = useSceneStore((s) => s.showLabels);
   const activePath = useSceneStore((s) => s.activePath);
+  const currentPreset = useSceneStore((s) => s.currentPreset);
 
-  // U-shaped warehouse zones configuration
-  const zones = useMemo(
-    () => [
-      // Front wall zones (Dock side)
-      { id: 'receiving', color: '#22c55e', name: 'Receiving', x: -20, z: -25, w: 20, h: 12, icon: '📥' },
-      { id: 'shipping', color: '#8b5cf6', name: 'Shipping', x: 20, z: -25, w: 20, h: 12, icon: '📤' },
+  // Hide ceiling in top-down view so you can see inside the warehouse
+  const isTopDownView = currentPreset === 'topDown';
 
-      // Left wall zones
-      { id: 'office', color: '#6366f1', name: 'Office', x: -35, z: -20, w: 8, h: 15, icon: '🏢' },
-      { id: 'returns', color: '#f97316', name: 'Returns', x: -35, z: 0, w: 8, h: 12, icon: '↩️' },
-      { id: 'processing', color: '#eab308', name: 'Processing', x: -35, z: 15, w: 8, h: 14, icon: '⚙️' },
+  // NEW: Get zones from unified warehouse store (single source of truth)
+  const warehouseZones = useZones();
 
-      // Center storage area
-      { id: 'storage-a', color: '#3b82f6', name: 'Storage A', x: -12, z: 0, w: 18, h: 30, icon: '📦' },
-      { id: 'storage-b', color: '#3b82f6', name: 'Storage B', x: 12, z: 0, w: 18, h: 30, icon: '📦' },
+  // Transform warehouse zones to rendering format
+  const zones = useMemo(() => {
+    if (!warehouseZones || warehouseZones.length === 0) {
+      // Fallback to hardcoded zones if store not ready
+      return [
+        { id: 'receiving', color: '#22c55e', name: 'Receiving', x: -22.5, z: -27.5, w: 25, h: 15, icon: '📥' },
+        { id: 'shipping', color: '#8b5cf6', name: 'Shipping', x: 22.5, z: -27.5, w: 25, h: 15, icon: '📤' },
+        { id: 'office', color: '#6366f1', name: 'Office', x: -37.5, z: -22.5, w: 15, h: 15, icon: '🏢' },
+        { id: 'returns', color: '#f97316', name: 'Returns', x: -37.5, z: -5, w: 15, h: 20, icon: '↩️' },
+        { id: 'processing', color: '#eab308', name: 'Processing', x: -30, z: 15, w: 20, h: 20, icon: '⚙️' },
+        { id: 'storage-a', color: '#3b82f6', name: 'Storage A', x: -12.5, z: -5, w: 25, h: 40, icon: '📦' },
+        { id: 'storage-b', color: '#3b82f6', name: 'Storage B', x: 12.5, z: -5, w: 25, h: 40, icon: '📦' },
+        { id: 'staging', color: '#14b8a6', name: 'Staging', x: 32.5, z: 10, w: 15, h: 30, icon: '📋' },
+        { id: 'secure-evidence', color: '#ef4444', name: 'Secure Evidence', x: -30, z: 28.5, w: 20, h: 13, icon: '🔒' },
+      ];
+    }
 
-      // Right side
-      { id: 'staging', color: '#14b8a6', name: 'Staging', x: 32, z: 5, w: 12, h: 20, icon: '📋' },
+    return warehouseZones.map((zone) => {
+      // Calculate center and dimensions from bounds
+      const centerX = (zone.bounds.minX + zone.bounds.maxX) / 2;
+      const centerZ = (zone.bounds.minZ + zone.bounds.maxZ) / 2;
+      const width = zone.bounds.maxX - zone.bounds.minX;
+      const depth = zone.bounds.maxZ - zone.bounds.minZ;
 
-      // Secure area (bottom left)
-      { id: 'secure-storage', color: '#ef4444', name: 'Secure Evidence', x: -35, z: 25, w: 10, h: 10, icon: '🔒' },
-    ],
-    []
-  );
+      return {
+        id: zone.id,
+        color: zone.color,
+        name: zone.name,
+        x: centerX,
+        z: centerZ,
+        w: width,
+        h: depth,
+        icon: zone.icon,
+      };
+    });
+  }, [warehouseZones]);
 
   return (
     <group>
@@ -88,8 +108,8 @@ const Warehouse = () => {
       {/* Warehouse Structure */}
       <WarehouseStructure />
 
-      {/* Ceiling with Industrial Lighting */}
-      <CeilingSystem />
+      {/* Ceiling with Industrial Lighting - hide in top-down view */}
+      {!isTopDownView && <CeilingSystem />}
 
       {/* Zone Visualizations */}
       {zones.map((zone) => (
@@ -472,7 +492,8 @@ const ZoneVisualization = ({ zone, showLabels }: { zone: ZoneConfig; showLabels:
     }
   });
 
-  const isSecure = zone.id === 'secure-storage';
+  // Support both old and new zone IDs for secure storage
+  const isSecure = zone.id === 'secure-storage' || zone.id === 'secure-evidence';
 
   return (
     <group position={[zone.x, 0, zone.z]}>

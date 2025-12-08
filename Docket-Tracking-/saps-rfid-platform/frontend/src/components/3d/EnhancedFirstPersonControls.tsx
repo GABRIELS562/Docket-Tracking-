@@ -55,7 +55,7 @@ export function EnhancedFirstPersonControls({
   moveSpeed = 12,
   sprintMultiplier = 1.8,
   eyeHeight = 1.7,
-  lookSpeed = 0.002,
+  lookSpeed: _lookSpeed = 0.002,
   boundaries = { minX: -42, maxX: 42, minZ: -32, maxZ: 32 },
   enabled = true,
   onLockChange,
@@ -182,8 +182,8 @@ export function EnhancedFirstPersonControls({
   return (
     <PointerLockControls
       ref={controlsRef}
-      args={[camera, gl.domElement]}
-      selector="#canvas-container" // Optional: specify click target
+      camera={camera}
+      domElement={gl.domElement}
     />
   );
 }
@@ -363,9 +363,6 @@ export function MiniMap({ cameraPosition, cameraDirection, boundaries, size = 18
       const warehouseWidth = boundaries.maxX - boundaries.minX;
       const warehouseDepth = boundaries.maxZ - boundaries.minZ;
       const scale = (size - 20) / Math.max(warehouseWidth, warehouseDepth);
-
-      const centerX = size / 2;
-      const centerY = size / 2;
 
       // Draw warehouse outline
       ctx.strokeStyle = 'rgba(74, 222, 128, 0.5)';

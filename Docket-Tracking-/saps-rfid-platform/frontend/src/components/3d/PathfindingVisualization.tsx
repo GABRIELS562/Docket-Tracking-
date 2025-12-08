@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { Line, QuadraticBezierLine, Text, Billboard } from '@react-three/drei';
 import * as THREE from 'three';
 import { useSceneStore } from '../../stores/sceneStore';
+import { useZones, useWarehouseStore } from '../../stores';
 
 /**
  * Animated Pathfinding Visualization
@@ -34,21 +35,21 @@ interface PathData {
   isOptimal: boolean;
 }
 
-// Zone center positions (matching U-shaped warehouse layout in Warehouse.tsx)
-const ZONE_CENTERS: Record<string, [number, number, number]> = {
-  'receiving': [-20, 0.5, -25],
-  'shipping': [20, 0.5, -25],
-  'office': [-35, 0.5, -20],
-  'returns': [-35, 0.5, 0],
-  'processing': [-35, 0.5, 15],
-  'storage-a': [-12, 0.5, 0],
-  'storage-b': [12, 0.5, 0],
-  'staging': [32, 0.5, 5],
-  'secure-storage': [-35, 0.5, 25],
+// Fallback zone center positions (used when warehouse store is not ready)
+const FALLBACK_ZONE_CENTERS: Record<string, [number, number, number]> = {
+  'receiving': [-22.5, 0.5, -27.5],
+  'shipping': [22.5, 0.5, -27.5],
+  'office': [-37.5, 0.5, -22.5],
+  'returns': [-37.5, 0.5, -5],
+  'processing': [-30, 0.5, 15],
+  'storage-a': [-12.5, 0.5, -5],
+  'storage-b': [12.5, 0.5, -5],
+  'staging': [32.5, 0.5, 10],
+  'secure-evidence': [-30, 0.5, 28.5],
 };
 
-// Zone colors (matching Warehouse.tsx zone colors)
-const ZONE_COLORS: Record<string, string> = {
+// Fallback zone colors
+const FALLBACK_ZONE_COLORS: Record<string, string> = {
   'receiving': '#22c55e',
   'shipping': '#8b5cf6',
   'office': '#6366f1',
@@ -57,7 +58,7 @@ const ZONE_COLORS: Record<string, string> = {
   'storage-a': '#3b82f6',
   'storage-b': '#3b82f6',
   'staging': '#14b8a6',
-  'secure-storage': '#ef4444',
+  'secure-evidence': '#ef4444',
 };
 
 interface PathfindingVisualizationProps {
@@ -89,6 +90,30 @@ const PathfindingVisualization = ({
  * Zone connection graph showing all possible routes
  */
 const ZoneConnectionGraph = () => {
+  // NEW: Get zones from unified warehouse store
+  const warehouseZones = useZones();
+  const getZoneCenter = useWarehouseStore((s) => s.getZoneCenter);
+
+  // Build dynamic zone centers and colors
+  const { zoneCenters, zoneColors } = useMemo(() => {
+    if (!warehouseZones || warehouseZones.length === 0) {
+      return { zoneCenters: FALLBACK_ZONE_CENTERS, zoneColors: FALLBACK_ZONE_COLORS };
+    }
+
+    const centers: Record<string, [number, number, number]> = {};
+    const colors: Record<string, string> = {};
+
+    warehouseZones.forEach((zone) => {
+      const center = getZoneCenter(zone.id);
+      if (center) {
+        centers[zone.id] = [center.x, 0.5, center.z];
+        colors[zone.id] = zone.color;
+      }
+    });
+
+    return { zoneCenters: centers, zoneColors: colors };
+  }, [warehouseZones, getZoneCenter]);
+
   // Define zone connections (matching U-shaped warehouse layout)
   const connections = useMemo(
     () => [
@@ -100,7 +125,7 @@ const ZoneConnectionGraph = () => {
       ['office', 'receiving'],
       ['office', 'returns'],
       ['returns', 'processing'],
-      ['processing', 'secure-storage'],
+      ['processing', 'secure-evidence'],
       // Storage connections
       ['storage-a', 'returns'],
       ['storage-a', 'storage-b'],
@@ -112,12 +137,19 @@ const ZoneConnectionGraph = () => {
   return (
     <group>
       {connections.map(([from, to], index) => (
-        <ZoneConnection key={`${from}-${to}`} from={from} to={to} index={index} />
+        <ZoneConnection
+          key={`${from}-${to}`}
+          from={from}
+          to={to}
+          index={index}
+          zoneCenters={zoneCenters}
+          zoneColors={zoneColors}
+        />
       ))}
 
       {/* Zone node markers */}
-      {Object.entries(ZONE_CENTERS).map(([zoneId, position]) => (
-        <ZoneNode key={zoneId} zoneId={zoneId} position={position} />
+      {Object.entries(zoneCenters).map(([zoneId, position]) => (
+        <ZoneNode key={zoneId} zoneId={zoneId} position={position} color={zoneColors[zoneId]} />
       ))}
     </group>
   );
@@ -130,17 +162,21 @@ const ZoneConnection = ({
   from,
   to,
   index: _index,
+  zoneCenters,
+  zoneColors,
 }: {
   from: string;
   to: string;
   index: number;
+  zoneCenters: Record<string, [number, number, number]>;
+  zoneColors: Record<string, string>;
 }) => {
   const lineRef = useRef<any>(null);
   const particleRef = useRef<THREE.Mesh>(null);
   const [particleProgress, setParticleProgress] = useState(0);
 
-  const fromPos = ZONE_CENTERS[from];
-  const toPos = ZONE_CENTERS[to];
+  const fromPos = zoneCenters[from];
+  const toPos = zoneCenters[to];
 
   if (!fromPos || !toPos) return null;
 
@@ -153,7 +189,7 @@ const ZoneConnection = ({
   ];
 
   // Color based on zone types
-  const fromColor = ZONE_COLORS[from] || '#60a5fa';
+  const fromColor = zoneColors[from] || '#60a5fa';
 
   // Animate particles along path
   useFrame((_state, delta) => {
@@ -215,12 +251,14 @@ const ZoneConnection = ({
 const ZoneNode = ({
   zoneId,
   position,
+  color: propColor,
 }: {
   zoneId: string;
   position: [number, number, number];
+  color?: string;
 }) => {
   const meshRef = useRef<THREE.Mesh>(null);
-  const color = ZONE_COLORS[zoneId] || '#60a5fa';
+  const color = propColor || FALLBACK_ZONE_COLORS[zoneId] || '#60a5fa';
 
   // Pulsing animation
   useFrame((state) => {

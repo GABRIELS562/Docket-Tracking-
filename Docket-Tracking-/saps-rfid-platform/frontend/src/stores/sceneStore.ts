@@ -24,11 +24,11 @@ export const CAMERA_PRESETS: Record<string, CameraPreset> = {
   },
   topDown: {
     name: 'Top Down',
-    // Interior bird's eye - positioned inside building just below ceiling (y=9.9)
-    // Walls are 10m high, so y=9 puts us inside looking down at floor
-    position: [0, 9, 0.1],
+    // True bird's eye view - positioned above the warehouse looking straight down
+    // Ceiling is hidden in this view so we can see the entire warehouse interior
+    position: [0, 80, 0.1],
     target: [0, 0, 0],
-    fov: 100,
+    fov: 60,
   },
   docks: {
     name: 'Loading Docks',
