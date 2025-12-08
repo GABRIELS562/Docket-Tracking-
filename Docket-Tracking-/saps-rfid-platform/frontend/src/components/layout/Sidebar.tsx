@@ -27,8 +27,8 @@ const Sidebar = () => {
     { path: '/dashboard', icon: LayoutDashboard, label: '3D Dashboard' },
     { path: '/search', icon: Search, label: 'Search Items' },
     { path: '/analytics', icon: BarChart3, label: 'Analytics' },
-    { path: '/setup', icon: Building2, label: 'Warehouse Setup', comingSoon: true },
-    { path: '/admin', icon: Settings, label: 'Admin', comingSoon: true },
+    { path: '/setup', icon: Building2, label: 'Warehouse Setup' },
+    { path: '/admin', icon: Settings, label: 'Admin' },
   ];
 
   return (

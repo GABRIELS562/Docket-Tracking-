@@ -7,10 +7,13 @@
  * - Pagination and infinite scroll support
  * - Real-time search with debouncing
  * - Request caching and deduplication
+ * - Integration with scene store for consistent item data
  *
  * Target: <300ms search response
  * Reference: StartHere.md Phase 3.3
  */
+
+import { useSceneStore } from '../stores/sceneStore';
 
 // ============================================================================
 // Types
@@ -473,22 +476,91 @@ export class SearchApiService {
   }
 
   private generateSimulatedItems(request: SearchRequest): SearchResultItem[] {
-    const items: SearchResultItem[] = [];
     const { query, filters } = request;
     const lowerQuery = query.toLowerCase();
 
-    // Determine which zones to include
+    // Get real items from scene store for consistency with 3D view
+    const sceneItems = useSceneStore.getState().items;
+
+    // If scene has items, use them (converted to search format)
+    if (sceneItems.length > 0) {
+      const items: SearchResultItem[] = sceneItems
+        .filter((item) => {
+          // Zone filter
+          if (filters.zones.length > 0 && !filters.zones.includes(item.zone)) {
+            return false;
+          }
+
+          // Query filter (EPC or zone name)
+          if (query) {
+            const zoneName = item.zone.replace(/-/g, ' ').toLowerCase();
+            const epcLower = item.epc.toLowerCase();
+            if (!epcLower.includes(lowerQuery) && !zoneName.includes(lowerQuery)) {
+              return false;
+            }
+          }
+
+          return true;
+        })
+        .map((item) => {
+          const zone = ZONES.find((z) => z.id === item.zone);
+          const zoneName = zone?.name || item.zone.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
+          // Determine priority based on zone
+          let priority: SearchResultItem['priority'] = 'medium';
+          if (item.zone === 'secure-storage') priority = 'critical';
+          else if (item.zone === 'receiving' || item.zone === 'shipping' || item.zone === 'processing') priority = 'high';
+          else if (item.zone === 'returns') priority = 'low';
+
+          return {
+            id: item.id,
+            epc: item.epc,
+            name: `Item ${item.epc.slice(-6).toUpperCase()}`,
+            zone: zoneName,
+            zoneId: item.zone,
+            status: (item.isMoving ? 'in-transit' : 'active') as SearchResultItem['status'],
+            lastSeen: new Date().toISOString(),
+            position: item.position,
+            rssi: -30 - Math.random() * 30,
+            priority,
+          };
+        });
+
+      // Apply status filter
+      const statusFiltered = filters.status.length > 0
+        ? items.filter((item) => filters.status.includes(item.status))
+        : items;
+
+      // Apply priority filter
+      const priorityFiltered = filters.priority.length > 0
+        ? statusFiltered.filter((item) => filters.priority.includes(item.priority))
+        : statusFiltered;
+
+      // Sort by relevance (query match) or zone
+      if (query) {
+        priorityFiltered.sort((a, b) => {
+          const aMatch = a.epc.toLowerCase().includes(lowerQuery) ? 1 : 0;
+          const bMatch = b.epc.toLowerCase().includes(lowerQuery) ? 1 : 0;
+          return bMatch - aMatch;
+        });
+      }
+
+      return priorityFiltered;
+    }
+
+    // Fallback: Generate 250+ items if scene is empty (initial load)
+    const items: SearchResultItem[] = [];
     const activeZones = filters.zones.length > 0
       ? ZONES.filter((z) => filters.zones.includes(z.id))
       : ZONES;
 
-    // Generate items for each zone
+    // Generate 28 items per zone = 252 items total (matching pitch claim)
     activeZones.forEach((zone) => {
-      const itemCount = 20 + Math.floor(Math.random() * 30);
+      const itemCount = 28;
       const basePos = ZONE_POSITIONS[zone.id];
 
       for (let i = 0; i < itemCount; i++) {
-        const epc = `EPC${zone.id.toUpperCase().slice(0, 3)}${String(i).padStart(6, '0')}`;
+        const epc = `3050614141${zone.id.slice(0, 2).toUpperCase()}${String(i).padStart(6, '0')}`;
 
         // Apply text filter
         if (query && !epc.toLowerCase().includes(lowerQuery) && !zone.name.toLowerCase().includes(lowerQuery)) {

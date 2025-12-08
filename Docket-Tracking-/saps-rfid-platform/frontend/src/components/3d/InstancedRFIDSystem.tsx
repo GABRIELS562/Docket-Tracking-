@@ -339,11 +339,12 @@ const InstancedRFIDSystem = () => {
     });
   }, [instanceData]);
 
-  // Temp objects for matrix calculations
+  // Temp objects for matrix calculations - pre-allocated to avoid GC
   const tempMatrix = useMemo(() => new THREE.Matrix4(), []);
   const tempPosition = useMemo(() => new THREE.Vector3(), []);
   const tempQuaternion = useMemo(() => new THREE.Quaternion(), []);
   const tempScale = useMemo(() => new THREE.Vector3(), []);
+  const tempEuler = useMemo(() => new THREE.Euler(0, 0, 0), []); // Avoid creating new Euler every frame
 
   // Update instance matrices and colors
   useFrame((state) => {
@@ -378,7 +379,8 @@ const InstancedRFIDSystem = () => {
       tempPosition.copy(item.position);
       tempPosition.y += floatOffset;
 
-      tempQuaternion.setFromEuler(new THREE.Euler(0, rotation, 0));
+      tempEuler.set(0, rotation, 0);
+      tempQuaternion.setFromEuler(tempEuler);
       tempScale.copy(item.scale);
 
       // Pulse effect for tracked items

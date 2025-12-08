@@ -1,5 +1,5 @@
-import { Canvas } from '@react-three/fiber';
-import { Suspense, useMemo, useEffect } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { Suspense, useMemo, useEffect, useRef, useState } from 'react';
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
 import { Spinner } from '../ui/Spinner';
@@ -19,12 +19,16 @@ import { usePerformance, useTotalItemCount as useLegacyTotalItemCount } from '..
 import { useTenantConfig } from '../../stores/aiAnalyticsStore';
 import { useAIAnomalyGenerator } from '../../hooks/useAIAnomalyGenerator';
 import SearchInterface from '../ui/SearchInterface';
-import RealTimeAnalytics from '../ui/RealTimeAnalytics';
 import ItemDetailsPanel from '../ui/ItemDetailsPanel';
 import HelpGuide from '../ui/HelpGuide';
 import TourNarration from '../ui/TourNarration';
-import AIAlertsPanel from '../ui/AIAlertsPanel';
 import DemoControls from '../ui/DemoControls';
+import AutoPlayDemo from '../ui/AutoPlayDemo';
+import ROICalculator from '../ui/ROICalculator';
+import KeyboardShortcuts from '../ui/KeyboardShortcuts';
+import QuickTenantSwitcher from '../ui/QuickTenantSwitcher';
+import ToolsToolbar from '../ui/ToolsToolbar';
+import RightSidebar from '../ui/RightSidebar';
 
 /**
  * Enhanced 3D Scene Container
@@ -47,6 +51,10 @@ const Scene = () => {
   const renderQuality = useSceneStore((s) => s.renderQuality);
   const setFps = useSceneStore((s) => s.setFps);
   const tenantConfig = useTenantConfig();
+
+  // Panel visibility state - hidden by default for clean 3D view
+  const [showROI, setShowROI] = useState(false);
+  const [showDemo, setShowDemo] = useState(false);
 
   // NEW: Warehouse initialization - loads SAPS Forensics config by default
   useEffect(() => {
@@ -208,7 +216,10 @@ const Scene = () => {
           </mesh>
         </PerformanceMonitor>
 
-        {/* Development stats */}
+        {/* Real-time FPS monitoring - updates store for UI display */}
+        <FPSMonitor />
+
+        {/* Development stats - only in dev mode */}
         {import.meta.env.DEV && <Stats showPanel={0} className="stats" />}
       </Canvas>
 
@@ -217,14 +228,25 @@ const Scene = () => {
         <SearchInterface />
       </div>
 
-      {/* Real-Time Analytics Panel */}
-      <RealTimeAnalytics />
+      {/* Tools Toolbar - toggle panels on/off */}
+      <ToolsToolbar
+        showROI={showROI}
+        setShowROI={setShowROI}
+        showDemo={showDemo}
+        setShowDemo={setShowDemo}
+      />
 
-      {/* AI Alerts Panel - shows anomalies and dwell alerts */}
-      {tenantConfig && <AIAlertsPanel />}
+      {/* Right Sidebar - Combined Analytics & Alerts (collapsed by default) */}
+      <RightSidebar />
 
-      {/* Demo Controls - presentation helper (always render - it auto-initializes tenant) */}
-      <DemoControls />
+      {/* Demo Controls - presentation helper (togglable) */}
+      {showDemo && <DemoControls />}
+
+      {/* Auto-Play Demo - hands-free presentation mode (press P) */}
+      <AutoPlayDemo />
+
+      {/* ROI Calculator - shows live savings (togglable) */}
+      {showROI && <ROICalculator />}
 
       {/* Item Details Panel - shows when item is selected */}
       <ItemDetailsPanel />
@@ -234,6 +256,9 @@ const Scene = () => {
 
       {/* Tour Narration - shows during automated tour */}
       <TourNarration />
+
+      {/* Keyboard Shortcuts - press ? to open */}
+      <KeyboardShortcuts />
 
       {/* Scene overlay UI */}
       <SceneOverlay />
@@ -251,6 +276,49 @@ const LoadingPlaceholder = () => {
       <meshStandardMaterial color="#1e40af" wireframe />
     </mesh>
   );
+};
+
+/**
+ * Real-time FPS Monitor - measures actual frame rate
+ * Uses circular buffer for O(1) frame time tracking (no array shift)
+ */
+const FPSMonitor = () => {
+  const setFps = useSceneStore((s) => s.setFps);
+  // Circular buffer - pre-allocated for 60 frames
+  const frameTimesRef = useRef<Float32Array>(new Float32Array(60));
+  const frameIndexRef = useRef(0);
+  const frameSumRef = useRef(0);
+  const lastTimeRef = useRef(performance.now());
+  const updateIntervalRef = useRef(0);
+
+  useFrame(() => {
+    const now = performance.now();
+    const delta = now - lastTimeRef.current;
+    lastTimeRef.current = now;
+
+    // Circular buffer update - O(1) operation
+    const index = frameIndexRef.current % 60;
+    frameSumRef.current -= frameTimesRef.current[index]; // Remove old value
+    frameSumRef.current += delta; // Add new value
+    frameTimesRef.current[index] = delta;
+    frameIndexRef.current++;
+
+    // Update FPS every ~500ms (not every frame)
+    updateIntervalRef.current += delta;
+    if (updateIntervalRef.current >= 500) {
+      updateIntervalRef.current = 0;
+
+      // Calculate average FPS from circular buffer
+      const frameCount = Math.min(frameIndexRef.current, 60);
+      const avgFrameTime = frameSumRef.current / frameCount;
+      const fps = Math.round(1000 / avgFrameTime);
+
+      // Clamp to reasonable range
+      setFps(Math.min(Math.max(fps, 1), 120));
+    }
+  });
+
+  return null;
 };
 
 /**
@@ -327,8 +395,8 @@ const SceneOverlay = () => {
 
   return (
     <>
-      {/* Top left - Title and status */}
-      <div className="absolute top-4 left-4 z-20">
+      {/* Top left - Title, status, and tenant switcher */}
+      <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
         <div className="bg-black/60 backdrop-blur-md rounded-xl px-4 py-3 border border-white/10">
           <h2 className="text-white font-semibold text-sm">Multi-Tenant RFID Platform</h2>
           <p className="text-gray-400 text-[10px] mt-0.5">Digital Twin Visualization</p>
@@ -337,6 +405,8 @@ const SceneOverlay = () => {
             <span className="text-cyan-400 text-xs font-medium">Demo Mode</span>
           </div>
         </div>
+        {/* Quick Tenant Switcher */}
+        <QuickTenantSwitcher />
       </div>
 
       {/* Top right - Stats */}

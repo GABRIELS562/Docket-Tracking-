@@ -16,12 +16,12 @@ const DEMO_ZONES = [
 ];
 
 /**
- * Generate a random EPC code
+ * Generate EPC code
+ * All items use LAB-XXXX format for consistency
  */
 const generateEPC = (index: number): string => {
-  const prefix = '3050614141';
-  const serial = index.toString().padStart(8, '0');
-  return `${prefix}${serial}`.substring(0, 24).toUpperCase();
+  // All items use LAB-XXXX format for SAPS Forensics demo
+  return `LAB-${String(index + 1).padStart(4, '0')}`;
 };
 
 /**

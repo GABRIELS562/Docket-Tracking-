@@ -270,6 +270,30 @@ const SearchPage = () => {
     criticalZone: items.filter(i => i.zone === 'secure-storage').length,
   }), [items]);
 
+  // Memoized initial items list for "All Tracked Items" section
+  // This avoids calling searchItems during render which causes infinite loop
+  const initialItemsList = useMemo(() => {
+    return items.slice(0, 20).map((item) => {
+      const priorities: SearchResult['priority'][] = ['low', 'medium', 'high', 'critical'];
+      const statuses: SearchResult['status'][] = ['active', 'active', 'active', 'in-transit'];
+      const randomPriority = item.zone === 'secure-storage' ? 'critical' : priorities[Math.floor(Math.random() * 3)];
+      const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+
+      return {
+        id: item.id,
+        epc: item.epc,
+        name: `${itemTerm} ${item.epc.slice(-6).toUpperCase()}`,
+        zone: item.zone.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+        zoneId: item.zone,
+        status: randomStatus,
+        lastSeen: new Date(Date.now() - Math.random() * 3600000).toISOString(),
+        position: item.position,
+        priority: randomPriority,
+        dwellTime: Math.floor(Math.random() * 1440 * 30),
+      };
+    });
+  }, [items, itemTerm]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
       <div className="max-w-6xl mx-auto">
@@ -584,7 +608,7 @@ const SearchPage = () => {
               </span>
             </div>
             <div className="space-y-2">
-              {searchItems('', filters).slice(0, 20).map((result) => {
+              {initialItemsList.map((result) => {
                 const zone = ZONES.find((z) => z.id === result.zoneId);
 
                 return (

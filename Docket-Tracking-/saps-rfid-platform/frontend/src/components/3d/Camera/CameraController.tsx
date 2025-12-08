@@ -111,6 +111,7 @@ const CameraController = () => {
     forward: new THREE.Vector3(),
     right: new THREE.Vector3(),
     direction: new THREE.Vector3(),
+    up: new THREE.Vector3(0, 1, 0), // Pre-allocated up vector for walk mode
     startPos: new THREE.Vector3(),
     endPos: new THREE.Vector3(),
     startTarget: new THREE.Vector3(),
@@ -317,15 +318,15 @@ const CameraController = () => {
     if (mode !== 'walk') return;
 
     const { keys, velocity } = walkState.current;
-    const { forward, right, direction } = vectors;
+    const { forward, right, direction, up } = vectors;
 
     // Get camera forward direction (horizontal only)
     camera.getWorldDirection(forward);
     forward.y = 0;
     forward.normalize();
 
-    // Get right direction
-    right.crossVectors(forward, new THREE.Vector3(0, 1, 0));
+    // Get right direction (using pre-allocated up vector)
+    right.crossVectors(forward, up);
 
     // Build movement direction
     direction.set(0, 0, 0);

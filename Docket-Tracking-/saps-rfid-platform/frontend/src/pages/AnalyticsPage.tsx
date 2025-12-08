@@ -27,6 +27,9 @@ import {
   Line,
   Legend,
 } from 'recharts';
+import { useShallow } from 'zustand/react/shallow';
+import { useSceneStore } from '../stores/sceneStore';
+import { useAnomalies } from '../stores/aiAnalyticsStore';
 
 /**
  * Analytics Dashboard Page
@@ -77,17 +80,18 @@ const generateOccupancyData = () => {
   return data;
 };
 
-// Zone distribution data for pie chart
-const generateZoneDistribution = () => [
-  { name: 'Storage A', value: 245, color: ZONE_COLORS['storage-a'] },
-  { name: 'Storage B', value: 198, color: ZONE_COLORS['storage-b'] },
-  { name: 'Receiving', value: 67, color: ZONE_COLORS['receiving'] },
-  { name: 'Shipping', value: 52, color: ZONE_COLORS['shipping'] },
-  { name: 'Processing', value: 43, color: ZONE_COLORS['processing'] },
-  { name: 'Staging', value: 38, color: ZONE_COLORS['staging'] },
-  { name: 'Secure', value: 24, color: ZONE_COLORS['secure-storage'] },
-  { name: 'Returns', value: 18, color: ZONE_COLORS['returns'] },
-];
+// Zone name mapping for display
+const ZONE_NAMES: Record<string, string> = {
+  'receiving': 'Receiving',
+  'shipping': 'Shipping',
+  'storage-a': 'Storage A',
+  'storage-b': 'Storage B',
+  'processing': 'Processing',
+  'staging': 'Staging',
+  'secure-storage': 'Secure',
+  'returns': 'Returns',
+  'office': 'Office',
+};
 
 // Movement activity data
 const generateMovementData = () => {
@@ -128,17 +132,41 @@ const AnalyticsPage = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(new Date());
 
-  const zoneDistribution = useMemo(() => generateZoneDistribution(), []);
+  // Get real data from stores
+  const items = useSceneStore(useShallow((s) => s.items));
+  const anomalies = useAnomalies();
+
+  // Calculate zone distribution from actual items
+  const zoneDistribution = useMemo(() => {
+    const zoneCounts = new Map<string, number>();
+    items.forEach((item) => {
+      const count = zoneCounts.get(item.zone) || 0;
+      zoneCounts.set(item.zone, count + 1);
+    });
+
+    return Array.from(zoneCounts.entries())
+      .map(([zone, value]) => ({
+        name: ZONE_NAMES[zone] || zone.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+        value,
+        color: ZONE_COLORS[zone] || '#6b7280',
+        zoneId: zone,
+      }))
+      .sort((a, b) => b.value - a.value);
+  }, [items]);
+
   const movementData = useMemo(() => generateMovementData(), []);
   const readerData = useMemo(() => generateReaderData(), []);
 
-  // Calculate KPIs
+  // Calculate KPIs using real data
   const kpis = useMemo(() => {
-    const totalItems = zoneDistribution.reduce((sum, z) => sum + z.value, 0);
+    const totalItems = items.length; // Use actual item count
     const totalMovements = movementData.reduce((sum, m) => sum + m.movements, 0);
     const totalScans = movementData.reduce((sum, m) => sum + m.scans, 0);
-    const totalAlerts = movementData.reduce((sum, m) => sum + m.alerts, 0);
+    const totalAlerts = anomalies.length; // Use actual anomaly count
     const avgLatency = readerData.reduce((sum, r) => sum + r.latency, 0) / readerData.length;
+
+    // Find busiest zone from real data
+    const busiestZone = zoneDistribution[0] || { name: 'N/A', value: 0 };
 
     return {
       totalItems,
@@ -148,8 +176,11 @@ const AnalyticsPage = () => {
       avgLatency: avgLatency.toFixed(1),
       readersOnline: readerData.filter((r) => r.uptime > 95).length,
       totalReaders: readerData.length,
+      busiestZone: busiestZone.name,
+      busiestZoneCount: busiestZone.value,
+      activeZones: zoneDistribution.length,
     };
-  }, [zoneDistribution, movementData, readerData]);
+  }, [items.length, zoneDistribution, movementData, readerData, anomalies.length]);
 
   // Auto-refresh every 30 seconds
   useEffect(() => {
@@ -439,8 +470,8 @@ const AnalyticsPage = () => {
         <StatCard
           icon={<MapPin className="w-5 h-5 text-purple-400" />}
           label="Busiest Zone"
-          value="Storage A"
-          subtext="245 items tracked"
+          value={kpis.busiestZone}
+          subtext={`${kpis.busiestZoneCount} items tracked`}
           color="purple"
         />
         <StatCard

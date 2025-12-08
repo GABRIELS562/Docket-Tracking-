@@ -54,7 +54,7 @@ class ErrorBoundary extends Component<Props, State> {
             </div>
             <h2 className="text-xl font-semibold text-white mb-2">Something went wrong</h2>
             <p className="text-gray-400 mb-4">
-              An error occurred while rendering the 3D scene. This might be due to WebGL compatibility issues.
+              An unexpected error occurred. Please try again or refresh the page.
             </p>
 
             {/* Error details (collapsed by default) */}

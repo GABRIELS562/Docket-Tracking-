@@ -98,13 +98,9 @@ interface AIAnalyticsState {
   updateZonePatterns: (patterns: ZonePattern[]) => void;
   addDwellAlert: (alert: DwellAlert) => void;
   removeDwellAlert: (itemEpc: string) => void;
+  clearDwellAlerts: () => void;
   setLearningStatus: (isLearning: boolean, progress?: number) => void;
   incrementEventsProcessed: (count?: number) => void;
-
-  // Anomaly detection helpers - return partial anomaly data for addAnomaly
-  checkDwellAnomaly: (itemEpc: string, zone: string, dwellMinutes: number) => Omit<AnomalyEvent, 'id' | 'timestamp' | 'acknowledged'> | null;
-  checkSequenceAnomaly: (itemEpc: string, fromZone: string, toZone: string) => Omit<AnomalyEvent, 'id' | 'timestamp' | 'acknowledged'> | null;
-  checkTimeAnomaly: (itemEpc: string, zone: string) => Omit<AnomalyEvent, 'id' | 'timestamp' | 'acknowledged'> | null;
 
   // Backend integration
   fetchZonePatternsFromBackend: (authToken?: string) => Promise<void>;
@@ -116,16 +112,6 @@ interface AIAnalyticsState {
  * Generate unique ID
  */
 const generateId = () => `anomaly-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-/**
- * Get severity based on confidence score
- */
-const getSeverity = (confidence: number): AnomalySeverity => {
-  if (confidence >= 90) return 'critical';
-  if (confidence >= 70) return 'high';
-  if (confidence >= 50) return 'medium';
-  return 'low';
-};
 
 /**
  * Default zone patterns for SAPS Forensics (simulated learned data)
@@ -319,6 +305,10 @@ export const useAIAnalyticsStore = create<AIAnalyticsState>((set, get) => ({
     }));
   },
 
+  clearDwellAlerts: () => {
+    set({ dwellAlerts: [] });
+  },
+
   setLearningStatus: (isLearning, progress = 0) => {
     set({ isLearning, learningProgress: progress });
   },
@@ -327,106 +317,6 @@ export const useAIAnalyticsStore = create<AIAnalyticsState>((set, get) => ({
     set((state) => ({
       totalEventsProcessed: state.totalEventsProcessed + count,
     }));
-  },
-
-  // Check if item has been in zone too long
-  checkDwellAnomaly: (itemEpc, zone, dwellMinutes) => {
-    const { zonePatterns, tenantConfig, currentTenant } = get();
-    if (!tenantConfig) return null;
-
-    const pattern = zonePatterns.find((p) => p.zoneId === zone);
-    if (!pattern) return null;
-
-    const threshold = pattern.avgDwellMinutes + 2 * pattern.stdDwellMinutes;
-    if (dwellMinutes <= threshold) return null;
-
-    const dwellDays = Math.floor(dwellMinutes / 1440);
-    const expectedDays = Math.floor(pattern.avgDwellMinutes / 1440);
-    const deviation = (dwellMinutes - pattern.avgDwellMinutes) / pattern.stdDwellMinutes;
-    const confidence = Math.min(95, 50 + deviation * 15);
-
-    return {
-      tenantId: currentTenant!,
-      itemEpc,
-      itemName: `${tenantConfig.itemTerm} ${itemEpc.slice(-6)}`,
-      type: 'dwell_exceeded' as AnomalyType,
-      severity: getSeverity(confidence),
-      confidence: Math.round(confidence),
-      message: `${tenantConfig.itemTerm} has been in ${pattern.zoneName} for ${dwellDays} days (expected: ${expectedDays} days)`,
-      details: {
-        zone,
-        dwellDays,
-        expectedDays,
-        reason: 'Exceeded normal dwell time threshold',
-      },
-    };
-  },
-
-  // Check if zone transition is unusual
-  checkSequenceAnomaly: (itemEpc, fromZone, toZone) => {
-    const { zonePatterns, tenantConfig, currentTenant } = get();
-    if (!tenantConfig) return null;
-
-    const pattern = zonePatterns.find((p) => p.zoneId === fromZone);
-    if (!pattern) return null;
-
-    const transition = pattern.typicalNextZones.find((t) => t.zoneId === toZone);
-    const probability = transition?.probability || 0;
-
-    // If this transition has <5% probability, it's unusual
-    if (probability >= 0.05) return null;
-
-    const confidence = Math.min(95, 90 - probability * 100);
-
-    const fromName = zonePatterns.find((p) => p.zoneId === fromZone)?.zoneName || fromZone;
-    const toName = zonePatterns.find((p) => p.zoneId === toZone)?.zoneName || toZone;
-
-    return {
-      tenantId: currentTenant!,
-      itemEpc,
-      itemName: `${tenantConfig.itemTerm} ${itemEpc.slice(-6)}`,
-      type: 'unusual_sequence' as AnomalyType,
-      severity: getSeverity(confidence),
-      confidence: Math.round(confidence),
-      message: `Unusual movement: ${fromName} → ${toName} (${(probability * 100).toFixed(1)}% typical)`,
-      details: {
-        fromZone,
-        toZone,
-        reason: `This zone transition occurs in only ${(probability * 100).toFixed(1)}% of cases`,
-      },
-    };
-  },
-
-  // Check if movement happened at unusual time
-  checkTimeAnomaly: (itemEpc, zone) => {
-    const { zonePatterns, tenantConfig, currentTenant } = get();
-    if (!tenantConfig) return null;
-
-    const pattern = zonePatterns.find((p) => p.zoneId === zone);
-    if (!pattern) return null;
-
-    const hour = new Date().getHours();
-    const activity = pattern.hourlyActivity[hour];
-
-    // If activity at this hour is bottom 10%, flag it
-    if (activity >= 0.1) return null;
-
-    const confidence = Math.min(90, 70 + (0.1 - activity) * 200);
-
-    return {
-      tenantId: currentTenant!,
-      itemEpc,
-      itemName: `${tenantConfig.itemTerm} ${itemEpc.slice(-6)}`,
-      type: 'unusual_time' as AnomalyType,
-      severity: getSeverity(confidence),
-      confidence: Math.round(confidence),
-      message: `Movement at unusual hour (${hour}:00) - only ${(activity * 100).toFixed(0)}% normal activity`,
-      details: {
-        zone,
-        timestamp: new Date().toISOString(),
-        reason: `Activity at ${hour}:00 is in bottom 10% of normal patterns`,
-      },
-    };
   },
 
   // Fetch real zone patterns from backend analytics API

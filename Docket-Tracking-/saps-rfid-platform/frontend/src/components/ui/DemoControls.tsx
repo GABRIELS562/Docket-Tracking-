@@ -11,6 +11,7 @@ import {
   Eye,
   Zap,
   MapPin,
+  RotateCcw,
 } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { useSceneStore } from '../../stores/sceneStore';
@@ -26,9 +27,10 @@ import type { TenantId } from '../../pages/TenantSelectPage';
 // Demo zones for fallback
 const DEMO_ZONES = ['receiving', 'shipping', 'storage-a', 'storage-b', 'processing', 'staging', 'secure-storage', 'returns'];
 
-// Generate fallback demo item
+// Generate fallback demo item with LAB-XXXX format
 const generateDemoItem = (zone?: string) => {
-  const epc = `3050614141${Math.floor(Math.random() * 100000000).toString().padStart(8, '0')}`;
+  const labNum = Math.floor(Math.random() * 250) + 1; // LAB-0001 to LAB-0250
+  const epc = `LAB-${String(labNum).padStart(4, '0')}`;
   return {
     id: epc,
     epc,
@@ -52,6 +54,8 @@ const DemoControls = () => {
 
   const addAnomaly = useAIAnalyticsStore((s) => s.addAnomaly);
   const addDwellAlert = useAIAnalyticsStore((s) => s.addDwellAlert);
+  const clearAllAnomalies = useAIAnalyticsStore((s) => s.clearAllAnomalies);
+  const clearDwellAlerts = useAIAnalyticsStore((s) => s.clearDwellAlerts);
   const currentTenant = useAIAnalyticsStore((s) => s.currentTenant);
   const tenantConfig = useAIAnalyticsStore((s) => s.tenantConfig);
   const setTenant = useAIAnalyticsStore((s) => s.setTenant);
@@ -105,7 +109,13 @@ const DemoControls = () => {
     const itemTerm = tenantConfig?.itemTerm || 'Evidence Docket';
     const thresholdDays = tenantConfig?.alertThresholds?.dwellWarningDays || 14;
     const tenant = currentTenant || 'saps-forensics';
-    const dwellDays = 32; // Over threshold
+
+    // Calculate demo dwell time as 2.3x the tenant's threshold (always exceeds)
+    // SAPS: 14 days * 2.3 = ~32 days (evidence sitting too long)
+    // RetailGuard: 1 day * 2.3 = ~2.3 days (perishable item delayed)
+    // MediTrack: 7 days * 2.3 = ~16 days (sample processing delayed)
+    // MineSecure: 30 days * 2.3 = ~69 days (equipment inspection overdue)
+    const dwellDays = Math.round(thresholdDays * 2.3);
 
     // Add critical dwell alert
     addDwellAlert({
@@ -140,7 +150,7 @@ const DemoControls = () => {
     // Fly to the zone
     flyToZone(randomItem.zone);
 
-    console.log(`🎯 Demo: Triggered dwell time alert for item in ${randomItem.zone}`);
+    console.log(`🎯 Demo: Triggered dwell time alert for item in ${randomItem.zone} (${dwellDays} days > ${thresholdDays} day threshold)`);
   };
 
   // Demo: Trigger Unauthorized Movement
@@ -237,6 +247,20 @@ const DemoControls = () => {
     flyToZone(randomItem.zone);
 
     console.log('🎯 Demo: Triggered after-hours activity alert');
+  };
+
+  // Reset Demo - Clear all alerts and return to overview
+  const resetDemo = () => {
+    setActiveDemo(null);
+    clearAllAnomalies();
+    clearDwellAlerts();
+    goToPreset('overview');
+
+    // Turn off readers and labels for a fresh start
+    if (showReaders) toggleReaders();
+    if (showLabels) toggleLabels();
+
+    console.log('🔄 Demo: Reset - All alerts cleared, view reset to overview');
   };
 
   const demoScenarios = [
@@ -373,6 +397,18 @@ const DemoControls = () => {
               </div>
             </div>
           </div>
+
+          {/* Reset Demo Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              resetDemo();
+            }}
+            className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-all"
+          >
+            <RotateCcw className="w-4 h-4" />
+            <span className="text-sm font-medium">Reset Demo</span>
+          </button>
         </div>
       )}
     </div>
