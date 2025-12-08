@@ -8,18 +8,27 @@ import {
   Radio,
   Shield,
   Building2,
+  Lock,
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
+
+interface NavItem {
+  path: string;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  comingSoon?: boolean;
+}
 
 const Sidebar = () => {
   // Use individual selector to avoid re-renders
   const tenant = useAuthStore((s) => s.tenant);
-  const navItems = [
+
+  const navItems: NavItem[] = [
     { path: '/dashboard', icon: LayoutDashboard, label: '3D Dashboard' },
     { path: '/search', icon: Search, label: 'Search Items' },
     { path: '/analytics', icon: BarChart3, label: 'Analytics' },
-    { path: '/setup', icon: Building2, label: 'Warehouse Setup' },
-    { path: '/admin', icon: Settings, label: 'Admin' },
+    { path: '/setup', icon: Building2, label: 'Warehouse Setup', comingSoon: true },
+    { path: '/admin', icon: Settings, label: 'Admin', comingSoon: true },
   ];
 
   return (
@@ -42,19 +51,36 @@ const Sidebar = () => {
         <ul className="space-y-2">
           {navItems.map((item) => (
             <li key={item.path}>
-              <NavLink
-                to={item.path}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    isActive
-                      ? 'bg-blue-600 text-white'
-                      : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                  }`
-                }
-              >
-                <item.icon className="w-5 h-5" />
-                <span className="font-medium">{item.label}</span>
-              </NavLink>
+              {item.comingSoon ? (
+                // Disabled "Coming Soon" item
+                <div
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-500 cursor-not-allowed relative group"
+                  title="Coming Soon"
+                >
+                  <item.icon className="w-5 h-5" />
+                  <span className="font-medium">{item.label}</span>
+                  <Lock className="w-3 h-3 ml-auto" />
+                  {/* Coming Soon tooltip */}
+                  <div className="absolute left-full ml-2 px-2 py-1 bg-slate-700 text-xs text-white rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+                    Coming Soon
+                  </div>
+                </div>
+              ) : (
+                // Active navigation item
+                <NavLink
+                  to={item.path}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                      isActive
+                        ? 'bg-blue-600 text-white'
+                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                    }`
+                  }
+                >
+                  <item.icon className="w-5 h-5" />
+                  <span className="font-medium">{item.label}</span>
+                </NavLink>
+              )}
             </li>
           ))}
         </ul>
