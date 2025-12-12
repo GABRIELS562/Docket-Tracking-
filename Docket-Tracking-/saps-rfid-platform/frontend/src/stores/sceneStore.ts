@@ -244,18 +244,16 @@ interface SceneState {
 }
 
 /**
- * Zone positions for flyToZone - matching new U-shaped warehouse layout
+ * Zone positions for flyToZone - SAPS Forensic Lab layout
  */
 const ZONE_POSITIONS: Record<string, { position: [number, number, number]; target: [number, number, number] }> = {
-  'receiving': { position: [-40, 20, -50], target: [-20, 0, -25] },
-  'shipping': { position: [40, 20, -50], target: [20, 0, -25] },
-  'office': { position: [-55, 15, -35], target: [-35, 0, -20] },
-  'returns': { position: [-55, 15, 5], target: [-35, 0, 0] },
-  'processing': { position: [-55, 20, 20], target: [-35, 0, 15] },
-  'storage-a': { position: [-35, 25, 10], target: [-12, 0, 0] },
-  'storage-b': { position: [35, 25, 10], target: [12, 0, 0] },
-  'staging': { position: [50, 18, 15], target: [32, 0, 5] },
-  'secure-storage': { position: [-55, 20, 35], target: [-35, 3, 25] },
+  'entry': { position: [-30, 15, -35], target: [-22.5, 0, -27.5] },
+  'extractions': { position: [-20, 15, -15], target: [-12.5, 0, -5] },
+  'qpcr-lab': { position: [20, 15, -15], target: [12.5, 0, -5] },
+  'pcr-lab': { position: [-38, 15, 25], target: [-30, 0, 15] },
+  'electrophoresis': { position: [-42, 15, 10], target: [-34, 0, 1.5] },
+  'genemapper': { position: [-42, 15, -20], target: [-34, 0, -11.5] },
+  'chain-custody': { position: [30, 15, -35], target: [22.5, 0, -27.5] },
 };
 
 /**
@@ -395,36 +393,32 @@ export const useSceneStore = create<SceneState>((set, _get) => ({
   clearActivePath: () => set({ activePath: null }),
 
   calculatePathToItem: (targetZone) => {
-    // Zone centers matching U-shaped warehouse layout
+    // SAPS Forensic Lab zone centers
     // Coordinates are in 0-100 range, transformed by -50 in PathfindingVisualization
     // Formula: x = warehouseX + 50, y = warehouseZ + 50
     const zoneCenters: Record<string, { x: number; y: number }> = {
-      'receiving': { x: 30, y: 25 },   // warehouse: x=-20, z=-25
-      'shipping': { x: 70, y: 25 },    // warehouse: x=20, z=-25
-      'office': { x: 15, y: 30 },      // warehouse: x=-35, z=-20
-      'returns': { x: 15, y: 50 },     // warehouse: x=-35, z=0
-      'processing': { x: 15, y: 65 },  // warehouse: x=-35, z=15
-      'storage-a': { x: 38, y: 50 },   // warehouse: x=-12, z=0
-      'storage-b': { x: 62, y: 50 },   // warehouse: x=12, z=0
-      'staging': { x: 82, y: 55 },     // warehouse: x=32, z=5
-      'secure-storage': { x: 15, y: 75 }, // warehouse: x=-35, z=25
+      'entry': { x: 27.5, y: 22.5 },           // warehouse: x=-22.5, z=-27.5
+      'extractions': { x: 37.5, y: 45 },       // warehouse: x=-12.5, z=-5
+      'qpcr-lab': { x: 62.5, y: 45 },          // warehouse: x=12.5, z=-5
+      'pcr-lab': { x: 20, y: 65 },             // warehouse: x=-30, z=15
+      'electrophoresis': { x: 16, y: 51.5 },   // warehouse: x=-34, z=1.5
+      'genemapper': { x: 16, y: 38.5 },        // warehouse: x=-34, z=-11.5
+      'chain-custody': { x: 72.5, y: 22.5 },   // warehouse: x=22.5, z=-27.5
     };
 
-    // Zone connections for pathfinding (matching U-shaped warehouse layout)
+    // SAPS Forensic Lab zone connections (following lab workflow)
     const zoneConnections: Record<string, string[]> = {
-      'receiving': ['storage-a', 'office'],
-      'shipping': ['storage-b', 'staging'],
-      'office': ['receiving', 'returns'],
-      'returns': ['office', 'processing', 'storage-a'],
-      'processing': ['returns', 'secure-storage'],
-      'storage-a': ['receiving', 'returns', 'storage-b'],
-      'storage-b': ['storage-a', 'shipping', 'staging'],
-      'staging': ['storage-b', 'shipping'],
-      'secure-storage': ['processing'],
+      'entry': ['extractions', 'chain-custody'],
+      'extractions': ['entry', 'qpcr-lab', 'electrophoresis'],
+      'qpcr-lab': ['extractions', 'pcr-lab', 'chain-custody'],
+      'pcr-lab': ['qpcr-lab', 'electrophoresis'],
+      'electrophoresis': ['extractions', 'pcr-lab', 'genemapper'],
+      'genemapper': ['electrophoresis', 'chain-custody'],
+      'chain-custody': ['entry', 'qpcr-lab', 'genemapper'],
     };
 
-    // BFS to find shortest path from entrance (receiving) to target
-    const startZone = 'receiving';
+    // BFS to find shortest path from entrance (entry) to target
+    const startZone = 'entry';
     if (!zoneCenters[targetZone]) {
       set({ activePath: null });
       return;

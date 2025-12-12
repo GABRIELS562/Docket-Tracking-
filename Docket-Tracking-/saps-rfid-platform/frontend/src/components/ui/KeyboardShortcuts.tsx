@@ -41,34 +41,34 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     ],
   },
   {
-    title: 'Navigation',
+    title: 'Orbit Mode (Default)',
     icon: Move,
     shortcuts: [
       { key: 'Drag', description: 'Rotate camera' },
       { key: 'Scroll', description: 'Zoom in/out' },
       { key: 'Right-drag', description: 'Pan camera' },
-      { key: 'W', description: 'Walk mode: forward' },
-      { key: 'A S D', description: 'Walk mode: strafe' },
-      { key: 'Shift', description: 'Walk mode: sprint' },
+      { key: 'G', description: 'Enter walk mode' },
     ],
   },
   {
-    title: 'Demo & Presentation',
-    icon: Presentation,
-    shortcuts: [
-      { key: 'P', description: 'Open auto-play demo' },
-      { key: 'T', description: 'Start guided tour' },
-      { key: 'R', description: 'Reset camera view' },
-      { key: 'ESC', description: 'Close overlays / Exit mode' },
-    ],
-  },
-  {
-    title: 'Display Toggles',
+    title: 'Walk Mode (FPS)',
     icon: Eye,
     shortcuts: [
-      { key: 'G', description: 'Toggle grid' },
-      { key: 'L', description: 'Toggle labels' },
-      { key: 'H', description: 'Toggle heatmap' },
+      { key: '↑/↓', description: 'Move forward/backward' },
+      { key: '←/→', description: 'Turn left/right' },
+      { key: 'A/D', description: 'Strafe left/right' },
+      { key: 'Shift', description: 'Sprint (hold)' },
+      { key: 'G', description: 'Exit walk mode' },
+    ],
+  },
+  {
+    title: 'Demo & Tours',
+    icon: Presentation,
+    shortcuts: [
+      { key: 'T', description: 'Start cinematic tour' },
+      { key: 'P', description: 'Open auto-play demo' },
+      { key: 'Space', description: 'Play/pause demo' },
+      { key: 'ESC', description: 'Stop tour/close panels' },
     ],
   },
   {

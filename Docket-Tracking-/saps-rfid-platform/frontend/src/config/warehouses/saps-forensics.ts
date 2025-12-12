@@ -4,23 +4,20 @@
  * This is the SINGLE SOURCE OF TRUTH for all warehouse spatial data.
  * All components MUST use this configuration - no hardcoded coordinates elsewhere.
  *
- * Layout: U-Shaped warehouse with central storage area
+ * Layout: DNA Forensic Laboratory Workflow
  *
  *            NORTH (Front)
  *    ┌──────────────────────────────┐
- *    │   Receiving    │   Shipping  │  DOCK AREA
- *    │    Dock        │    Dock     │
+ *    │    Entry       │  Chain of   │  ENTRY & EXIT
+ *    │    into Lab    │  Custody    │
  *    ├────────────────┼─────────────┤
  *    │                              │
- *    │   Storage A   Storage B     │  MAIN STORAGE
- *    │                              │
+ *    │  Extractions   QPCR Lab     │  INITIAL PROCESSING
+ *    │  Sgt Pillay    Sgt Mulder   │
  *    ├───────┬───────┬──────────────┤
- *    │Office │Returns│ Processing   │
- *    │       │       │              │  LEFT WING
- *    ├───────┴───────┼──────────────┤
- *    │ Secure        │   Staging    │
- *    │ Evidence      │              │  SECURE AREA
- *    └───────────────┴──────────────┘
+ *    │GeneMap│Electro│  PCR Lab     │
+ *    │ WO D  │phoresis│ WO Jacobs   │  ANALYSIS AREA
+ *    └───────┴───────┴──────────────┘
  *            SOUTH (Back)
  */
 
@@ -31,21 +28,21 @@ import type { WarehouseConfig, ZoneConfig, ReaderConfig, CameraPreset } from '..
 // ============================================================================
 
 const zones: ZoneConfig[] = [
-  // ========== DOCK AREA (North) ==========
+  // ========== ENTRY AREA (North) ==========
   {
-    id: 'receiving',
-    name: 'receiving',
-    displayName: 'Receiving Dock',
+    id: 'entry',
+    name: 'entry',
+    displayName: 'Entry into Lab',
     type: 'receiving',
     bounds: { minX: -40, maxX: -5, minY: 0, maxY: 10, minZ: -35, maxZ: -20 },
     center: { x: -22.5, y: 0.5, z: -27.5 },
     floorSize: { width: 35, depth: 15 },
-    floorColor: '#22c55e',
-    color: '#22c55e',
-    icon: '📥',
+    floorColor: '#3b82f6',
+    color: '#3b82f6',
+    icon: '🚪',
     capacity: 150,
     priority: 'high',
-    connectedZones: ['storage-a', 'office'],
+    connectedZones: ['extractions', 'genemapper'],
     cameraPreset: {
       position: { x: -35, y: 18, z: -50 },
       target: { x: -22.5, y: 2, z: -27.5 },
@@ -55,43 +52,44 @@ const zones: ZoneConfig[] = [
     securityLevel: 'standard',
   },
   {
-    id: 'shipping',
-    name: 'shipping',
-    displayName: 'Shipping Dock',
+    id: 'chain-custody',
+    name: 'chain-custody',
+    displayName: 'Confirm Chain of Custody',
     type: 'shipping',
     bounds: { minX: 5, maxX: 40, minY: 0, maxY: 10, minZ: -35, maxZ: -20 },
     center: { x: 22.5, y: 0.5, z: -27.5 },
     floorSize: { width: 35, depth: 15 },
-    floorColor: '#8b5cf6',
-    color: '#8b5cf6',
-    icon: '📤',
+    floorColor: '#ef4444',
+    color: '#ef4444',
+    icon: '✅',
+    isSecure: true,
     capacity: 200,
-    priority: 'high',
-    connectedZones: ['storage-b', 'staging'],
+    priority: 'critical',
+    connectedZones: ['qpcr-lab', 'electrophoresis'],
     cameraPreset: {
       position: { x: 35, y: 18, z: -50 },
       target: { x: 22.5, y: 2, z: -27.5 },
       fov: 50,
     },
     hasWalls: false,
-    securityLevel: 'standard',
+    securityLevel: 'secure',
   },
 
-  // ========== MAIN STORAGE (Center) ==========
+  // ========== INITIAL PROCESSING (Center) ==========
   {
-    id: 'storage-a',
-    name: 'storage-a',
-    displayName: 'Storage Area A',
+    id: 'extractions',
+    name: 'extractions',
+    displayName: 'Extractions - Sgt Pillay',
     type: 'storage',
     bounds: { minX: -25, maxX: 0, minY: 0, maxY: 8, minZ: -18, maxZ: 8 },
     center: { x: -12.5, y: 0.5, z: -5 },
     floorSize: { width: 25, depth: 26 },
-    floorColor: '#3b82f6',
-    color: '#3b82f6',
-    icon: '📦',
+    floorColor: '#10b981',
+    color: '#10b981',
+    icon: '🧬',
     capacity: 500,
-    priority: 'medium',
-    connectedZones: ['receiving', 'storage-b', 'returns', 'processing'],
+    priority: 'high',
+    connectedZones: ['entry', 'qpcr-lab', 'electrophoresis', 'pcr-lab'],
     cameraPreset: {
       position: { x: -25, y: 20, z: 15 },
       target: { x: -12.5, y: 2, z: -5 },
@@ -101,19 +99,19 @@ const zones: ZoneConfig[] = [
     securityLevel: 'standard',
   },
   {
-    id: 'storage-b',
-    name: 'storage-b',
-    displayName: 'Storage Area B',
+    id: 'qpcr-lab',
+    name: 'qpcr-lab',
+    displayName: 'QPCR Lab - Sgt Mulder',
     type: 'storage',
     bounds: { minX: 0, maxX: 25, minY: 0, maxY: 8, minZ: -18, maxZ: 8 },
     center: { x: 12.5, y: 0.5, z: -5 },
     floorSize: { width: 25, depth: 26 },
-    floorColor: '#3b82f6',
-    color: '#3b82f6',
-    icon: '📦',
+    floorColor: '#8b5cf6',
+    color: '#8b5cf6',
+    icon: '🔬',
     capacity: 500,
-    priority: 'medium',
-    connectedZones: ['shipping', 'storage-a', 'staging'],
+    priority: 'high',
+    connectedZones: ['chain-custody', 'extractions', 'electrophoresis'],
     cameraPreset: {
       position: { x: 25, y: 20, z: 15 },
       target: { x: 12.5, y: 2, z: -5 },
@@ -123,21 +121,21 @@ const zones: ZoneConfig[] = [
     securityLevel: 'standard',
   },
 
-  // ========== LEFT WING (West) ==========
+  // ========== ANALYSIS AREA (South) ==========
   {
-    id: 'office',
-    name: 'office',
-    displayName: 'Office Area',
+    id: 'genemapper',
+    name: 'genemapper',
+    displayName: 'GeneMapper ID - WO Daniels',
     type: 'office',
     bounds: { minX: -40, maxX: -28, minY: 0, maxY: 6, minZ: -18, maxZ: -5 },
     center: { x: -34, y: 0.5, z: -11.5 },
     floorSize: { width: 12, depth: 13 },
-    floorColor: '#6366f1',
-    color: '#6366f1',
-    icon: '🏢',
-    capacity: 20,
-    priority: 'low',
-    connectedZones: ['receiving', 'returns'],
+    floorColor: '#ec4899',
+    color: '#ec4899',
+    icon: '🧪',
+    capacity: 50,
+    priority: 'high',
+    connectedZones: ['entry', 'electrophoresis'],
     cameraPreset: {
       position: { x: -48, y: 12, z: -20 },
       target: { x: -34, y: 2, z: -11.5 },
@@ -148,19 +146,19 @@ const zones: ZoneConfig[] = [
     securityLevel: 'standard',
   },
   {
-    id: 'returns',
-    name: 'returns',
-    displayName: 'Returns Processing',
+    id: 'electrophoresis',
+    name: 'electrophoresis',
+    displayName: 'Electrophoresis Lab',
     type: 'returns',
     bounds: { minX: -40, maxX: -28, minY: 0, maxY: 6, minZ: -5, maxZ: 8 },
     center: { x: -34, y: 0.5, z: 1.5 },
     floorSize: { width: 12, depth: 13 },
-    floorColor: '#f97316',
-    color: '#f97316',
-    icon: '↩️',
+    floorColor: '#06b6d4',
+    color: '#06b6d4',
+    icon: '📊',
     capacity: 100,
-    priority: 'medium',
-    connectedZones: ['office', 'processing', 'storage-a'],
+    priority: 'high',
+    connectedZones: ['genemapper', 'pcr-lab', 'extractions'],
     cameraPreset: {
       position: { x: -48, y: 12, z: -5 },
       target: { x: -34, y: 2, z: 1.5 },
@@ -170,73 +168,22 @@ const zones: ZoneConfig[] = [
     securityLevel: 'standard',
   },
   {
-    id: 'processing',
-    name: 'processing',
-    displayName: 'Processing Area',
+    id: 'pcr-lab',
+    name: 'pcr-lab',
+    displayName: 'PCR Lab - WO Jacobs',
     type: 'processing',
     bounds: { minX: -40, maxX: -20, minY: 0, maxY: 8, minZ: 8, maxZ: 22 },
     center: { x: -30, y: 0.5, z: 15 },
     floorSize: { width: 20, depth: 14 },
-    floorColor: '#eab308',
-    color: '#eab308',
-    icon: '⚙️',
+    floorColor: '#f59e0b',
+    color: '#f59e0b',
+    icon: '⚗️',
     capacity: 200,
     priority: 'high',
-    connectedZones: ['returns', 'secure-evidence', 'storage-a'],
+    connectedZones: ['electrophoresis', 'extractions'],
     cameraPreset: {
       position: { x: -48, y: 15, z: 8 },
       target: { x: -30, y: 2, z: 15 },
-      fov: 50,
-    },
-    hasWalls: false,
-    securityLevel: 'standard',
-  },
-
-  // ========== SECURE AREA (Southwest) ==========
-  {
-    id: 'secure-evidence',
-    name: 'secure-evidence',
-    displayName: 'Secure Evidence Vault',
-    type: 'secure',
-    bounds: { minX: -40, maxX: -20, minY: 0, maxY: 6, minZ: 22, maxZ: 35 },
-    center: { x: -30, y: 0.5, z: 28.5 },
-    floorSize: { width: 20, depth: 13 },
-    floorColor: '#ef4444',
-    color: '#ef4444',
-    icon: '🔒',
-    isSecure: true,
-    wallColor: '#7f1d1d',
-    capacity: 100,
-    priority: 'critical',
-    connectedZones: ['processing'],
-    cameraPreset: {
-      position: { x: -48, y: 12, z: 22 },
-      target: { x: -30, y: 2, z: 28.5 },
-      fov: 50,
-    },
-    hasWalls: true,
-    wallHeight: 4,
-    securityLevel: 'secure',
-  },
-
-  // ========== RIGHT WING (East) ==========
-  {
-    id: 'staging',
-    name: 'staging',
-    displayName: 'Staging Area',
-    type: 'staging',
-    bounds: { minX: 25, maxX: 40, minY: 0, maxY: 8, minZ: -5, maxZ: 25 },
-    center: { x: 32.5, y: 0.5, z: 10 },
-    floorSize: { width: 15, depth: 30 },
-    floorColor: '#14b8a6',
-    color: '#14b8a6',
-    icon: '📋',
-    capacity: 250,
-    priority: 'high',
-    connectedZones: ['shipping', 'storage-b'],
-    cameraPreset: {
-      position: { x: 48, y: 15, z: 0 },
-      target: { x: 32.5, y: 2, z: 10 },
       fov: 50,
     },
     hasWalls: false,
@@ -249,12 +196,12 @@ const zones: ZoneConfig[] = [
 // ============================================================================
 
 const readers: ReaderConfig[] = [
-  // Receiving Dock Readers
+  // Entry into Lab Readers
   {
     id: 'RDR-001',
-    name: 'R1',
-    displayName: 'Receiving Portal 1',
-    zoneId: 'receiving',
+    name: 'ENT1',
+    displayName: 'Lab Entry Portal 1',
+    zoneId: 'entry',
     position: { x: -30, y: 3.5, z: -32 },
     rotation: 0,
     type: 'portal',
@@ -263,9 +210,9 @@ const readers: ReaderConfig[] = [
   },
   {
     id: 'RDR-002',
-    name: 'R2',
-    displayName: 'Receiving Portal 2',
-    zoneId: 'receiving',
+    name: 'ENT2',
+    displayName: 'Lab Entry Portal 2',
+    zoneId: 'entry',
     position: { x: -15, y: 3.5, z: -32 },
     rotation: 0,
     type: 'portal',
@@ -273,12 +220,12 @@ const readers: ReaderConfig[] = [
     antennaCount: 4,
   },
 
-  // Shipping Dock Readers
+  // Chain of Custody Readers
   {
     id: 'RDR-003',
-    name: 'S1',
-    displayName: 'Shipping Portal 1',
-    zoneId: 'shipping',
+    name: 'COC1',
+    displayName: 'Chain Custody Portal 1',
+    zoneId: 'chain-custody',
     position: { x: 15, y: 3.5, z: -32 },
     rotation: 0,
     type: 'portal',
@@ -287,9 +234,9 @@ const readers: ReaderConfig[] = [
   },
   {
     id: 'RDR-004',
-    name: 'S2',
-    displayName: 'Shipping Portal 2',
-    zoneId: 'shipping',
+    name: 'COC2',
+    displayName: 'Chain Custody Portal 2',
+    zoneId: 'chain-custody',
     position: { x: 30, y: 3.5, z: -32 },
     rotation: 0,
     type: 'portal',
@@ -297,12 +244,12 @@ const readers: ReaderConfig[] = [
     antennaCount: 4,
   },
 
-  // Storage A Readers
+  // Extractions Lab Readers
   {
     id: 'RDR-005',
-    name: 'A-N',
-    displayName: 'Storage A North',
-    zoneId: 'storage-a',
+    name: 'EXT-N',
+    displayName: 'Extractions North',
+    zoneId: 'extractions',
     position: { x: -12.5, y: 3, z: -15 },
     rotation: 0,
     type: 'ceiling',
@@ -311,9 +258,9 @@ const readers: ReaderConfig[] = [
   },
   {
     id: 'RDR-006',
-    name: 'A-S',
-    displayName: 'Storage A South',
-    zoneId: 'storage-a',
+    name: 'EXT-S',
+    displayName: 'Extractions South',
+    zoneId: 'extractions',
     position: { x: -12.5, y: 3, z: 5 },
     rotation: Math.PI,
     type: 'ceiling',
@@ -321,12 +268,12 @@ const readers: ReaderConfig[] = [
     antennaCount: 2,
   },
 
-  // Storage B Readers
+  // QPCR Lab Readers
   {
     id: 'RDR-007',
-    name: 'B-N',
-    displayName: 'Storage B North',
-    zoneId: 'storage-b',
+    name: 'QPCR-N',
+    displayName: 'QPCR Lab North',
+    zoneId: 'qpcr-lab',
     position: { x: 12.5, y: 3, z: -15 },
     rotation: 0,
     type: 'ceiling',
@@ -335,9 +282,9 @@ const readers: ReaderConfig[] = [
   },
   {
     id: 'RDR-008',
-    name: 'B-S',
-    displayName: 'Storage B South',
-    zoneId: 'storage-b',
+    name: 'QPCR-S',
+    displayName: 'QPCR Lab South',
+    zoneId: 'qpcr-lab',
     position: { x: 12.5, y: 3, z: 5 },
     rotation: Math.PI,
     type: 'ceiling',
@@ -345,12 +292,12 @@ const readers: ReaderConfig[] = [
     antennaCount: 2,
   },
 
-  // Processing Reader
+  // PCR Lab Reader
   {
     id: 'RDR-009',
-    name: 'PROC',
-    displayName: 'Processing Area',
-    zoneId: 'processing',
+    name: 'PCR',
+    displayName: 'PCR Lab - WO Jacobs',
+    zoneId: 'pcr-lab',
     position: { x: -30, y: 3, z: 15 },
     rotation: Math.PI / 2,
     type: 'ceiling',
@@ -358,12 +305,12 @@ const readers: ReaderConfig[] = [
     antennaCount: 2,
   },
 
-  // Returns Reader
+  // Electrophoresis Reader
   {
     id: 'RDR-010',
-    name: 'RET',
-    displayName: 'Returns Station',
-    zoneId: 'returns',
+    name: 'ELEC',
+    displayName: 'Electrophoresis Station',
+    zoneId: 'electrophoresis',
     position: { x: -34, y: 3, z: 1.5 },
     rotation: Math.PI / 2,
     type: 'dock',
@@ -371,49 +318,12 @@ const readers: ReaderConfig[] = [
     antennaCount: 1,
   },
 
-  // Staging Reader
+  // GeneMapper ID Reader
   {
     id: 'RDR-011',
-    name: 'STG',
-    displayName: 'Staging Area',
-    zoneId: 'staging',
-    position: { x: 32.5, y: 3, z: 5 },
-    rotation: -Math.PI / 2,
-    type: 'ceiling',
-    range: 8,
-    antennaCount: 2,
-  },
-
-  // Secure Evidence Readers (dual for redundancy)
-  {
-    id: 'RDR-012',
-    name: 'SEC1',
-    displayName: 'Secure Entry',
-    zoneId: 'secure-evidence',
-    position: { x: -25, y: 3, z: 23 },
-    rotation: Math.PI / 2,
-    type: 'portal',
-    range: 3,
-    antennaCount: 4,
-  },
-  {
-    id: 'RDR-013',
-    name: 'SEC2',
-    displayName: 'Secure Interior',
-    zoneId: 'secure-evidence',
-    position: { x: -30, y: 3.5, z: 28.5 },
-    rotation: 0,
-    type: 'ceiling',
-    range: 5,
-    antennaCount: 2,
-  },
-
-  // Office Reader
-  {
-    id: 'RDR-014',
-    name: 'OFF',
-    displayName: 'Office Entry',
-    zoneId: 'office',
+    name: 'GENE',
+    displayName: 'GeneMapper ID Office',
+    zoneId: 'genemapper',
     position: { x: -29, y: 3, z: -11.5 },
     rotation: Math.PI / 2,
     type: 'portal',
@@ -450,9 +360,9 @@ const cameraPresets: CameraPreset[] = [
     keyboardShortcut: '2',
   },
   {
-    id: 'docks',
-    name: 'Dock View',
-    description: 'View of receiving and shipping docks',
+    id: 'entry-view',
+    name: 'Entry View',
+    description: 'View of lab entry and chain of custody',
     position: { x: 0, y: 25, z: -55 },
     target: { x: 0, y: 3, z: -25 },
     fov: 55,
@@ -461,9 +371,9 @@ const cameraPresets: CameraPreset[] = [
     keyboardShortcut: '3',
   },
   {
-    id: 'receiving',
-    name: 'Receiving',
-    description: 'Receiving dock focus',
+    id: 'entry',
+    name: 'Entry into Lab',
+    description: 'Lab entry focus',
     position: { x: -35, y: 18, z: -50 },
     target: { x: -22.5, y: 2, z: -27.5 },
     fov: 50,
@@ -472,9 +382,9 @@ const cameraPresets: CameraPreset[] = [
     keyboardShortcut: '4',
   },
   {
-    id: 'shipping',
-    name: 'Shipping',
-    description: 'Shipping dock focus',
+    id: 'chain-custody',
+    name: 'Chain of Custody',
+    description: 'Chain of custody confirmation area',
     position: { x: 35, y: 18, z: -50 },
     target: { x: 22.5, y: 2, z: -27.5 },
     fov: 50,
@@ -483,9 +393,9 @@ const cameraPresets: CameraPreset[] = [
     keyboardShortcut: '5',
   },
   {
-    id: 'storage',
-    name: 'Storage',
-    description: 'Main storage areas',
+    id: 'extractions',
+    name: 'Extractions',
+    description: 'Extractions lab - Sgt Pillay',
     position: { x: 0, y: 30, z: 20 },
     target: { x: 0, y: 0, z: -5 },
     fov: 55,
@@ -494,20 +404,20 @@ const cameraPresets: CameraPreset[] = [
     keyboardShortcut: '6',
   },
   {
-    id: 'secure-evidence',
-    name: 'Secure Vault',
-    description: 'Evidence vault exterior',
+    id: 'pcr-lab',
+    name: 'PCR Lab',
+    description: 'PCR Lab - WO Jacobs',
     position: { x: -48, y: 12, z: 22 },
-    target: { x: -30, y: 2, z: 28.5 },
+    target: { x: -30, y: 2, z: 15 },
     fov: 50,
     transitionDuration: 1.5,
     shortcut: '7',
     keyboardShortcut: '7',
   },
   {
-    id: 'processing',
-    name: 'Processing',
-    description: 'Processing area view',
+    id: 'qpcr-lab',
+    name: 'QPCR Lab',
+    description: 'QPCR Lab - Sgt Mulder',
     position: { x: -48, y: 15, z: 8 },
     target: { x: -30, y: 2, z: 15 },
     fov: 50,
@@ -538,11 +448,11 @@ const cameraPresets: CameraPreset[] = [
     keyboardShortcut: '0',
   },
   {
-    id: 'vault-interior',
-    name: 'Inside Vault',
-    description: 'POV from inside secure area',
-    position: { x: -30, y: 2, z: 30 },
-    target: { x: -20, y: 2, z: 15 },
+    id: 'genemapper-interior',
+    name: 'Inside GeneMapper',
+    description: 'POV from GeneMapper ID office',
+    position: { x: -34, y: 2, z: -11 },
+    target: { x: -20, y: 2, z: -5 },
     fov: 60,
     transitionDuration: 1.5,
     shortcut: 'v',
@@ -558,6 +468,70 @@ const cameraPresets: CameraPreset[] = [
     transitionDuration: 2,
     shortcut: 'h',
     keyboardShortcut: 'h',
+  },
+  // ========== INTERIOR VIEWS (for demo) ==========
+  {
+    id: 'interior-overview',
+    name: 'Interior Overview',
+    description: 'Inside warehouse looking at all zones',
+    position: { x: 0, y: 12, z: 0 },
+    target: { x: 0, y: 0, z: -10 },
+    fov: 70,
+    transitionDuration: 1.5,
+  },
+  {
+    id: 'extractions-interior',
+    name: 'Extractions Interior',
+    description: 'Inside Extractions lab with RFID readers visible',
+    position: { x: -5, y: 5, z: -5 },
+    target: { x: -12.5, y: 3, z: -10 },
+    fov: 60,
+    transitionDuration: 1.5,
+  },
+  {
+    id: 'readers-view',
+    name: 'RFID Readers',
+    description: 'View showing RFID reader network',
+    position: { x: 10, y: 8, z: 0 },
+    target: { x: -10, y: 3, z: -5 },
+    fov: 65,
+    transitionDuration: 1.5,
+  },
+  {
+    id: 'electrophoresis-interior',
+    name: 'Inside Electrophoresis',
+    description: 'POV inside electrophoresis lab',
+    position: { x: -34, y: 3, z: 1 },
+    target: { x: -30, y: 2, z: 5 },
+    fov: 55,
+    transitionDuration: 1.5,
+  },
+  {
+    id: 'pcr-interior',
+    name: 'PCR Lab Floor',
+    description: 'Inside PCR lab - WO Jacobs',
+    position: { x: -30, y: 4, z: 12 },
+    target: { x: -30, y: 2, z: 18 },
+    fov: 60,
+    transitionDuration: 1.5,
+  },
+  {
+    id: 'entry-interior',
+    name: 'Entry Inside',
+    description: 'Inside lab entry area',
+    position: { x: -22, y: 4, z: -25 },
+    target: { x: -22, y: 2, z: -30 },
+    fov: 55,
+    transitionDuration: 1.5,
+  },
+  {
+    id: 'custody-interior',
+    name: 'Chain of Custody Inside',
+    description: 'Inside chain of custody area',
+    position: { x: 22, y: 4, z: -25 },
+    target: { x: 22, y: 2, z: -30 },
+    fov: 55,
+    transitionDuration: 1.5,
   },
 ];
 

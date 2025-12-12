@@ -52,17 +52,15 @@ interface SearchFilters {
   priority: string[];
 }
 
-// Zone metadata
+// Zone metadata - SAPS Forensic Laboratory workflow
 const ZONES = [
-  { id: 'receiving', name: 'Receiving', color: '#3b82f6', icon: '📥' },
-  { id: 'shipping', name: 'Shipping', color: '#8b5cf6', icon: '📤' },
-  { id: 'storage-a', name: 'Storage A', color: '#10b981', icon: '📦' },
-  { id: 'storage-b', name: 'Storage B', color: '#10b981', icon: '📦' },
-  { id: 'processing', name: 'Processing', color: '#f59e0b', icon: '⚙️' },
-  { id: 'staging', name: 'Staging', color: '#06b6d4', icon: '📋' },
-  { id: 'secure-storage', name: 'Secure Storage', color: '#ef4444', icon: '🔒' },
-  { id: 'returns', name: 'Returns', color: '#ec4899', icon: '↩️' },
-  { id: 'office', name: 'Office', color: '#6366f1', icon: '🏢' },
+  { id: 'entry', name: 'Entry into Lab', color: '#3b82f6', icon: '🚪' },
+  { id: 'extractions', name: 'Extractions - Sgt Pillay', color: '#10b981', icon: '🧬' },
+  { id: 'qpcr-lab', name: 'QPCR Lab - Sgt Mulder', color: '#8b5cf6', icon: '🔬' },
+  { id: 'pcr-lab', name: 'PCR Lab - WO Jacobs', color: '#f59e0b', icon: '⚗️' },
+  { id: 'electrophoresis', name: 'Electrophoresis Lab', color: '#06b6d4', icon: '📊' },
+  { id: 'genemapper', name: 'GeneMapper ID - WO Daniels', color: '#ec4899', icon: '🧪' },
+  { id: 'chain-custody', name: 'Confirm Chain of Custody', color: '#ef4444', icon: '✅' },
 ];
 
 const STATUS_OPTIONS = [

@@ -24,35 +24,32 @@ interface RFIDItem {
 }
 
 /**
- * Zone configuration matching U-shaped warehouse layout
- * Positions updated to match Warehouse.tsx zones
+ * Zone configuration matching SAPS Forensic Laboratory layout
  */
 const ZONE_CONFIG: Record<string, {
   position: [number, number, number];
   color: string;
   priority: RFIDItem['priority'];
 }> = {
-  'receiving': { position: [-20, 1.5, -25], color: '#22c55e', priority: 'high' },
-  'shipping': { position: [20, 1.5, -25], color: '#8b5cf6', priority: 'high' },
-  'office': { position: [-35, 1.5, -20], color: '#6366f1', priority: 'low' },
-  'returns': { position: [-35, 1.5, 0], color: '#f97316', priority: 'medium' },
-  'processing': { position: [-35, 1.5, 15], color: '#eab308', priority: 'high' },
-  'storage-a': { position: [-12, 1.5, 0], color: '#3b82f6', priority: 'medium' },
-  'storage-b': { position: [12, 1.5, 0], color: '#3b82f6', priority: 'medium' },
-  'staging': { position: [32, 1.5, 5], color: '#14b8a6', priority: 'medium' },
-  'secure-storage': { position: [-35, 1.5, 25], color: '#ef4444', priority: 'critical' },
+  'entry': { position: [-22.5, 1.5, -27.5], color: '#3b82f6', priority: 'high' },
+  'extractions': { position: [-12.5, 1.5, -5], color: '#10b981', priority: 'high' },
+  'qpcr-lab': { position: [12.5, 1.5, -5], color: '#8b5cf6', priority: 'high' },
+  'pcr-lab': { position: [-30, 1.5, 15], color: '#f59e0b', priority: 'high' },
+  'electrophoresis': { position: [-34, 1.5, 1.5], color: '#06b6d4', priority: 'high' },
+  'genemapper': { position: [-34, 1.5, -11.5], color: '#ec4899', priority: 'high' },
+  'chain-custody': { position: [22.5, 1.5, -27.5], color: '#ef4444', priority: 'critical' },
 };
 
 /**
  * Get random position within a zone
  */
 const getRandomPositionInZone = (zoneId: string): THREE.Vector3 => {
-  const config = ZONE_CONFIG[zoneId] || ZONE_CONFIG['storage-a'];
+  const config = ZONE_CONFIG[zoneId] || ZONE_CONFIG['entry'];
   const [x, y, z] = config.position;
   return new THREE.Vector3(
-    x + (Math.random() - 0.5) * 15,
+    x + (Math.random() - 0.5) * 12,
     y + Math.random() * 0.3,
-    z + (Math.random() - 0.5) * 10
+    z + (Math.random() - 0.5) * 8
   );
 };
 
@@ -108,8 +105,8 @@ const RFIDItems = () => {
     setItems(prev => {
       const newItems = new Map(prev);
       const existing = newItems.get(event.epc);
-      const zoneId = event.zoneId || 'storage-a';
-      const config = ZONE_CONFIG[zoneId] || ZONE_CONFIG['storage-a'];
+      const zoneId = event.zoneId || 'entry';
+      const config = ZONE_CONFIG[zoneId] || ZONE_CONFIG['entry'];
 
       const newPosition = getRandomPositionInZone(zoneId);
 
@@ -142,7 +139,7 @@ const RFIDItems = () => {
 
   // Handle item moved events
   const handleItemMoved = useCallback((event: ItemMovedEvent) => {
-    const toZone = event.toZone ?? (event.toZoneId ? String(event.toZoneId) : 'storage-a');
+    const toZone = event.toZone ?? (event.toZoneId ? String(event.toZoneId) : 'entry');
     const epc = event.epc;
 
     if (!epc) return;
@@ -152,7 +149,7 @@ const RFIDItems = () => {
       const existing = newItems.get(epc);
 
       if (existing) {
-        const config = ZONE_CONFIG[toZone] || ZONE_CONFIG['storage-a'];
+        const config = ZONE_CONFIG[toZone] || ZONE_CONFIG['entry'];
         const newPosition = getRandomPositionInZone(toZone);
 
         existing.targetPosition.copy(newPosition);
@@ -282,7 +279,7 @@ const TrackedItem = ({ item, onSelect }: TrackedItemProps) => {
   const [hovered, setHovered] = useState(false);
 
   // Get zone config for colors
-  const config = ZONE_CONFIG[item.zone] || ZONE_CONFIG['storage-a'];
+  const config = ZONE_CONFIG[item.zone] || ZONE_CONFIG['entry'];
   const baseColor = config.color;
 
   // Size based on priority

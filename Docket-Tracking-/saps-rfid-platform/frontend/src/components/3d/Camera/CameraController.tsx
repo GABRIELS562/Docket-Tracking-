@@ -33,31 +33,31 @@ import type { Vector3 } from '../../../core/types';
 // TOUR WAYPOINTS (Cinematic warehouse tour)
 // ============================================================================
 
-const TOUR_WAYPOINTS: Array<{ position: Vector3; target: Vector3; duration: number; pause: number }> = [
-  // 1. Hero entrance shot
-  { position: { x: 0, y: 6, z: -55 }, target: { x: 0, y: 5, z: 0 }, duration: 2.5, pause: 1.5 },
-  // 2. Sweep to receiving dock
-  { position: { x: -35, y: 12, z: -45 }, target: { x: -22.5, y: 3, z: -27.5 }, duration: 2.5, pause: 1.5 },
-  // 3. Shipping dock reveal
-  { position: { x: 35, y: 12, z: -45 }, target: { x: 22.5, y: 3, z: -27.5 }, duration: 2.5, pause: 1.5 },
-  // 4. Rise over storage - bird's eye
-  { position: { x: 0, y: 50, z: 0 }, target: { x: 0, y: 0, z: 0 }, duration: 2, pause: 1 },
-  // 5. Dive into Storage A
-  { position: { x: -25, y: 8, z: 5 }, target: { x: -12.5, y: 3, z: -5 }, duration: 2, pause: 1.5 },
-  // 6. Slide through to Storage B
-  { position: { x: 25, y: 8, z: 5 }, target: { x: 12.5, y: 3, z: -5 }, duration: 2, pause: 1.5 },
-  // 7. Processing Zone
-  { position: { x: -48, y: 12, z: 8 }, target: { x: -30, y: 2, z: 15 }, duration: 2, pause: 1.5 },
-  // 8. Secure Vault reveal
-  { position: { x: -48, y: 10, z: 22 }, target: { x: -30, y: 2, z: 28.5 }, duration: 2, pause: 2 },
-  // 9. Inside vault looking out (POV)
-  { position: { x: -30, y: 2, z: 30 }, target: { x: -20, y: 2, z: 15 }, duration: 1.5, pause: 1.5 },
-  // 10. Staging Area
-  { position: { x: 42, y: 10, z: 0 }, target: { x: 32.5, y: 2, z: 10 }, duration: 2, pause: 1.5 },
-  // 11. Final cinematic sweep
-  { position: { x: 65, y: 12, z: -45 }, target: { x: -10, y: 3, z: 10 }, duration: 2.5, pause: 1 },
+const TOUR_WAYPOINTS: Array<{ position: Vector3; target: Vector3; duration: number; pause: number; name?: string }> = [
+  // 1. Start inside warehouse - interior overview
+  { position: { x: 0, y: 12, z: 0 }, target: { x: 0, y: 0, z: -10 }, duration: 2, pause: 1.5, name: 'Interior Overview' },
+  // 2. RFID readers in storage - show the readers!
+  { position: { x: -5, y: 5, z: -5 }, target: { x: -12.5, y: 3, z: -10 }, duration: 2, pause: 2, name: 'Storage RFID Readers' },
+  // 3. Receiving dock interior - showing portal readers
+  { position: { x: -22, y: 4, z: -25 }, target: { x: -25, y: 3.5, z: -32 }, duration: 2, pause: 2, name: 'Receiving Portal Readers' },
+  // 4. Pan across to shipping interior
+  { position: { x: 22, y: 4, z: -25 }, target: { x: 22, y: 3.5, z: -32 }, duration: 2.5, pause: 2, name: 'Shipping Portal Readers' },
+  // 5. Inside Storage A - close to items and readers
+  { position: { x: -12, y: 4, z: -8 }, target: { x: -12.5, y: 3, z: -15 }, duration: 2, pause: 2, name: 'Storage A Interior' },
+  // 6. Inside Storage B
+  { position: { x: 12, y: 4, z: -8 }, target: { x: 12.5, y: 3, z: -15 }, duration: 2, pause: 1.5, name: 'Storage B Interior' },
+  // 7. Processing area interior - eye level
+  { position: { x: -30, y: 3, z: 12 }, target: { x: -30, y: 3, z: 18 }, duration: 2, pause: 2, name: 'Processing Floor' },
+  // 8. Secure Vault entrance - dramatic
+  { position: { x: -22, y: 3, z: 22 }, target: { x: -30, y: 2, z: 28 }, duration: 2, pause: 2, name: 'Secure Vault Entry' },
+  // 9. Inside vault - POV showing dual readers
+  { position: { x: -30, y: 3, z: 28 }, target: { x: -25, y: 3, z: 23 }, duration: 1.5, pause: 2.5, name: 'Inside Secure Vault' },
+  // 10. Staging area interior
+  { position: { x: 32, y: 4, z: 8 }, target: { x: 32.5, y: 2, z: 5 }, duration: 2, pause: 1.5, name: 'Staging Interior' },
+  // 11. Final sweeping interior view
+  { position: { x: 0, y: 15, z: 10 }, target: { x: 0, y: 0, z: -15 }, duration: 2.5, pause: 1, name: 'Final Interior View' },
   // 12. End with overview
-  { position: { x: 70, y: 55, z: 50 }, target: { x: 0, y: 0, z: 0 }, duration: 2, pause: 0 },
+  { position: { x: 50, y: 35, z: 40 }, target: { x: 0, y: 0, z: 0 }, duration: 2, pause: 0, name: 'Overview' },
 ];
 
 // ============================================================================
@@ -95,13 +95,17 @@ const CameraController = () => {
   const getPresetByShortcut = useWarehouseStore((s) => s.getPresetByShortcut);
 
   // Walk mode state (refs to avoid re-renders)
+  // Now supports: Arrow keys for directional movement (turn + move), WASD for strafe
   const walkState = useRef({
     velocity: new THREE.Vector3(),
+    yaw: 0, // Camera rotation around Y axis (radians)
     keys: {
       forward: false,
       backward: false,
-      left: false,
-      right: false,
+      strafeLeft: false,
+      strafeRight: false,
+      turnLeft: false,
+      turnRight: false,
       sprint: false,
     },
   });
@@ -210,8 +214,12 @@ const CameraController = () => {
           toggleWalkMode();
           console.log('Exiting walk mode');
         } else {
+          // Initialize yaw based on current camera direction
+          const dir = new THREE.Vector3();
+          camera.getWorldDirection(dir);
+          walkState.current.yaw = Math.atan2(-dir.x, -dir.z);
           toggleWalkMode();
-          console.log('Entering walk mode - click to enable mouse look');
+          console.log('Walk mode: Arrow keys to move/turn, WASD to strafe, Shift to run, G to exit');
         }
         return;
       }
@@ -253,6 +261,8 @@ const CameraController = () => {
       }
 
       // Walk mode movement keys
+      // Arrow keys: Up/Down = move, Left/Right = TURN
+      // WASD: W/S = move forward/back, A/D = strafe left/right
       if (mode === 'walk') {
         switch (e.code) {
           case 'KeyW':
@@ -264,12 +274,16 @@ const CameraController = () => {
             walkState.current.keys.backward = true;
             break;
           case 'KeyA':
-          case 'ArrowLeft':
-            walkState.current.keys.left = true;
+            walkState.current.keys.strafeLeft = true;
             break;
           case 'KeyD':
+            walkState.current.keys.strafeRight = true;
+            break;
+          case 'ArrowLeft':
+            walkState.current.keys.turnLeft = true;
+            break;
           case 'ArrowRight':
-            walkState.current.keys.right = true;
+            walkState.current.keys.turnRight = true;
             break;
           case 'ShiftLeft':
           case 'ShiftRight':
@@ -290,12 +304,16 @@ const CameraController = () => {
           walkState.current.keys.backward = false;
           break;
         case 'KeyA':
-        case 'ArrowLeft':
-          walkState.current.keys.left = false;
+          walkState.current.keys.strafeLeft = false;
           break;
         case 'KeyD':
+          walkState.current.keys.strafeRight = false;
+          break;
+        case 'ArrowLeft':
+          walkState.current.keys.turnLeft = false;
+          break;
         case 'ArrowRight':
-          walkState.current.keys.right = false;
+          walkState.current.keys.turnRight = false;
           break;
         case 'ShiftLeft':
         case 'ShiftRight':
@@ -314,26 +332,39 @@ const CameraController = () => {
   }, [mode, warehouse, isTourRunning, toggleWalkMode, goToPreset, getPresetByShortcut, startTour, stopTour, endAnimation]);
 
   // ========== Walk Mode Movement ==========
+  // Simpler directional controls: Arrow keys to turn, WASD/Arrows to move
+  // No pointer lock required - all keyboard-based
   useFrame((_, delta) => {
     if (mode !== 'walk') return;
 
     const { keys, velocity } = walkState.current;
     const { forward, right, direction, up } = vectors;
 
-    // Get camera forward direction (horizontal only)
-    camera.getWorldDirection(forward);
-    forward.y = 0;
-    forward.normalize();
+    // Handle turning with arrow keys
+    const turnSpeed = 2.0; // radians per second
+    if (keys.turnLeft) {
+      walkState.current.yaw += turnSpeed * delta;
+    }
+    if (keys.turnRight) {
+      walkState.current.yaw -= turnSpeed * delta;
+    }
+
+    // Calculate forward direction based on yaw
+    forward.set(
+      -Math.sin(walkState.current.yaw),
+      0,
+      -Math.cos(walkState.current.yaw)
+    ).normalize();
 
     // Get right direction (using pre-allocated up vector)
-    right.crossVectors(forward, up);
+    right.crossVectors(forward, up).normalize();
 
     // Build movement direction
     direction.set(0, 0, 0);
     if (keys.forward) direction.add(forward);
     if (keys.backward) direction.sub(forward);
-    if (keys.right) direction.add(right);
-    if (keys.left) direction.sub(right);
+    if (keys.strafeRight) direction.add(right);
+    if (keys.strafeLeft) direction.sub(right);
 
     if (direction.length() > 0) {
       direction.normalize();
@@ -345,7 +376,7 @@ const CameraController = () => {
     const speed = keys.sprint ? baseSpeed * sprintMultiplier : baseSpeed;
 
     // Target velocity
-    const targetVelocity = direction.multiplyScalar(speed * delta);
+    const targetVelocity = direction.clone().multiplyScalar(speed * delta);
 
     // Smooth acceleration
     velocity.lerp(targetVelocity, 0.2);
@@ -364,12 +395,21 @@ const CameraController = () => {
 
     // Keep eye height constant
     camera.position.y = 1.7;
+
+    // Update camera rotation based on yaw (look in the forward direction)
+    const lookTarget = new THREE.Vector3(
+      camera.position.x + forward.x * 10,
+      camera.position.y,
+      camera.position.z + forward.z * 10
+    );
+    camera.lookAt(lookTarget);
   });
 
   // ========== Pointer Lock Handlers ==========
+  // Optional - can still use pointer lock for mouse look if desired
   const handlePointerLock = useCallback(() => {
     setWalkLocked(true);
-    console.log('Walk mode active - WASD to move, mouse to look, ESC/G to exit');
+    console.log('Mouse look enabled - WASD/arrows to move, mouse to look');
   }, [setWalkLocked]);
 
   const handlePointerUnlock = useCallback(() => {
@@ -378,8 +418,10 @@ const CameraController = () => {
     walkState.current.keys = {
       forward: false,
       backward: false,
-      left: false,
-      right: false,
+      strafeLeft: false,
+      strafeRight: false,
+      turnLeft: false,
+      turnRight: false,
       sprint: false,
     };
     walkState.current.velocity.set(0, 0, 0);

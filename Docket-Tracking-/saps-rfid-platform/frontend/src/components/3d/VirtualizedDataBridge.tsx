@@ -27,16 +27,15 @@ import type { VirtualizedItem, ZoneAggregate } from '../../stores/virtualizedApp
 // Constants
 // ============================================================================
 
+// SAPS Forensic Lab zone positions
 const ZONE_POSITIONS: Record<string, [number, number, number]> = {
-  'receiving': [-33, 1.5, -33],
-  'storage-a': [-33, 1.5, 0],
-  'storage-b': [-33, 1.5, 33],
-  'storage-c': [0, 1.5, -33],
-  'secure-storage': [0, 1.5, 0],
-  'storage-d': [0, 1.5, 33],
-  'processing': [33, 1.5, -33],
-  'shipping': [33, 1.5, 0],
-  'returns': [33, 1.5, 33],
+  'entry': [-22.5, 1.5, -27.5],
+  'extractions': [-12.5, 1.5, -5],
+  'qpcr-lab': [12.5, 1.5, -5],
+  'pcr-lab': [-30, 1.5, 15],
+  'electrophoresis': [-34, 1.5, 1.5],
+  'genemapper': [-34, 1.5, -11.5],
+  'chain-custody': [22.5, 1.5, -27.5],
 };
 
 
@@ -67,11 +66,11 @@ const calculateLOD = (
  * Generate random position within a zone
  */
 const getRandomPositionInZone = (zoneId: string): [number, number, number] => {
-  const basePos = ZONE_POSITIONS[zoneId] || ZONE_POSITIONS['storage-a'];
+  const basePos = ZONE_POSITIONS[zoneId] || ZONE_POSITIONS['entry'];
   return [
-    basePos[0] + (Math.random() - 0.5) * 20,
+    basePos[0] + (Math.random() - 0.5) * 15,
     basePos[1] + Math.random() * 0.5,
-    basePos[2] + (Math.random() - 0.5) * 20,
+    basePos[2] + (Math.random() - 0.5) * 15,
   ];
 };
 

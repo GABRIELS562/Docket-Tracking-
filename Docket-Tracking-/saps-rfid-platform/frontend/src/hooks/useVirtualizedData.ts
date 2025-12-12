@@ -111,17 +111,16 @@ async function fetchItemDetails(itemId: string): Promise<TrackedItem | null> {
 // ============================================================================
 
 function simulateItemsResponse(options: LoadItemsOptions): ApiResponse<VirtualizedItem[]> {
-  const zones = ['receiving', 'storage-a', 'storage-b', 'storage-c', 'secure-storage', 'storage-d', 'processing', 'shipping', 'returns'];
+  // SAPS Forensic Lab zones
+  const zones = ['entry', 'extractions', 'qpcr-lab', 'pcr-lab', 'electrophoresis', 'genemapper', 'chain-custody'];
   const zonePositions: Record<string, [number, number, number]> = {
-    'receiving': [-33, 1.5, -33],
-    'storage-a': [-33, 1.5, 0],
-    'storage-b': [-33, 1.5, 33],
-    'storage-c': [0, 1.5, -33],
-    'secure-storage': [0, 1.5, 0],
-    'storage-d': [0, 1.5, 33],
-    'processing': [33, 1.5, -33],
-    'shipping': [33, 1.5, 0],
-    'returns': [33, 1.5, 33],
+    'entry': [-22.5, 1.5, -27.5],
+    'extractions': [-12.5, 1.5, -5],
+    'qpcr-lab': [12.5, 1.5, -5],
+    'pcr-lab': [-30, 1.5, 15],
+    'electrophoresis': [-34, 1.5, 1.5],
+    'genemapper': [-34, 1.5, -11.5],
+    'chain-custody': [22.5, 1.5, -27.5],
   };
 
   const limit = options.limit || 50;
@@ -161,28 +160,25 @@ function simulateItemsResponse(options: LoadItemsOptions): ApiResponse<Virtualiz
 }
 
 function simulateZonesResponse(): ZoneAggregate[] {
+  // SAPS Forensic Lab zones
   const zones = [
-    { id: 'receiving', name: 'Receiving', capacity: 150, priority: 'high' as const },
-    { id: 'storage-a', name: 'Storage A', capacity: 500, priority: 'medium' as const },
-    { id: 'storage-b', name: 'Storage B', capacity: 500, priority: 'medium' as const },
-    { id: 'storage-c', name: 'Storage C', capacity: 500, priority: 'medium' as const },
-    { id: 'secure-storage', name: 'Secure Storage', capacity: 100, priority: 'critical' as const },
-    { id: 'storage-d', name: 'Storage D', capacity: 500, priority: 'medium' as const },
-    { id: 'processing', name: 'Processing', capacity: 200, priority: 'high' as const },
-    { id: 'shipping', name: 'Shipping', capacity: 250, priority: 'high' as const },
-    { id: 'returns', name: 'Returns', capacity: 150, priority: 'low' as const },
+    { id: 'entry', name: 'Entry into Lab', capacity: 150, priority: 'high' as const },
+    { id: 'extractions', name: 'Extractions - Sgt Pillay', capacity: 500, priority: 'high' as const },
+    { id: 'qpcr-lab', name: 'QPCR Lab - Sgt Mulder', capacity: 500, priority: 'high' as const },
+    { id: 'pcr-lab', name: 'PCR Lab - WO Jacobs', capacity: 200, priority: 'high' as const },
+    { id: 'electrophoresis', name: 'Electrophoresis Lab', capacity: 100, priority: 'high' as const },
+    { id: 'genemapper', name: 'GeneMapper ID - WO Daniels', capacity: 50, priority: 'high' as const },
+    { id: 'chain-custody', name: 'Confirm Chain of Custody', capacity: 200, priority: 'critical' as const },
   ];
 
   const zonePositions: Record<string, [number, number, number]> = {
-    'receiving': [-33, 0, -33],
-    'storage-a': [-33, 0, 0],
-    'storage-b': [-33, 0, 33],
-    'storage-c': [0, 0, -33],
-    'secure-storage': [0, 0, 0],
-    'storage-d': [0, 0, 33],
-    'processing': [33, 0, -33],
-    'shipping': [33, 0, 0],
-    'returns': [33, 0, 33],
+    'entry': [-22.5, 0, -27.5],
+    'extractions': [-12.5, 0, -5],
+    'qpcr-lab': [12.5, 0, -5],
+    'pcr-lab': [-30, 0, 15],
+    'electrophoresis': [-34, 0, 1.5],
+    'genemapper': [-34, 0, -11.5],
+    'chain-custody': [22.5, 0, -27.5],
   };
 
   return zones.map((zone) => {
@@ -212,7 +208,8 @@ function simulateZonesResponse(): ZoneAggregate[] {
 }
 
 function simulateItemDetails(itemId: string): TrackedItem {
-  const zones = ['receiving', 'storage-a', 'storage-b', 'storage-c', 'secure-storage', 'storage-d', 'processing', 'shipping', 'returns'];
+  // SAPS Forensic Lab zones
+  const zones = ['entry', 'extractions', 'qpcr-lab', 'pcr-lab', 'electrophoresis', 'genemapper', 'chain-custody'];
   const zoneId = zones[Math.floor(Math.random() * zones.length)];
 
   return {
@@ -228,8 +225,8 @@ function simulateItemDetails(itemId: string): TrackedItem {
     lodLevel: 'detailed',
     status: 'active',
     history: [
-      { zoneId: 'receiving', timestamp: Date.now() - 3600000, rssi: -45 },
-      { zoneId: 'storage-a', timestamp: Date.now() - 1800000, rssi: -50 },
+      { zoneId: 'entry', timestamp: Date.now() - 3600000, rssi: -45 },
+      { zoneId: 'extractions', timestamp: Date.now() - 1800000, rssi: -50 },
       { zoneId, timestamp: Date.now(), rssi: -40 },
     ],
     metadata: {},

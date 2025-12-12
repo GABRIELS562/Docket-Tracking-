@@ -138,7 +138,7 @@ const AnomalyCard = ({
  * Collapsible panel positioned in the 3D scene overlay.
  */
 const AIAlertsPanel = () => {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false); // Collapsed by default for clean view
   const [showDwellAlerts, setShowDwellAlerts] = useState(false);
 
   const anomalies = useAnomalies();
@@ -182,8 +182,37 @@ const AIAlertsPanel = () => {
   const criticalCount = anomalies.filter((a) => a.severity === 'critical').length;
   const highCount = anomalies.filter((a) => a.severity === 'high').length;
 
+  // Only show if there are anomalies or alerts
+  const hasAlerts = anomalies.length > 0 || dwellAlerts.length > 0;
+
+  // Compact badge when collapsed
+  if (!isExpanded) {
+    return (
+      <button
+        onClick={() => setIsExpanded(true)}
+        className={`absolute top-4 left-64 z-40 flex items-center gap-2 px-3 py-2 rounded-xl backdrop-blur-md border transition-all hover:scale-105 ${
+          criticalCount > 0
+            ? 'bg-red-500/20 border-red-500/30 text-red-400'
+            : hasAlerts
+            ? 'bg-purple-500/20 border-purple-500/30 text-purple-400'
+            : 'bg-slate-900/80 border-white/10 text-gray-400'
+        }`}
+      >
+        <Brain className="w-4 h-4" />
+        <span className="text-xs font-medium">AI</span>
+        {(criticalCount > 0 || hasAlerts) && (
+          <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+            criticalCount > 0 ? 'bg-red-500 text-white' : 'bg-purple-500 text-white'
+          }`}>
+            {anomalies.length}
+          </span>
+        )}
+      </button>
+    );
+  }
+
   return (
-    <div className="absolute top-32 right-4 z-40 w-96">
+    <div className="absolute top-4 left-64 z-40 w-80">
       {/* Header - Always visible */}
       <div
         className={`bg-slate-900/95 backdrop-blur-xl rounded-t-2xl border border-white/10 cursor-pointer transition-all ${

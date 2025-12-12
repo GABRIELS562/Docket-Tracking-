@@ -81,29 +81,25 @@ const DEFAULT_PAGE_SIZE = 50;
 const CACHE_TTL = 30000; // 30 seconds
 const REQUEST_TIMEOUT = 5000; // 5 seconds
 
-// Zone metadata for simulation
+// SAPS Forensic Lab zone metadata
 const ZONES = [
-  { id: 'receiving', name: 'Receiving' },
-  { id: 'storage-a', name: 'Storage A' },
-  { id: 'storage-b', name: 'Storage B' },
-  { id: 'storage-c', name: 'Storage C' },
-  { id: 'secure-storage', name: 'Secure Storage' },
-  { id: 'storage-d', name: 'Storage D' },
-  { id: 'processing', name: 'Processing' },
-  { id: 'shipping', name: 'Shipping' },
-  { id: 'returns', name: 'Returns' },
+  { id: 'entry', name: 'Entry into Lab' },
+  { id: 'extractions', name: 'Extractions - Sgt Pillay' },
+  { id: 'qpcr-lab', name: 'QPCR Lab - Sgt Mulder' },
+  { id: 'pcr-lab', name: 'PCR Lab - WO Jacobs' },
+  { id: 'electrophoresis', name: 'Electrophoresis Lab' },
+  { id: 'genemapper', name: 'GeneMapper ID - WO Daniels' },
+  { id: 'chain-custody', name: 'Confirm Chain of Custody' },
 ];
 
 const ZONE_POSITIONS: Record<string, [number, number, number]> = {
-  'receiving': [-33, 1.5, -33],
-  'storage-a': [-33, 1.5, 0],
-  'storage-b': [-33, 1.5, 33],
-  'storage-c': [0, 1.5, -33],
-  'secure-storage': [0, 1.5, 0],
-  'storage-d': [0, 1.5, 33],
-  'processing': [33, 1.5, -33],
-  'shipping': [33, 1.5, 0],
-  'returns': [33, 1.5, 33],
+  'entry': [-22.5, 1.5, -27.5],
+  'extractions': [-12.5, 1.5, -5],
+  'qpcr-lab': [12.5, 1.5, -5],
+  'pcr-lab': [-30, 1.5, 15],
+  'electrophoresis': [-34, 1.5, 1.5],
+  'genemapper': [-34, 1.5, -11.5],
+  'chain-custody': [22.5, 1.5, -27.5],
 };
 
 // ============================================================================
@@ -506,11 +502,11 @@ export class SearchApiService {
           const zone = ZONES.find((z) => z.id === item.zone);
           const zoneName = zone?.name || item.zone.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
-          // Determine priority based on zone
+          // Determine priority based on zone (SAPS Forensic Lab)
           let priority: SearchResultItem['priority'] = 'medium';
-          if (item.zone === 'secure-storage') priority = 'critical';
-          else if (item.zone === 'receiving' || item.zone === 'shipping' || item.zone === 'processing') priority = 'high';
-          else if (item.zone === 'returns') priority = 'low';
+          if (item.zone === 'chain-custody') priority = 'critical';
+          else if (item.zone === 'entry' || item.zone === 'extractions' || item.zone === 'qpcr-lab') priority = 'high';
+          else if (item.zone === 'electrophoresis') priority = 'low';
 
           return {
             id: item.id,

@@ -51,16 +51,15 @@ interface OctreeNode {
 // Constants
 // ============================================================================
 
+// SAPS Forensic Lab zone colors
 const ZONE_COLORS: Record<string, string> = {
-  'receiving': '#3b82f6',
-  'storage-a': '#10b981',
-  'storage-b': '#10b981',
-  'storage-c': '#10b981',
-  'secure-storage': '#ef4444',
-  'storage-d': '#10b981',
-  'processing': '#f59e0b',
-  'shipping': '#8b5cf6',
-  'returns': '#ec4899',
+  'entry': '#3b82f6',           // Entry into Lab - Blue
+  'extractions': '#10b981',     // Extractions - Sgt Pillay - Green
+  'qpcr-lab': '#8b5cf6',        // QPCR Lab - Sgt Mulder - Purple
+  'pcr-lab': '#f59e0b',         // PCR Lab - WO Jacobs - Amber
+  'electrophoresis': '#06b6d4', // Electrophoresis Lab - Cyan
+  'genemapper': '#ec4899',      // GeneMapper ID - WO Daniels - Pink
+  'chain-custody': '#ef4444',   // Confirm Chain of Custody - Red
 };
 
 const LOD_SCALES = {
@@ -413,7 +412,7 @@ const InstancedRFIDSystem = () => {
 
   return (
     <group>
-      {/* Main instanced mesh */}
+      {/* Main instanced mesh - File/Folder shape (upright document) */}
       <instancedMesh
         ref={instancedMeshRef}
         args={[undefined, undefined, MAX_INSTANCES]}
@@ -421,28 +420,29 @@ const InstancedRFIDSystem = () => {
         castShadow
         receiveShadow
       >
-        <boxGeometry args={[0.8, 0.8, 0.8]} />
+        {/* File folder shape: width, height (tall), depth (thin like paper) */}
+        <boxGeometry args={[0.6, 0.85, 0.08]} />
         <meshStandardMaterial
           vertexColors
-          roughness={0.3}
-          metalness={0.7}
+          roughness={0.6}
+          metalness={0.1}
           transparent
-          opacity={0.9}
+          opacity={0.95}
           emissive="#ffffff"
-          emissiveIntensity={0.2}
+          emissiveIntensity={0.1}
         />
       </instancedMesh>
 
-      {/* Glow layer for instanced items */}
+      {/* Glow layer for instanced items - File shape */}
       <instancedMesh
         args={[undefined, undefined, MAX_INSTANCES]}
         frustumCulled={false}
       >
-        <boxGeometry args={[1.2, 1.2, 1.2]} />
+        <boxGeometry args={[0.75, 1.0, 0.15]} />
         <meshBasicMaterial
           vertexColors
           transparent
-          opacity={0.15}
+          opacity={0.1}
           depthWrite={false}
         />
       </instancedMesh>
@@ -482,9 +482,9 @@ const DetailedItems = ({ items }: DetailedItemsProps) => {
 
         return (
           <group key={item.id} position={item.position}>
-            {/* Wireframe overlay */}
+            {/* Wireframe overlay - File folder shape */}
             <mesh scale={1.1}>
-              <boxGeometry args={[0.8, 0.8, 0.8]} />
+              <boxGeometry args={[0.6, 0.85, 0.08]} />
               <meshBasicMaterial
                 color={zoneColor}
                 wireframe

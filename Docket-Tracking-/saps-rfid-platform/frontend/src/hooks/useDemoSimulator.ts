@@ -2,17 +2,16 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import type { TagReadEvent, ItemMovedEvent } from '../services/websocket';
 
 /**
- * Zone configuration matching the U-shaped warehouse layout
+ * Zone configuration matching SAPS Forensic Laboratory workflow
  */
 const DEMO_ZONES = [
-  { id: 'receiving', name: 'Receiving', weight: 15 },
-  { id: 'shipping', name: 'Shipping', weight: 15 },
-  { id: 'storage-a', name: 'Storage A', weight: 25 },
-  { id: 'storage-b', name: 'Storage B', weight: 25 },
-  { id: 'processing', name: 'Processing', weight: 8 },
-  { id: 'staging', name: 'Staging', weight: 7 },
-  { id: 'secure-storage', name: 'Secure Storage', weight: 3 },
-  { id: 'returns', name: 'Returns', weight: 2 },
+  { id: 'entry', name: 'Entry into Lab', weight: 10 },
+  { id: 'extractions', name: 'Extractions - Sgt Pillay', weight: 20 },
+  { id: 'qpcr-lab', name: 'QPCR Lab - Sgt Mulder', weight: 20 },
+  { id: 'pcr-lab', name: 'PCR Lab - WO Jacobs', weight: 18 },
+  { id: 'electrophoresis', name: 'Electrophoresis Lab', weight: 15 },
+  { id: 'genemapper', name: 'GeneMapper ID - WO Daniels', weight: 12 },
+  { id: 'chain-custody', name: 'Confirm Chain of Custody', weight: 5 },
 ];
 
 /**

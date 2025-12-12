@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, X, Filter, MapPin, Clock, Tag, Loader2, Sparkles, Navigation } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { useSceneStore } from '../../stores/sceneStore';
+import { useCameraStore } from '../../stores/cameraStore';
+import { useWarehouseStore } from '../../stores/warehouseStore';
 import { useAIAnalyticsStore } from '../../stores/aiAnalyticsStore';
 import { useDebounce } from '../../hooks/useDebounce';
 
@@ -52,17 +54,17 @@ interface SearchSuggestion {
   itemId?: string;
 }
 
-// Zone metadata
+// Zone metadata - matches warehouse config
 const ZONES = [
-  { id: 'receiving', name: 'Receiving', color: '#3b82f6', icon: '📥' },
-  { id: 'storage-a', name: 'Storage A', color: '#10b981', icon: '📦' },
-  { id: 'storage-b', name: 'Storage B', color: '#10b981', icon: '📦' },
-  { id: 'storage-c', name: 'Storage C', color: '#10b981', icon: '📦' },
-  { id: 'secure-storage', name: 'Secure Storage', color: '#ef4444', icon: '🔒' },
-  { id: 'storage-d', name: 'Storage D', color: '#10b981', icon: '📦' },
-  { id: 'processing', name: 'Processing', color: '#f59e0b', icon: '⚙️' },
+  { id: 'receiving', name: 'Receiving', color: '#22c55e', icon: '📥' },
   { id: 'shipping', name: 'Shipping', color: '#8b5cf6', icon: '📤' },
-  { id: 'returns', name: 'Returns', color: '#ec4899', icon: '↩️' },
+  { id: 'storage-a', name: 'Storage A', color: '#3b82f6', icon: '📦' },
+  { id: 'storage-b', name: 'Storage B', color: '#3b82f6', icon: '📦' },
+  { id: 'office', name: 'Office', color: '#6366f1', icon: '🏢' },
+  { id: 'returns', name: 'Returns', color: '#f97316', icon: '↩️' },
+  { id: 'processing', name: 'Processing', color: '#eab308', icon: '⚙️' },
+  { id: 'secure-evidence', name: 'Secure Vault', color: '#ef4444', icon: '🔒' },
+  { id: 'staging', name: 'Staging', color: '#14b8a6', icon: '📋' },
 ];
 
 const STATUS_OPTIONS = [
@@ -96,12 +98,32 @@ const SearchInterface = () => {
   const tenantConfig = useAIAnalyticsStore((s) => s.tenantConfig);
   const itemTerm = tenantConfig?.itemTerm || 'Item';
 
-  // Scene store for 3D integration - extract separately for stable references
-  const flyToItem = useSceneStore((s) => s.flyToItem);
-  const flyToZone = useSceneStore((s) => s.flyToZone);
+  // Camera store for navigation
+  const cameraFlyToItem = useCameraStore((s) => s.flyToItem);
+  const cameraFlyToZone = useCameraStore((s) => s.flyToZone);
+
+  // Warehouse store for zone configs
+  const getZone = useWarehouseStore((s) => s.getZone);
+
+  // Scene store for pathfinding and items
+  const selectItem = useSceneStore((s) => s.selectItem);
   const calculatePathToItem = useSceneStore((s) => s.calculatePathToItem);
   // Use useShallow for items array to prevent new reference on every render
   const items = useSceneStore(useShallow((s) => s.items));
+
+  // Wrapper for flyToItem that uses camera store
+  const flyToItem = useCallback((item: { id: string; epc: string; name: string; zone: string; position: [number, number, number] }) => {
+    cameraFlyToItem(item.id, { x: item.position[0], y: item.position[1], z: item.position[2] });
+    selectItem(item);
+  }, [cameraFlyToItem, selectItem]);
+
+  // Wrapper for flyToZone that uses camera store
+  const flyToZone = useCallback((zoneId: string) => {
+    const zone = getZone(zoneId);
+    if (zone) {
+      cameraFlyToZone(zoneId, zone.center, zone.cameraPreset);
+    }
+  }, [cameraFlyToZone, getZone]);
 
   // Use ref for items and itemTerm in callbacks to avoid dependency issues
   const itemsRef = useRef(items);
@@ -313,10 +335,10 @@ const SearchInterface = () => {
   const handleCommand = (cmd: string) => {
     switch (cmd) {
       case '/tour':
-        (window as any).cinematicCamera?.runZoneTour();
+        (window as any).cameraController?.startTour();
         break;
       case '/critical':
-        setFilters({ ...filters, zones: ['secure-storage'] });
+        setFilters({ ...filters, zones: ['secure-evidence'] });
         setQuery('');
         break;
     }

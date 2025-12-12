@@ -20,18 +20,16 @@ import { useSceneStore } from '../../stores/sceneStore';
 import { useAIAnalyticsStore } from '../../stores/aiAnalyticsStore';
 
 /**
- * Zone colors mapping
+ * SAPS Forensic Lab zone colors mapping
  */
 const ZONE_COLORS: Record<string, { bg: string; text: string; name: string; border: string }> = {
-  'receiving': { bg: 'bg-green-500/20', text: 'text-green-400', name: 'Receiving Dock', border: 'border-green-500/30' },
-  'shipping': { bg: 'bg-purple-500/20', text: 'text-purple-400', name: 'Shipping Dock', border: 'border-purple-500/30' },
-  'storage-a': { bg: 'bg-blue-500/20', text: 'text-blue-400', name: 'Storage Area A', border: 'border-blue-500/30' },
-  'storage-b': { bg: 'bg-blue-500/20', text: 'text-blue-400', name: 'Storage Area B', border: 'border-blue-500/30' },
-  'processing': { bg: 'bg-yellow-500/20', text: 'text-yellow-400', name: 'Processing', border: 'border-yellow-500/30' },
-  'staging': { bg: 'bg-teal-500/20', text: 'text-teal-400', name: 'Staging Area', border: 'border-teal-500/30' },
-  'secure-storage': { bg: 'bg-red-500/20', text: 'text-red-400', name: 'Secure Storage', border: 'border-red-500/30' },
-  'returns': { bg: 'bg-orange-500/20', text: 'text-orange-400', name: 'Returns', border: 'border-orange-500/30' },
-  'office': { bg: 'bg-indigo-500/20', text: 'text-indigo-400', name: 'Office', border: 'border-indigo-500/30' },
+  'entry': { bg: 'bg-blue-500/20', text: 'text-blue-400', name: 'Entry into Lab', border: 'border-blue-500/30' },
+  'extractions': { bg: 'bg-green-500/20', text: 'text-green-400', name: 'Extractions - Sgt Pillay', border: 'border-green-500/30' },
+  'qpcr-lab': { bg: 'bg-purple-500/20', text: 'text-purple-400', name: 'QPCR Lab - Sgt Mulder', border: 'border-purple-500/30' },
+  'pcr-lab': { bg: 'bg-amber-500/20', text: 'text-amber-400', name: 'PCR Lab - WO Jacobs', border: 'border-amber-500/30' },
+  'electrophoresis': { bg: 'bg-cyan-500/20', text: 'text-cyan-400', name: 'Electrophoresis Lab', border: 'border-cyan-500/30' },
+  'genemapper': { bg: 'bg-pink-500/20', text: 'text-pink-400', name: 'GeneMapper ID - WO Daniels', border: 'border-pink-500/30' },
+  'chain-custody': { bg: 'bg-red-500/20', text: 'text-red-400', name: 'Chain of Custody', border: 'border-red-500/30' },
 };
 
 /**
@@ -48,69 +46,78 @@ interface CustodyEvent {
 }
 
 /**
- * Generate realistic chain of custody history for demo
+ * Generate realistic chain of custody history for SAPS Forensic Lab demo
  */
 const generateCustodyHistory = (currentZone: string): CustodyEvent[] => {
-  const operators = ['Officer Ndlovu', 'Sgt. Pillay', 'Det. van der Berg', 'Forensics Tech', 'Evidence Clerk'];
+  // SAPS Forensic Lab personnel
+  const operators: Record<string, string> = {
+    'entry': 'Evidence Clerk',
+    'extractions': 'Sgt Pillay',
+    'qpcr-lab': 'Sgt Mulder',
+    'pcr-lab': 'WO Jacobs',
+    'electrophoresis': 'Lab Technician',
+    'genemapper': 'WO Daniels',
+    'chain-custody': 'Evidence Officer',
+  };
 
-  // Always include receiving (intake) as first entry
   const history: CustodyEvent[] = [];
   let currentTime = new Date();
   currentTime.setHours(currentTime.getHours() - Math.floor(Math.random() * 72) - 24); // 1-4 days ago
 
-  // Intake
+  // Entry into Lab (intake)
   history.push({
     id: '1',
-    zone: 'receiving',
+    zone: 'entry',
     action: 'entered',
     timestamp: new Date(currentTime),
-    operator: operators[Math.floor(Math.random() * operators.length)],
-    notes: 'Item registered at intake',
+    operator: operators['entry'],
+    notes: 'Evidence docket registered at lab entry',
   });
 
-  // Processing
+  // Extractions Lab
   currentTime.setMinutes(currentTime.getMinutes() + Math.floor(Math.random() * 60) + 30);
   history.push({
     id: '2',
-    zone: 'processing',
+    zone: 'extractions',
     action: 'entered',
     timestamp: new Date(currentTime),
-    durationMinutes: Math.floor(Math.random() * 120) + 30,
-    operator: operators[Math.floor(Math.random() * operators.length)],
-    notes: 'Evidence logged and catalogued',
+    durationMinutes: Math.floor(Math.random() * 180) + 60,
+    operator: operators['extractions'],
+    notes: 'DNA extraction processing',
   });
 
   history.push({
     id: '3',
-    zone: 'processing',
+    zone: 'extractions',
     action: 'verified',
-    timestamp: new Date(currentTime.getTime() + 15 * 60000),
-    operator: operators[Math.floor(Math.random() * operators.length)],
-    notes: 'Chain of custody verified',
+    timestamp: new Date(currentTime.getTime() + 30 * 60000),
+    operator: operators['extractions'],
+    notes: 'Sample integrity verified',
   });
 
-  // Storage
+  // QPCR or PCR Lab
   currentTime.setMinutes(currentTime.getMinutes() + Math.floor(Math.random() * 120) + 60);
-  const storageZone = currentZone === 'secure-storage' ? 'secure-storage' : 'storage-a';
+  const labZone = Math.random() > 0.5 ? 'qpcr-lab' : 'pcr-lab';
   history.push({
     id: '4',
-    zone: storageZone,
+    zone: labZone,
     action: 'entered',
     timestamp: new Date(currentTime),
-    durationMinutes: Math.floor(Math.random() * 1440 * 7) + 60, // Up to 7 days
-    operator: operators[Math.floor(Math.random() * operators.length)],
-    notes: storageZone === 'secure-storage' ? 'Secured in vault' : 'Placed in general storage',
+    durationMinutes: Math.floor(Math.random() * 240) + 120,
+    operator: operators[labZone],
+    notes: labZone === 'qpcr-lab' ? 'Quantitative PCR analysis' : 'PCR amplification',
   });
 
-  // If not in current zone, add movement to current zone
-  if (storageZone !== currentZone && currentZone !== 'processing' && currentZone !== 'receiving') {
-    currentTime.setMinutes(currentTime.getMinutes() + Math.floor(Math.random() * 60) + 10);
+  // If not in current zone, add movement through workflow
+  if (currentZone !== labZone && currentZone !== 'extractions' && currentZone !== 'entry') {
+    currentTime.setMinutes(currentTime.getMinutes() + Math.floor(Math.random() * 60) + 30);
     history.push({
       id: '5',
       zone: currentZone,
       action: 'entered',
       timestamp: new Date(currentTime),
-      operator: operators[Math.floor(Math.random() * operators.length)],
+      operator: operators[currentZone] || 'Lab Technician',
+      notes: currentZone === 'chain-custody' ? 'Final custody confirmation' : 'Processing continued',
     });
   }
 
@@ -159,7 +166,7 @@ const ItemDetailsPanel = () => {
   selectedItemRef.current = selectedItem;
 
   // Get zone styling
-  const zoneStyle = selectedItem ? ZONE_COLORS[selectedItem.zone] || ZONE_COLORS['storage-a'] : null;
+  const zoneStyle = selectedItem ? ZONE_COLORS[selectedItem.zone] || ZONE_COLORS['entry'] : null;
 
   // Generate custody history when item changes
   useEffect(() => {
@@ -327,7 +334,7 @@ const ItemDetailsPanel = () => {
 
               <div className="space-y-0">
                 {(showFullHistory ? custodyHistory : custodyHistory.slice(-4)).map((event, idx) => {
-                  const style = ZONE_COLORS[event.zone] || ZONE_COLORS['storage-a'];
+                  const style = ZONE_COLORS[event.zone] || ZONE_COLORS['entry'];
                   const isLast = idx === (showFullHistory ? custodyHistory.length - 1 : Math.min(custodyHistory.length - 1, 3));
 
                   return (
@@ -388,11 +395,11 @@ const ItemDetailsPanel = () => {
               )}
             </div>
 
-            {/* Secure Storage Warning */}
-            {selectedItem.zone === 'secure-storage' && (
+            {/* Chain of Custody Zone Warning */}
+            {selectedItem.zone === 'chain-custody' && (
               <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/30 rounded-lg">
                 <Shield className="w-4 h-4 text-red-400" />
-                <span className="text-red-400 text-xs font-medium">High-security evidence vault</span>
+                <span className="text-red-400 text-xs font-medium">Final Chain of Custody verification required</span>
               </div>
             )}
 

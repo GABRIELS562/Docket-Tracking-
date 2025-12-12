@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Grid, Text, Float } from '@react-three/drei';
 import * as THREE from 'three';
@@ -45,6 +45,11 @@ const Warehouse = () => {
 
   // NEW: Get zones from unified warehouse store (single source of truth)
   const warehouseZones = useZones();
+
+  // Debug logging
+  useEffect(() => {
+    console.log('[Warehouse] Component mounted, zones:', warehouseZones.length);
+  }, [warehouseZones]);
 
   // Transform warehouse zones to rendering format
   const zones = useMemo(() => {
