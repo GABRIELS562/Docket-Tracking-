@@ -15,6 +15,45 @@ const DEMO_ZONES = [
 ];
 
 /**
+ * 4 Hero Demo Items - Always available for demo presentations
+ * These items have fixed zones and are easily searchable
+ */
+export const HERO_DEMO_ITEMS = [
+  {
+    epc: 'LAB-0001',
+    zone: 'entry',
+    caseNumber: 'CAS-2024-001847',
+    description: 'Murder Investigation - Sandton',
+    officer: 'Det. van der Berg',
+    priority: 'critical' as const,
+  },
+  {
+    epc: 'LAB-0002',
+    zone: 'extractions',
+    caseNumber: 'CAS-2024-001923',
+    description: 'Robbery - Johannesburg CBD',
+    officer: 'Sgt Pillay',
+    priority: 'high' as const,
+  },
+  {
+    epc: 'LAB-0003',
+    zone: 'pcr-lab',
+    caseNumber: 'CAS-2024-002156',
+    description: 'Sexual Assault - Pretoria',
+    officer: 'WO Jacobs',
+    priority: 'critical' as const,
+  },
+  {
+    epc: 'LAB-0004',
+    zone: 'chain-custody',
+    caseNumber: 'CAS-2024-001654',
+    description: 'Burglary - Centurion',
+    officer: 'Evidence Officer',
+    priority: 'medium' as const,
+  },
+];
+
+/**
  * Generate EPC code
  * All items use LAB-XXXX format for consistency
  */
@@ -34,7 +73,7 @@ const getRandomZone = (): string => {
     random -= zone.weight;
     if (random <= 0) return zone.id;
   }
-  return 'storage-a';
+  return 'entry';
 };
 
 /**
@@ -114,7 +153,18 @@ export const useDemoSimulator = (
     if (!enabled) return;
 
     const items = new Map<string, DemoItem>();
-    for (let i = 0; i < itemCount; i++) {
+
+    // First, add the 4 hero demo items with fixed zones
+    for (const hero of HERO_DEMO_ITEMS) {
+      items.set(hero.epc, {
+        epc: hero.epc,
+        zone: hero.zone,
+        lastMoved: Date.now() - Math.random() * 3600000, // Within last hour
+      });
+    }
+
+    // Then add remaining items with random zones
+    for (let i = HERO_DEMO_ITEMS.length; i < itemCount; i++) {
       const epc = generateEPC(i);
       items.set(epc, {
         epc,
@@ -124,7 +174,7 @@ export const useDemoSimulator = (
     }
     itemsRef.current = items;
 
-    console.log(`📦 Demo Simulator: Initialized ${itemCount} items`);
+    console.log(`📦 Demo Simulator: Initialized ${itemCount} items (including ${HERO_DEMO_ITEMS.length} hero items)`);
   }, [enabled, itemCount]);
 
   // Generate read cycle

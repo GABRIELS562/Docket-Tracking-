@@ -15,10 +15,16 @@ import {
   History,
   Zap,
   AlertTriangle,
+  FileText,
+  Shield,
+  CheckCircle2,
+  Eye,
+  ChevronRight,
 } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { useSceneStore } from '../stores/sceneStore';
 import { useAIAnalyticsStore } from '../stores/aiAnalyticsStore';
+import { HERO_DEMO_ITEMS } from '../hooks/useDemoSimulator';
 
 /**
  * Search Page - Full-Page Search Experience
@@ -52,6 +58,119 @@ interface SearchFilters {
   priority: string[];
 }
 
+// Chain of custody event
+interface CustodyEvent {
+  id: string;
+  zone: string;
+  zoneName: string;
+  action: 'entered' | 'verified' | 'scanned';
+  timestamp: Date;
+  operator: string;
+  notes?: string;
+}
+
+// Generate chain of custody history for an item
+const generateCustodyHistory = (zoneId: string, epc: string): CustodyEvent[] => {
+  const operators: Record<string, string> = {
+    'entry': 'Evidence Clerk',
+    'extractions': 'Sgt Pillay',
+    'qpcr-lab': 'Sgt Mulder',
+    'pcr-lab': 'WO Jacobs',
+    'electrophoresis': 'Lab Technician',
+    'genemapper': 'WO Daniels',
+    'chain-custody': 'Evidence Officer',
+  };
+
+  const zoneNames: Record<string, string> = {
+    'entry': 'Entry into Lab',
+    'extractions': 'Extractions Lab',
+    'qpcr-lab': 'QPCR Lab',
+    'pcr-lab': 'PCR Lab',
+    'electrophoresis': 'Electrophoresis',
+    'genemapper': 'GeneMapper ID',
+    'chain-custody': 'Chain of Custody',
+  };
+
+  const history: CustodyEvent[] = [];
+  let currentTime = new Date();
+  // Use EPC to create consistent timing (so same item always shows same history)
+  const seed = epc.charCodeAt(epc.length - 1) + epc.charCodeAt(epc.length - 2);
+  currentTime.setHours(currentTime.getHours() - (24 + (seed % 72)));
+
+  // Entry
+  history.push({
+    id: '1',
+    zone: 'entry',
+    zoneName: zoneNames['entry'],
+    action: 'entered',
+    timestamp: new Date(currentTime),
+    operator: operators['entry'],
+    notes: 'Evidence docket registered at lab entry',
+  });
+
+  // Extractions
+  currentTime.setMinutes(currentTime.getMinutes() + 45 + (seed % 30));
+  history.push({
+    id: '2',
+    zone: 'extractions',
+    zoneName: zoneNames['extractions'],
+    action: 'entered',
+    timestamp: new Date(currentTime),
+    operator: operators['extractions'],
+    notes: 'DNA extraction initiated',
+  });
+
+  history.push({
+    id: '3',
+    zone: 'extractions',
+    zoneName: zoneNames['extractions'],
+    action: 'verified',
+    timestamp: new Date(currentTime.getTime() + 30 * 60000),
+    operator: operators['extractions'],
+    notes: 'Sample integrity verified',
+  });
+
+  // If item has progressed further, add more history
+  if (['qpcr-lab', 'pcr-lab', 'electrophoresis', 'genemapper', 'chain-custody'].includes(zoneId)) {
+    currentTime.setMinutes(currentTime.getMinutes() + 120 + (seed % 60));
+    history.push({
+      id: '4',
+      zone: 'pcr-lab',
+      zoneName: zoneNames['pcr-lab'],
+      action: 'entered',
+      timestamp: new Date(currentTime),
+      operator: operators['pcr-lab'],
+      notes: 'PCR amplification started',
+    });
+  }
+
+  if (['genemapper', 'chain-custody'].includes(zoneId)) {
+    currentTime.setMinutes(currentTime.getMinutes() + 180 + (seed % 60));
+    history.push({
+      id: '5',
+      zone: 'genemapper',
+      zoneName: zoneNames['genemapper'],
+      action: 'entered',
+      timestamp: new Date(currentTime),
+      operator: operators['genemapper'],
+      notes: 'DNA profile analysis',
+    });
+  }
+
+  // Current zone scan
+  history.push({
+    id: '6',
+    zone: zoneId,
+    zoneName: zoneNames[zoneId] || zoneId,
+    action: 'scanned',
+    timestamp: new Date(),
+    operator: 'RFID System',
+    notes: 'Current location confirmed',
+  });
+
+  return history;
+};
+
 // Zone metadata - SAPS Forensic Laboratory workflow
 const ZONES = [
   { id: 'entry', name: 'Entry into Lab', color: '#3b82f6', icon: '🚪' },
@@ -62,6 +181,32 @@ const ZONES = [
   { id: 'genemapper', name: 'GeneMapper ID - WO Daniels', color: '#ec4899', icon: '🧪' },
   { id: 'chain-custody', name: 'Confirm Chain of Custody', color: '#ef4444', icon: '✅' },
 ];
+
+// Zone positions for camera fly-to (matching 3D scene coordinates)
+const ZONE_POSITIONS: Record<string, [number, number, number]> = {
+  'entry': [-22.5, 1.5, -27.5],
+  'extractions': [-12.5, 1.5, -5],
+  'qpcr-lab': [12.5, 1.5, -5],
+  'pcr-lab': [-30, 1.5, 15],
+  'electrophoresis': [-34, 1.5, 1.5],
+  'genemapper': [-34, 1.5, -11.5],
+  'chain-custody': [22.5, 1.5, -27.5],
+};
+
+// Get position for an item (from item or zone fallback)
+const getItemPosition = (item: { position?: [number, number, number]; zone: string }): [number, number, number] => {
+  // If item has valid position (not at origin), use it
+  if (item.position && (item.position[0] !== 0 || item.position[1] !== 0 || item.position[2] !== 0)) {
+    return item.position;
+  }
+  // Otherwise use zone center with small random offset
+  const basePos = ZONE_POSITIONS[item.zone] || ZONE_POSITIONS['entry'];
+  return [
+    basePos[0] + (Math.random() - 0.5) * 8,
+    basePos[1] + Math.random() * 0.3,
+    basePos[2] + (Math.random() - 0.5) * 6,
+  ];
+};
 
 const STATUS_OPTIONS = [
   { id: 'active', name: 'Active', color: '#22c55e' },
@@ -92,6 +237,8 @@ const SearchPage = () => {
   });
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [searchTime, setSearchTime] = useState(0);
+  const [selectedItem, setSelectedItem] = useState<SearchResult | null>(null);
+  const [custodyHistory, setCustodyHistory] = useState<CustodyEvent[]>([]);
 
   // Refs
   const inputRef = useRef<HTMLInputElement>(null);
@@ -126,33 +273,57 @@ const SearchPage = () => {
     localStorage.setItem('recentSearches', JSON.stringify(updated));
   }, [recentSearches]);
 
-  // Search items (from scene items)
+  // Search items (from scene items + hero items)
   const searchItems = useCallback((q: string, filtersArg: SearchFilters): SearchResult[] => {
     const startTime = performance.now();
     const lowerQuery = q.toLowerCase().trim();
     const currentItems = itemsRef.current;
 
-    const results = currentItems
+    // Always include hero items in search
+    const heroResults: SearchResult[] = HERO_DEMO_ITEMS
+      .filter((hero) => {
+        const textMatch = !lowerQuery ||
+          hero.epc.toLowerCase().includes(lowerQuery) ||
+          hero.caseNumber.toLowerCase().includes(lowerQuery) ||
+          hero.description.toLowerCase().includes(lowerQuery) ||
+          hero.zone.toLowerCase().includes(lowerQuery);
+        const zoneMatch = filtersArg.zones.length === 0 || filtersArg.zones.includes(hero.zone);
+        return textMatch && zoneMatch;
+      })
+      .map((hero) => ({
+        id: `item-${hero.epc}`,
+        epc: hero.epc,
+        name: `${itemTerm} ${hero.epc}`,
+        zone: ZONES.find(z => z.id === hero.zone)?.name || hero.zone,
+        zoneId: hero.zone,
+        status: 'active' as const,
+        lastSeen: new Date().toISOString(),
+        position: getItemPosition({ zone: hero.zone }),
+        priority: hero.priority,
+        dwellTime: Math.floor(Math.random() * 1440 * 14),
+      }));
+
+    // Get scene items (excluding hero EPCs)
+    const heroEpcs = new Set(HERO_DEMO_ITEMS.map(h => h.epc));
+    const sceneResults = currentItems
       .filter((item) => {
-        // Text match (if query exists)
+        if (heroEpcs.has(item.epc)) return false; // Skip hero items (already added)
+
         const textMatch = !lowerQuery ||
           item.epc.toLowerCase().includes(lowerQuery) ||
           item.id.toLowerCase().includes(lowerQuery) ||
           item.zone.toLowerCase().includes(lowerQuery);
-
-        // Zone filter
         const zoneMatch = filtersArg.zones.length === 0 || filtersArg.zones.includes(item.zone);
 
         return textMatch && zoneMatch;
       })
-      .slice(0, 100)
+      .slice(0, 96)
       .map((item) => {
-        // Generate realistic mock data for demo
         const priorities: SearchResult['priority'][] = ['low', 'medium', 'high', 'critical'];
         const statuses: SearchResult['status'][] = ['active', 'active', 'active', 'in-transit'];
-        const randomPriority = item.zone === 'secure-storage' ? 'critical' : priorities[Math.floor(Math.random() * 3)];
+        const randomPriority = item.zone === 'chain-custody' ? 'critical' : priorities[Math.floor(Math.random() * 3)];
         const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
-        const dwellMinutes = Math.floor(Math.random() * 1440 * 30); // 0-30 days in minutes
+        const dwellMinutes = Math.floor(Math.random() * 1440 * 30);
 
         return {
           id: item.id,
@@ -162,11 +333,14 @@ const SearchPage = () => {
           zoneId: item.zone,
           status: randomStatus,
           lastSeen: new Date(Date.now() - Math.random() * 3600000).toISOString(),
-          position: item.position,
+          position: getItemPosition({ position: item.position, zone: item.zone }),
           priority: randomPriority,
           dwellTime: dwellMinutes,
         };
       });
+
+    // Combine: hero items first, then scene items
+    const results = [...heroResults, ...sceneResults];
 
     // Apply status and priority filters
     const filteredResults = results.filter(item => {
@@ -191,20 +365,50 @@ const SearchPage = () => {
     return () => clearTimeout(timeoutId);
   }, [query, filters, searchItems]);
 
-  // Handle result selection - fly to item in 3D
+  // Handle result selection - show details inline
   const handleSelectItem = useCallback((result: SearchResult) => {
-    flyToItem({
-      id: result.id,
-      epc: result.epc,
-      name: result.name,
-      zone: result.zoneId,
-      position: result.position,
-    });
-    calculatePathToItem(result.zoneId);
+    setSelectedItem(result);
+    setCustodyHistory(generateCustodyHistory(result.zoneId, result.epc));
     saveRecentSearch(result.epc);
-    // Navigate to dashboard to see the 3D view
-    navigate('/');
-  }, [flyToItem, calculatePathToItem, saveRecentSearch, navigate]);
+  }, [saveRecentSearch]);
+
+  // Navigate to 3D view with selected item
+  const handleViewIn3D = useCallback(() => {
+    if (!selectedItem) return;
+
+    // CRITICAL: Look up the ACTUAL position from sceneStore items (the real 3D position)
+    // This ensures camera flies to where the item actually is in the 3D scene
+    const currentItems = itemsRef.current;
+    const actualItem = currentItems.find(item => item.epc === selectedItem.epc);
+
+    // Use actual position from 3D scene, or fall back to zone center
+    const actualPosition: [number, number, number] = actualItem?.position &&
+      (actualItem.position[0] !== 0 || actualItem.position[1] !== 0 || actualItem.position[2] !== 0)
+        ? actualItem.position
+        : ZONE_POSITIONS[selectedItem.zoneId] || ZONE_POSITIONS['entry'];
+
+    console.log(`🎯 Flying to ${selectedItem.epc} at position:`, actualPosition);
+
+    // Set the item in store with ACTUAL position
+    flyToItem({
+      id: selectedItem.id,
+      epc: selectedItem.epc,
+      name: selectedItem.name,
+      zone: selectedItem.zoneId,
+      position: actualPosition,
+    });
+    calculatePathToItem(selectedItem.zoneId);
+
+    // Navigate to dashboard - the item will be selected and camera will animate
+    // IMPORTANT: Dashboard is at /dashboard, NOT /
+    navigate('/dashboard');
+  }, [selectedItem, flyToItem, calculatePathToItem, navigate]);
+
+  // Close item details
+  const handleCloseDetails = useCallback(() => {
+    setSelectedItem(null);
+    setCustodyHistory([]);
+  }, []);
 
   // Handle zone click - fly to zone
   const handleSelectZone = useCallback((zoneId: string) => {
@@ -269,27 +473,48 @@ const SearchPage = () => {
   }), [items]);
 
   // Memoized initial items list for "All Tracked Items" section
-  // This avoids calling searchItems during render which causes infinite loop
+  // Always includes the 4 hero demo items at the top
   const initialItemsList = useMemo(() => {
-    return items.slice(0, 20).map((item) => {
-      const priorities: SearchResult['priority'][] = ['low', 'medium', 'high', 'critical'];
-      const statuses: SearchResult['status'][] = ['active', 'active', 'active', 'in-transit'];
-      const randomPriority = item.zone === 'secure-storage' ? 'critical' : priorities[Math.floor(Math.random() * 3)];
-      const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+    // First, create entries for hero items (always available)
+    const heroResults: SearchResult[] = HERO_DEMO_ITEMS.map((hero) => ({
+      id: `item-${hero.epc}`,
+      epc: hero.epc,
+      name: `${itemTerm} ${hero.epc}`,
+      zone: ZONES.find(z => z.id === hero.zone)?.name || hero.zone,
+      zoneId: hero.zone,
+      status: 'active' as const,
+      lastSeen: new Date().toISOString(),
+      position: getItemPosition({ zone: hero.zone }),
+      priority: hero.priority,
+      dwellTime: Math.floor(Math.random() * 1440 * 14), // 0-14 days
+    }));
 
-      return {
-        id: item.id,
-        epc: item.epc,
-        name: `${itemTerm} ${item.epc.slice(-6).toUpperCase()}`,
-        zone: item.zone.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-        zoneId: item.zone,
-        status: randomStatus,
-        lastSeen: new Date(Date.now() - Math.random() * 3600000).toISOString(),
-        position: item.position,
-        priority: randomPriority,
-        dwellTime: Math.floor(Math.random() * 1440 * 30),
-      };
-    });
+    // Then add scene items (excluding hero EPCs to avoid duplicates)
+    const heroEpcs = new Set(HERO_DEMO_ITEMS.map(h => h.epc));
+    const sceneResults = items
+      .filter(item => !heroEpcs.has(item.epc))
+      .slice(0, 16)
+      .map((item) => {
+        const priorities: SearchResult['priority'][] = ['low', 'medium', 'high', 'critical'];
+        const statuses: SearchResult['status'][] = ['active', 'active', 'active', 'in-transit'];
+        const randomPriority = item.zone === 'chain-custody' ? 'critical' : priorities[Math.floor(Math.random() * 3)];
+        const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+
+        return {
+          id: item.id,
+          epc: item.epc,
+          name: `${itemTerm} ${item.epc.slice(-6).toUpperCase()}`,
+          zone: item.zone.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+          zoneId: item.zone,
+          status: randomStatus,
+          lastSeen: new Date(Date.now() - Math.random() * 3600000).toISOString(),
+          position: getItemPosition({ position: item.position, zone: item.zone }),
+          priority: randomPriority,
+          dwellTime: Math.floor(Math.random() * 1440 * 30),
+        };
+      });
+
+    return [...heroResults, ...sceneResults];
   }, [items, itemTerm]);
 
   return (
@@ -656,22 +881,191 @@ const SearchPage = () => {
         )}
 
         {/* Keyboard hints */}
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 bg-slate-800/90 backdrop-blur rounded-full flex items-center gap-4 text-xs text-gray-500 border border-white/10">
-          <span className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 bg-white/10 rounded">↑</kbd>
-            <kbd className="px-1.5 py-0.5 bg-white/10 rounded">↓</kbd>
-            Navigate
-          </span>
-          <span className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 bg-white/10 rounded">Enter</kbd>
-            Fly to item
-          </span>
-          <span className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 bg-white/10 rounded">Esc</kbd>
-            Clear
-          </span>
-        </div>
+        {!selectedItem && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 bg-slate-800/90 backdrop-blur rounded-full flex items-center gap-4 text-xs text-gray-500 border border-white/10">
+            <span className="flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 bg-white/10 rounded">↑</kbd>
+              <kbd className="px-1.5 py-0.5 bg-white/10 rounded">↓</kbd>
+              Navigate
+            </span>
+            <span className="flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 bg-white/10 rounded">Enter</kbd>
+              Select item
+            </span>
+            <span className="flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 bg-white/10 rounded">Esc</kbd>
+              Clear
+            </span>
+          </div>
+        )}
       </div>
+
+      {/* Item Details Slide-out Panel */}
+      {selectedItem && (
+        <div className="fixed inset-y-0 right-0 w-[450px] bg-slate-900/98 backdrop-blur-xl border-l border-white/10 shadow-2xl z-50 overflow-hidden flex flex-col">
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-cyan-600/20 to-blue-600/20">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center">
+                <FileText className="w-5 h-5 text-cyan-400" />
+              </div>
+              <div>
+                <h2 className="text-white font-bold">{itemTerm} Details</h2>
+                <p className="text-xs text-gray-400">Live location & history</p>
+              </div>
+            </div>
+            <button
+              onClick={handleCloseDetails}
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5 text-gray-400" />
+            </button>
+          </div>
+
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            {/* EPC & Case Info */}
+            <div className="space-y-4">
+              <div>
+                <div className="text-xs text-gray-500 uppercase mb-1">EPC Tag ID</div>
+                <div className="font-mono text-2xl text-white font-bold tracking-wider">
+                  {selectedItem.epc}
+                </div>
+              </div>
+
+              {/* Hero item case details */}
+              {(() => {
+                const heroItem = HERO_DEMO_ITEMS.find(h => h.epc === selectedItem.epc);
+                if (heroItem) {
+                  return (
+                    <div className="bg-white/5 rounded-xl p-4 border border-white/10 space-y-3">
+                      <div>
+                        <div className="text-xs text-gray-500 uppercase mb-1">Case Number</div>
+                        <div className="text-white font-mono">{heroItem.caseNumber}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-500 uppercase mb-1">Description</div>
+                        <div className="text-white">{heroItem.description}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-500 uppercase mb-1">Assigned Officer</div>
+                        <div className="text-cyan-400">{heroItem.officer}</div>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
+              {/* Current Location */}
+              <div>
+                <div className="text-xs text-gray-500 uppercase mb-2 flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />
+                  Live Location
+                </div>
+                <div
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium"
+                  style={{
+                    backgroundColor: `${ZONES.find(z => z.id === selectedItem.zoneId)?.color}20`,
+                    color: ZONES.find(z => z.id === selectedItem.zoneId)?.color,
+                    border: `1px solid ${ZONES.find(z => z.id === selectedItem.zoneId)?.color}40`,
+                  }}
+                >
+                  <span className="text-lg">{ZONES.find(z => z.id === selectedItem.zoneId)?.icon}</span>
+                  {selectedItem.zone}
+                </div>
+              </div>
+
+              {/* Priority Badge */}
+              {selectedItem.priority === 'critical' && (
+                <div className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/30 rounded-xl">
+                  <Shield className="w-4 h-4 text-red-400" />
+                  <span className="text-red-400 text-sm font-medium">Critical Priority Evidence</span>
+                </div>
+              )}
+            </div>
+
+            {/* Chain of Custody Timeline */}
+            <div>
+              <div className="text-xs text-gray-500 uppercase mb-4 flex items-center gap-2">
+                <History className="w-4 h-4" />
+                Chain of Custody ({custodyHistory.length} events)
+              </div>
+
+              <div className="space-y-0">
+                {custodyHistory.map((event, idx) => {
+                  const isLast = idx === custodyHistory.length - 1;
+                  const zoneColor = ZONES.find(z => z.id === event.zone)?.color || '#6b7280';
+
+                  return (
+                    <div key={event.id} className="relative flex gap-3">
+                      {/* Timeline line */}
+                      {!isLast && (
+                        <div className="absolute left-[11px] top-6 w-0.5 h-full bg-white/10" />
+                      )}
+
+                      {/* Timeline dot */}
+                      <div
+                        className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 border"
+                        style={{
+                          backgroundColor: `${zoneColor}20`,
+                          borderColor: `${zoneColor}40`,
+                        }}
+                      >
+                        {event.action === 'entered' && <ArrowRight className="w-3 h-3" style={{ color: zoneColor }} />}
+                        {event.action === 'verified' && <CheckCircle2 className="w-3 h-3" style={{ color: zoneColor }} />}
+                        {event.action === 'scanned' && <Eye className="w-3 h-3" style={{ color: zoneColor }} />}
+                      </div>
+
+                      {/* Event content */}
+                      <div className="flex-1 pb-4">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-sm font-medium text-white">
+                            {event.action === 'entered' && 'Entered'}
+                            {event.action === 'verified' && 'Verified at'}
+                            {event.action === 'scanned' && 'Scanned at'} {event.zoneName}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <span>{event.timestamp.toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
+                          <span>•</span>
+                          <span>{event.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          <span>•</span>
+                          <span className="text-cyan-400">{event.operator}</span>
+                        </div>
+                        {event.notes && (
+                          <div className="text-xs text-gray-400 mt-1 flex items-start gap-1">
+                            <FileText className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                            {event.notes}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Verification Status */}
+            <div className="flex items-center gap-2 px-4 py-3 bg-green-500/10 border border-green-500/30 rounded-xl">
+              <CheckCircle2 className="w-5 h-5 text-green-400" />
+              <span className="text-green-400 text-sm font-medium">Chain of custody verified</span>
+            </div>
+          </div>
+
+          {/* Footer Actions */}
+          <div className="px-6 py-4 border-t border-white/10 bg-slate-900/50">
+            <button
+              onClick={handleViewIn3D}
+              className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 rounded-xl text-white font-semibold transition-all"
+            >
+              <Navigation className="w-5 h-5" />
+              View Live Location in 3D
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

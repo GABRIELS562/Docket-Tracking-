@@ -172,6 +172,13 @@ interface ActivePath {
 export type CameraMode = 'orbit' | 'walk';
 
 /**
+ * Alert mode for visual effects
+ * - 'dwell': amber/yellow highlighting for items that have been in zone too long
+ * - 'security': red alarm effects for unauthorized movement/security breach
+ */
+export type AlertMode = 'dwell' | 'security' | null;
+
+/**
  * 3D Scene State
  */
 interface SceneState {
@@ -181,6 +188,9 @@ interface SceneState {
   isAnimatingCamera: boolean;
   currentPreset: string;
   cameraMode: CameraMode;
+
+  // Alert mode for visual effects
+  alertMode: AlertMode;
 
   // Selected item
   selectedItem: SelectedItem | null;
@@ -241,6 +251,7 @@ interface SceneState {
   calculatePathToItem: (targetZone: string) => void;
   setCameraMode: (mode: CameraMode) => void;
   toggleWalkMode: () => void;
+  setAlertMode: (mode: AlertMode) => void;
 }
 
 /**
@@ -269,6 +280,7 @@ export const useSceneStore = create<SceneState>((set, _get) => ({
   isAnimatingCamera: false,
   currentPreset: 'overview',
   cameraMode: 'orbit',
+  alertMode: null,
 
   selectedItem: null,
   hoveredItem: null,
@@ -310,18 +322,65 @@ export const useSceneStore = create<SceneState>((set, _get) => ({
 
   flyToItem: (item) => {
     const [x, y, z] = item.position;
-    const offset = 12;
+    // Closer camera for better visibility
+    const offset = 10;
 
     set({
       isAnimatingCamera: true,
       selectedItem: item,
-      cameraTarget: { x, y, z },
-      cameraPosition: { x: x + offset, y: y + offset + 5, z: z + offset },
+      cameraTarget: { x, y: y + 1, z }, // Look at item
+      cameraPosition: { x: x + offset, y: y + offset + 4, z: z + offset },
     });
 
-    // Reset animation flag after animation completes
+    // After initial fly-in, do a cinematic orbit
     setTimeout(() => {
       set({ isAnimatingCamera: false });
+
+      // Start auto-orbit sequence - 3 position changes for cinematic effect
+      const orbitRadius = 12;
+      const orbitHeight = 8;
+
+      // Position 2 - rotate 120 degrees
+      setTimeout(() => {
+        const angle2 = Math.PI * 2 / 3;
+        set({
+          isAnimatingCamera: true,
+          cameraPosition: {
+            x: x + Math.cos(angle2) * orbitRadius,
+            y: y + orbitHeight,
+            z: z + Math.sin(angle2) * orbitRadius,
+          },
+        });
+        setTimeout(() => set({ isAnimatingCamera: false }), 2000);
+      }, 500);
+
+      // Position 3 - rotate 240 degrees
+      setTimeout(() => {
+        const angle3 = Math.PI * 4 / 3;
+        set({
+          isAnimatingCamera: true,
+          cameraPosition: {
+            x: x + Math.cos(angle3) * orbitRadius,
+            y: y + orbitHeight,
+            z: z + Math.sin(angle3) * orbitRadius,
+          },
+        });
+        setTimeout(() => set({ isAnimatingCamera: false }), 2000);
+      }, 3000);
+
+      // Position 4 - back to starting angle but slightly different
+      setTimeout(() => {
+        set({
+          isAnimatingCamera: true,
+          cameraPosition: {
+            x: x + orbitRadius * 0.8,
+            y: y + orbitHeight + 2,
+            z: z + orbitRadius * 0.8,
+          },
+        });
+        setTimeout(() => set({ isAnimatingCamera: false }), 2000);
+      }, 5500);
+
     }, 1500);
   },
 
@@ -504,4 +563,6 @@ export const useSceneStore = create<SceneState>((set, _get) => ({
         currentPreset: 'overview',
       } : {}),
     })),
+
+  setAlertMode: (mode) => set({ alertMode: mode }),
 }));

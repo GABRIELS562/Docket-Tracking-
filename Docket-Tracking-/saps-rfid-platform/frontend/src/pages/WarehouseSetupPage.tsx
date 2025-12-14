@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import {
   Upload,
   Plus,
@@ -144,6 +144,11 @@ const WarehouseSetupPage = () => {
   const [showShapeTemplates, setShowShapeTemplates] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
 
+  // Drag and drop state
+  const [draggingZone, setDraggingZone] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, z: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+
   // Floor management
   const addFloor = () => {
     const newFloorId = Math.max(...floors.map(f => f.id)) + 1;
@@ -227,6 +232,58 @@ const WarehouseSetupPage = () => {
     setZones(zones.filter(z => z.id !== id));
     if (selectedZone === id) setSelectedZone(null);
   };
+
+  // Drag handlers for zone positioning
+  const handleDragStart = useCallback((e: React.MouseEvent, zoneId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const zone = zones.find(z => z.id === zoneId);
+    if (!zone || !containerRef.current) return;
+
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const containerWidth = containerRect.width - 24; // Account for padding
+    const containerHeight = containerRect.height - 24;
+
+    // Calculate mouse position in warehouse coordinates
+    const mouseX = ((e.clientX - containerRect.left - 12) / containerWidth) * warehouseSize.width - warehouseSize.width / 2;
+    const mouseZ = ((e.clientY - containerRect.top - 12) / containerHeight) * warehouseSize.depth - warehouseSize.depth / 2;
+
+    // Store offset from zone center to mouse position
+    setDragOffset({
+      x: mouseX - zone.x,
+      z: mouseZ - zone.z,
+    });
+
+    setDraggingZone(zoneId);
+    setSelectedZone(zoneId);
+  }, [zones, warehouseSize]);
+
+  const handleDragMove = useCallback((e: React.MouseEvent) => {
+    if (!draggingZone || !containerRef.current) return;
+
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const containerWidth = containerRect.width - 24;
+    const containerHeight = containerRect.height - 24;
+
+    // Calculate new position in warehouse coordinates
+    const mouseX = ((e.clientX - containerRect.left - 12) / containerWidth) * warehouseSize.width - warehouseSize.width / 2;
+    const mouseZ = ((e.clientY - containerRect.top - 12) / containerHeight) * warehouseSize.depth - warehouseSize.depth / 2;
+
+    const newX = mouseX - dragOffset.x;
+    const newZ = mouseZ - dragOffset.z;
+
+    // Snap to grid (optional - 2m grid)
+    const snapSize = 2;
+    const snappedX = Math.round(newX / snapSize) * snapSize;
+    const snappedZ = Math.round(newZ / snapSize) * snapSize;
+
+    updateZone(draggingZone, { x: snappedX, z: snappedZ });
+  }, [draggingZone, dragOffset, warehouseSize, updateZone]);
+
+  const handleDragEnd = useCallback(() => {
+    setDraggingZone(null);
+  }, []);
 
   const selectedZoneData = zones.find(z => z.id === selectedZone);
   const currentFloorZones = zones.filter(z => z.floor === activeFloor);
@@ -521,11 +578,15 @@ const WarehouseSetupPage = () => {
               </div>
 
               <div
-                className="relative bg-slate-100 rounded-xl border-2 border-slate-300"
+                ref={containerRef}
+                className={`relative bg-slate-100 rounded-xl border-2 border-slate-300 ${draggingZone ? 'cursor-grabbing' : ''}`}
                 style={{ height: '450px' }}
+                onMouseMove={handleDragMove}
+                onMouseUp={handleDragEnd}
+                onMouseLeave={handleDragEnd}
               >
                 {/* Grid lines */}
-                <div className="absolute inset-0 opacity-30">
+                <div className="absolute inset-0 opacity-30 pointer-events-none">
                   <svg width="100%" height="100%">
                     <defs>
                       <pattern id="grid" width="10%" height="10%" patternUnits="userSpaceOnUse">
@@ -536,6 +597,13 @@ const WarehouseSetupPage = () => {
                   </svg>
                 </div>
 
+                {/* Drag hint */}
+                {!draggingZone && (
+                  <div className="absolute top-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-blue-500/80 text-white text-xs rounded-full z-20">
+                    Drag zones to reposition
+                  </div>
+                )}
+
                 {/* Warehouse outline */}
                 <div className="absolute inset-3 border-2 border-slate-400 rounded-lg bg-white/50">
                   {/* Zones */}
@@ -545,12 +613,17 @@ const WarehouseSetupPage = () => {
                     const top = ((zone.z + warehouseSize.depth / 2) / warehouseSize.depth) * 100;
                     const width = (zone.width / warehouseSize.width) * 100;
                     const height = (zone.depth / warehouseSize.depth) * 100;
+                    const isDragging = draggingZone === zone.id;
 
                     return (
                       <div
                         key={zone.id}
-                        onClick={() => setSelectedZone(zone.id)}
-                        className={`absolute cursor-pointer transition-all hover:scale-[1.02] ${
+                        onMouseDown={(e) => handleDragStart(e, zone.id)}
+                        className={`absolute transition-shadow select-none ${
+                          isDragging
+                            ? 'cursor-grabbing z-20 shadow-xl scale-105'
+                            : 'cursor-grab hover:shadow-lg'
+                        } ${
                           selectedZone === zone.id ? 'ring-2 ring-blue-500 ring-offset-2 z-10' : ''
                         }`}
                         style={{
@@ -558,28 +631,45 @@ const WarehouseSetupPage = () => {
                           top: `${top}%`,
                           width: `${width}%`,
                           height: `${height}%`,
-                          backgroundColor: `${zone.color}30`,
+                          backgroundColor: isDragging ? `${zone.color}50` : `${zone.color}30`,
                           border: `2px solid ${zone.color}`,
                           borderRadius: '6px',
+                          transition: isDragging ? 'none' : 'box-shadow 0.2s, transform 0.1s',
                         }}
                       >
-                        <div className="absolute inset-0 flex items-center justify-center p-1">
+                        <div className="absolute inset-0 flex items-center justify-center p-1 pointer-events-none">
                           <span className="text-xs font-medium text-center leading-tight" style={{ color: zone.color }}>
                             {zone.name}
                           </span>
                         </div>
                         {zone.hasReader && (
-                          <div className="absolute top-1 right-1 w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse" />
+                          <div className="absolute top-1 right-1 w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse pointer-events-none" />
                         )}
+                        {/* Drag handle indicator */}
+                        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-0.5 opacity-40 pointer-events-none">
+                          <div className="w-1 h-1 bg-gray-600 rounded-full" />
+                          <div className="w-1 h-1 bg-gray-600 rounded-full" />
+                          <div className="w-1 h-1 bg-gray-600 rounded-full" />
+                        </div>
                       </div>
                     );
                   })}
                 </div>
 
                 {/* Compass */}
-                <div className="absolute bottom-3 right-3 w-10 h-10 bg-white/80 rounded-full border border-gray-300 flex items-center justify-center">
+                <div className="absolute bottom-3 right-3 w-10 h-10 bg-white/80 rounded-full border border-gray-300 flex items-center justify-center pointer-events-none">
                   <span className="text-xs font-bold text-gray-600">N</span>
                 </div>
+
+                {/* Coordinates display while dragging */}
+                {draggingZone && (
+                  <div className="absolute bottom-3 left-3 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg z-20">
+                    {(() => {
+                      const zone = zones.find(z => z.id === draggingZone);
+                      return zone ? `X: ${zone.x}m, Z: ${zone.z}m` : '';
+                    })()}
+                  </div>
+                )}
               </div>
             </div>
 
