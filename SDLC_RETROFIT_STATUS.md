@@ -88,14 +88,18 @@ Mark each phase as ⬜ Not started, 🟡 In progress, or ✅ Done. Add notes on 
 - [x] First CI run green ✅
 - **Notes:** Backend tests temporarily disabled (160/643 failing) - tracked in Known Issues. CI passes with frontend-quality, backend-quality, security, and docker jobs.
 
-### ⬜ Phase 8 — Retroactive Spec
+### ✅ Phase 8 — Retroactive Spec
 
-- [ ] `/speckit.specify` — existing system documented
-- [ ] `/speckit.clarify` — ambiguities resolved
-- [ ] `/speckit.plan` — Constitution Check produced retrofit backlog
-- [ ] `/speckit.tasks` — ordered task list generated
-- [ ] `/speckit.analyze` — cross-check run, findings reported
-- **Notes:**
+- [x] `/speckit.specify` — existing system documented
+- [x] `/speckit.clarify` — ambiguities resolved
+- [x] `/speckit.plan` — Constitution Check produced retrofit backlog
+- [x] `/speckit.tasks` — ordered task list generated
+- [x] `/speckit.analyze` — cross-check run, findings reported
+- **Notes:** Spec Kit skills not available as CLI commands; workflow executed manually. Created:
+  - `.specify/specs/system-spec.md` — full system specification
+  - `.specify/plans/constitution-check.md` — violations and remediation plan
+  - `.specify/tasks/retrofit-tasks.md` — 16 ordered tasks across 5 sprints
+  - `.specify/analysis/phase8-cross-check.md` — quality gate PASS
 
 ### ⬜ Phase 9 — Final Review & Merge
 
@@ -110,9 +114,22 @@ Mark each phase as ⬜ Not started, 🟡 In progress, or ✅ Done. Add notes on 
 
 ## Retrofit Backlog (populated by Phase 8)
 
-The Constitution Check in `/speckit.plan` will list every place the existing code violates the constitution. Copy those findings here as follow-up tasks.
+Full details in `.specify/plans/constitution-check.md` and `.specify/tasks/retrofit-tasks.md`.
 
-- [ ] _(populated after Phase 8)_
+### Critical (Block Delivery)
+
+- [ ] **T1-T4:** Fix 160 failing backend tests, re-enable CI test job
+- [ ] **T5:** Replace 116 console.log calls with Winston ILogger
+
+### High Priority
+
+- [ ] **T6:** Add Trivy container scan to CI
+- [ ] **T7-T9:** Create docs/adr/, specs/rfid/, hardware setup guide
+- [ ] **T10-T13:** Refactor 8 oversized React components (>200 lines)
+
+### Medium Priority
+
+- [ ] **T14-T16:** Set up E2E tests with Playwright
 
 ---
 
@@ -161,4 +178,3 @@ Things flagged during retrofit that we're consciously deferring, not forgetting.
 5. Commit with Conventional Commits between every phase.
 6. Update this file at the end of each phase.
 7. When in doubt, stop and ask Jaime — don't invent.
-
