@@ -21,13 +21,13 @@ This is a **multi-tier RFID inventory tracking platform** that tracks physical i
 
 ### 2.1 Domain Entities
 
-| Entity | Description |
-|--------|-------------|
-| **Item** | Physical object with RFID tag. Has status lifecycle: REGISTERED → IN_TRANSIT → IN_PROCESSING → ARCHIVED/DISPOSED. Becomes MISSING after 30h without detection. |
-| **Zone** | Physical area in facility (lab, storage, corridor). Has capacity limits. Contains readers. |
-| **Reader** | LLRP RFID reader hardware. Detects tags via antenna. Has health status (ONLINE/OFFLINE/ERROR). |
-| **Tenant** | Multi-tenant isolation. Each tenant has own items, zones, readers. |
-| **LocationHistory** | Time-series audit trail of item movements. Stored in TimescaleDB hypertable. |
+| Entity              | Description                                                                                                                                                    |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Item**            | Physical object with RFID tag. Has status lifecycle: REGISTERED → IN_TRANSIT → IN_PROCESSING → ARCHIVED/DISPOSED. Becomes MISSING after 30h without detection. |
+| **Zone**            | Physical area in facility (lab, storage, corridor). Has capacity limits. Contains readers.                                                                     |
+| **Reader**          | LLRP RFID reader hardware. Detects tags via antenna. Has health status (ONLINE/OFFLINE/ERROR).                                                                 |
+| **Tenant**          | Multi-tenant isolation. Each tenant has own items, zones, readers.                                                                                             |
+| **LocationHistory** | Time-series audit trail of item movements. Stored in TimescaleDB hypertable.                                                                                   |
 
 ### 2.2 Item Status State Machine
 
@@ -45,29 +45,34 @@ REGISTERED ──┬──> IN_TRANSIT ──> IN_PROCESSING ──> ARCHIVED
 ## 3. Features
 
 ### 3.1 Real-Time Tracking
+
 - RFID tag detection within 1 second of physical read
 - WebSocket push to all connected dashboards
 - Zone occupancy updates in real-time
 - Reader health monitoring with alerts
 
 ### 3.2 3D Visualization
+
 - React Three Fiber 3D warehouse rendering
 - Items rendered as particles/instances (max 500 visible)
 - Zone heat maps showing occupancy
 - Multiple view modes: 3D, 2D top-down, split screen
 
 ### 3.3 Search & Filtering
+
 - Full-text search on item descriptions
 - Filter by zone, status, category, date range
 - Paginated results (max 50-500 per request)
 
 ### 3.4 Analytics
+
 - Zone occupancy trends (24h, 7d, 30d)
 - Reader activity metrics (reads/hour)
 - Flow analysis: item journey, bottleneck detection
 - AI-detected anomalies [NEEDS CLARIFICATION: What ML model is used?]
 
 ### 3.5 Multi-Tenancy
+
 - Complete data isolation per tenant
 - Tenant-scoped WebSocket rooms
 - Per-tenant limits (items, readers, API calls)
@@ -79,34 +84,36 @@ REGISTERED ──┬──> IN_TRANSIT ──> IN_PROCESSING ──> ARCHIVED
 
 ### 4.1 REST Endpoints
 
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| POST | `/api/auth/login` | Authenticate, get JWT |
-| POST | `/api/auth/refresh` | Refresh JWT token |
-| GET | `/api/items` | Search items with filters |
-| POST | `/api/items` | Register new item |
-| GET | `/api/items/:itemNumber` | Get item details |
-| GET | `/api/items/:itemNumber/history` | Item location history |
-| GET | `/api/zones` | List all zones |
-| GET | `/api/zones/:zoneId/items` | Items in specific zone |
-| GET | `/api/readers` | All readers with status |
-| GET | `/api/analytics/dashboard` | Dashboard KPIs |
-| GET | `/api/analytics/zones/:zoneId` | Zone analytics |
-| GET | `/api/flow/item-journey/:itemId` | Item movement history |
-| GET | `/api/flow/bottlenecks` | Bottleneck detection |
-| GET | `/api/flow/anomalies` | AI anomalies |
-| POST | `/api/spatial/pathfinding` | A* path between zones |
-| GET | `/api/health` | Health check |
+| Method | Endpoint                         | Purpose                   |
+| ------ | -------------------------------- | ------------------------- |
+| POST   | `/api/auth/login`                | Authenticate, get JWT     |
+| POST   | `/api/auth/refresh`              | Refresh JWT token         |
+| GET    | `/api/items`                     | Search items with filters |
+| POST   | `/api/items`                     | Register new item         |
+| GET    | `/api/items/:itemNumber`         | Get item details          |
+| GET    | `/api/items/:itemNumber/history` | Item location history     |
+| GET    | `/api/zones`                     | List all zones            |
+| GET    | `/api/zones/:zoneId/items`       | Items in specific zone    |
+| GET    | `/api/readers`                   | All readers with status   |
+| GET    | `/api/analytics/dashboard`       | Dashboard KPIs            |
+| GET    | `/api/analytics/zones/:zoneId`   | Zone analytics            |
+| GET    | `/api/flow/item-journey/:itemId` | Item movement history     |
+| GET    | `/api/flow/bottlenecks`          | Bottleneck detection      |
+| GET    | `/api/flow/anomalies`            | AI anomalies              |
+| POST   | `/api/spatial/pathfinding`       | A\* path between zones    |
+| GET    | `/api/health`                    | Health check              |
 
 ### 4.2 WebSocket Events
 
 **Server → Client:**
+
 - `tag:detected` - Raw RFID read (epc, zoneId, readerId, rssi, timestamp)
 - `item:moved` - Item changed zones
 - `zone:occupancy` - Zone capacity update
 - `reader:status` - Reader online/offline
 
 **Client → Server:**
+
 - `subscribe:zones` - Subscribe to zone updates
 - `subscribe:item` - Follow specific item
 - `subscribe:readers` - All reader updates
@@ -216,40 +223,42 @@ EventBus (domain events)
 
 ## 7. Technology Stack
 
-| Layer | Technology |
-|-------|------------|
-| Frontend | React 18, TypeScript, Vite, React Three Fiber, Zustand, TanStack Query |
-| Backend | Node.js 20, Express, TypeScript (strict), tsyringe DI |
-| Database | PostgreSQL 14+, TimescaleDB |
-| Real-time | Socket.IO |
-| RFID | LLRP protocol (TCP port 5084) |
-| Logging | Winston (structured JSON) |
-| Testing | Jest |
-| Container | Docker, docker-compose |
+| Layer     | Technology                                                             |
+| --------- | ---------------------------------------------------------------------- |
+| Frontend  | React 18, TypeScript, Vite, React Three Fiber, Zustand, TanStack Query |
+| Backend   | Node.js 20, Express, TypeScript (strict), tsyringe DI                  |
+| Database  | PostgreSQL 14+, TimescaleDB                                            |
+| Real-time | Socket.IO                                                              |
+| RFID      | LLRP protocol (TCP port 5084)                                          |
+| Logging   | Winston (structured JSON)                                              |
+| Testing   | Jest                                                                   |
+| Container | Docker, docker-compose                                                 |
 
 ---
 
 ## 8. Performance Targets
 
-| Metric | Target |
-|--------|--------|
-| API response | < 300ms |
-| Tag detection latency | < 1 second |
-| 3D rendering | 60 FPS |
-| Max visible 3D items | 500 |
-| Event throughput | 1000+ events/min |
-| DB simple query | < 10ms |
-| DB complex query | < 100ms |
+| Metric                | Target           |
+| --------------------- | ---------------- |
+| API response          | < 300ms          |
+| Tag detection latency | < 1 second       |
+| 3D rendering          | 60 FPS           |
+| Max visible 3D items  | 500              |
+| Event throughput      | 1000+ events/min |
+| DB simple query       | < 10ms           |
+| DB complex query      | < 100ms          |
 
 ---
 
-## 9. Open Questions
+## 9. Clarified Requirements
 
-- [NEEDS CLARIFICATION] What ML model powers the anomaly detection in `/api/flow/anomalies`?
-- [NEEDS CLARIFICATION] Is Open3D spatial analytics (Phase 5) implemented or planned?
-- [NEEDS CLARIFICATION] What are the exact tenant tier limits?
-- [NEEDS CLARIFICATION] Is Redis caching currently active or future?
-- [NEEDS CLARIFICATION] What is the retention policy for location_history?
+| Question                       | Answer                                                                                                  |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| **Anomaly Detection ML**       | Not yet implemented. `/api/flow/anomalies` endpoint exists but returns placeholder data.                |
+| **3D vs 2D Visualization**     | Focus on 2D visualization due to high docket volume. 3D is secondary/demo feature.                      |
+| **Redis Caching**              | Code exists but not active in production. Future enhancement.                                           |
+| **Location History Retention** | 1 year retention policy for TimescaleDB hypertable.                                                     |
+| **Multi-Tenancy Model**        | Single-tenant deployment for initial client. No tier system needed - full feature set for one location. |
 
 ---
 
@@ -263,4 +272,4 @@ EventBus (domain events)
 
 ---
 
-*This specification documents the system as it exists. It does not invent features.*
+_This specification documents the system as it exists. It does not invent features._
