@@ -1,4 +1,3 @@
-
 import { TagDeduplicator } from '../TagDeduplicator';
 import type { ParsedTagRead } from '../TagProcessor';
 import type { ILogger } from '../../../application/interfaces/ILogger';
@@ -533,10 +532,7 @@ describe('TagDeduplicator', () => {
 
     it('should handle very long EPC strings', () => {
       const longEPC = 'A'.repeat(1000);
-      const tags = [
-        createMockTagRead(longEPC),
-        createMockTagRead(longEPC),
-      ];
+      const tags = [createMockTagRead(longEPC), createMockTagRead(longEPC)];
 
       const result = deduplicator.filter(tags);
 
@@ -546,10 +542,7 @@ describe('TagDeduplicator', () => {
 
     it('should handle special characters in EPC', () => {
       const specialEPC = 'TAG-123_ABC.DEF@GHI';
-      const tags = [
-        createMockTagRead(specialEPC),
-        createMockTagRead(specialEPC),
-      ];
+      const tags = [createMockTagRead(specialEPC), createMockTagRead(specialEPC)];
 
       const result = deduplicator.filter(tags);
 

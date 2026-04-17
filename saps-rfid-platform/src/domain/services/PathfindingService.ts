@@ -1,5 +1,6 @@
-import type { Result } from 'neverthrow';
 import { ok, err } from 'neverthrow';
+
+import type { Result } from 'neverthrow';
 
 /**
  * Node in the pathfinding grid
@@ -138,13 +139,13 @@ export class PathfindingService {
 
   // Movement directions (8-directional)
   private readonly DIRECTIONS = [
-    { dx: 0, dy: -1, cost: 1 },    // North
+    { dx: 0, dy: -1, cost: 1 }, // North
     { dx: 1, dy: -1, cost: 1.414 }, // Northeast
-    { dx: 1, dy: 0, cost: 1 },     // East
-    { dx: 1, dy: 1, cost: 1.414 },  // Southeast
-    { dx: 0, dy: 1, cost: 1 },     // South
+    { dx: 1, dy: 0, cost: 1 }, // East
+    { dx: 1, dy: 1, cost: 1.414 }, // Southeast
+    { dx: 0, dy: 1, cost: 1 }, // South
     { dx: -1, dy: 1, cost: 1.414 }, // Southwest
-    { dx: -1, dy: 0, cost: 1 },    // West
+    { dx: -1, dy: 0, cost: 1 }, // West
     { dx: -1, dy: -1, cost: 1.414 }, // Northwest
   ];
 
@@ -287,7 +288,7 @@ export class PathfindingService {
           }
         }
 
-        const tentativeG = current.g + (dir.cost * neighbor.cost * this.cellSize);
+        const tentativeG = current.g + dir.cost * neighbor.cost * this.cellSize;
 
         const inOpenSet = openSet.find((n) => n.x === nx && n.y === ny);
 
@@ -311,10 +312,7 @@ export class PathfindingService {
   /**
    * Finds path between two zones (zone centroids)
    */
-  findPathBetweenZones(
-    fromZoneId: string,
-    toZoneId: string
-  ): Result<PathResult, Error> {
+  findPathBetweenZones(fromZoneId: string, toZoneId: string): Result<PathResult, Error> {
     const fromZone = this.zones.get(fromZoneId);
     const toZone = this.zones.get(toZoneId);
 
@@ -427,8 +425,7 @@ export class PathfindingService {
       const from = smoothPath[i]!;
       const to = smoothPath[i + 1]!;
       const distance = Math.sqrt(
-        Math.pow((to.x - from.x) * this.cellSize, 2) +
-        Math.pow((to.y - from.y) * this.cellSize, 2)
+        Math.pow((to.x - from.x) * this.cellSize, 2) + Math.pow((to.y - from.y) * this.cellSize, 2)
       );
 
       const zoneId = this.getZoneAtPoint(from);

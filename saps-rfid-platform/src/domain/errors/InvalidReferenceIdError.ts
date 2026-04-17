@@ -13,9 +13,6 @@ export class InvalidReferenceIdError extends DomainError {
     public readonly invalidValue: string,
     public readonly validationMessage: string
   ) {
-    super(
-      `Invalid reference ID "${invalidValue}": ${validationMessage}`,
-      'INVALID_REFERENCE_ID'
-    );
+    super(`Invalid reference ID "${invalidValue}": ${validationMessage}`, 'INVALID_REFERENCE_ID');
   }
 }

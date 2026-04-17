@@ -1,10 +1,12 @@
 import { Response, NextFunction } from 'express';
 import { injectable, inject } from 'tsyringe';
-import { RegisterItemUseCase } from '../../../application/use-cases/items/RegisterItemUseCase';
-import { SearchItemsUseCase } from '../../../application/use-cases/items/SearchItemsUseCase';
+
 import { GetItemDetailsUseCase } from '../../../application/use-cases/items/GetItemDetailsUseCase';
 import { GetItemHistoryUseCase } from '../../../application/use-cases/items/GetItemHistoryUseCase';
 import { GetZoneItemsUseCase } from '../../../application/use-cases/items/GetZoneItemsUseCase';
+import { RegisterItemUseCase } from '../../../application/use-cases/items/RegisterItemUseCase';
+import { SearchItemsUseCase } from '../../../application/use-cases/items/SearchItemsUseCase';
+
 import type { AuthenticatedRequest } from '../middleware/authMiddleware';
 
 /**
@@ -245,7 +247,11 @@ export class ItemController {
    * - Array of items in zone
    * - Occupancy metrics
    */
-  async getZoneItemsInZone(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+  async getZoneItemsInZone(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
       if (!req.tenantId) {
         res.status(401).json({

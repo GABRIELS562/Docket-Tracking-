@@ -48,7 +48,7 @@ export default function Scene3D({ zones, dockets }: Scene3DProps) {
         <Suspense fallback={null}>
           {/* Floor Plan Overlay */}
           {(floorPlanMode === '3d' || floorPlanMode === 'split') && (
-            <FloorPlanOverlay zones={zones} opacity={0.7} />
+            <FloorPlanOverlay opacity={0.7} />
           )}
 
           <ForensicBuilding

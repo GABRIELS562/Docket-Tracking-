@@ -1,10 +1,12 @@
 import { Response, NextFunction } from 'express';
 import { injectable, inject } from 'tsyringe';
-import { GetItemJourneyUseCase } from '../../../application/use-cases/flow/GetItemJourneyUseCase';
-import { GetZoneFlowAnalyticsUseCase } from '../../../application/use-cases/flow/GetZoneFlowAnalyticsUseCase';
+
 import { GetBottleneckAnalysisUseCase } from '../../../application/use-cases/flow/GetBottleneckAnalysisUseCase';
-import { GetPathPatternsUseCase } from '../../../application/use-cases/flow/GetPathPatternsUseCase';
 import { GetFlowAnomaliesUseCase } from '../../../application/use-cases/flow/GetFlowAnomaliesUseCase';
+import { GetItemJourneyUseCase } from '../../../application/use-cases/flow/GetItemJourneyUseCase';
+import { GetPathPatternsUseCase } from '../../../application/use-cases/flow/GetPathPatternsUseCase';
+import { GetZoneFlowAnalyticsUseCase } from '../../../application/use-cases/flow/GetZoneFlowAnalyticsUseCase';
+
 import type { AuthenticatedRequest } from '../middleware/authMiddleware';
 
 /**
@@ -307,11 +309,13 @@ export class FlowAnalyticsController {
 
       // Parse severity filter
       const severityFilter = req.query.severity
-        ? (req.query.severity as string).split(',') as ('low' | 'medium' | 'high' | 'critical')[]
+        ? ((req.query.severity as string).split(',') as ('low' | 'medium' | 'high' | 'critical')[])
         : undefined;
 
       // Parse type filter
-      const typeFilter = req.query.type ? (req.query.type as string).split(',') as any : undefined;
+      const typeFilter = req.query.type
+        ? ((req.query.type as string).split(',') as any)
+        : undefined;
 
       const result = await this.getFlowAnomalies.execute({
         tenantId: req.tenantId,

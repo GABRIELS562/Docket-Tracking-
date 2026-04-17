@@ -1,11 +1,12 @@
-import type { Request, Response, NextFunction } from 'express';
 import { injectable, inject } from 'tsyringe';
+
+import { TenantProvisioningService } from '../../../application/services/TenantProvisioningService';
+import { SubscriptionTier } from '../../../domain/entities/Tenant';
 
 import type { ILogger } from '../../../application/interfaces/ILogger';
 import type { ITenantRepository } from '../../../domain/repositories/ITenantRepository';
-import { TenantProvisioningService } from '../../../application/services/TenantProvisioningService';
-import { SubscriptionTier } from '../../../domain/entities/Tenant';
 import type { AuthenticatedRequest } from '../middleware/authMiddleware';
+import type { Request, Response, NextFunction } from 'express';
 
 /**
  * Tenant Management Controller
@@ -18,7 +19,8 @@ export class TenantController {
   constructor(
     @inject('ILogger') private readonly logger: ILogger,
     @inject('ITenantRepository') private readonly tenantRepo: ITenantRepository,
-    @inject(TenantProvisioningService) private readonly provisioningService: TenantProvisioningService
+    @inject(TenantProvisioningService)
+    private readonly provisioningService: TenantProvisioningService
   ) {}
 
   /**
@@ -40,7 +42,15 @@ export class TenantController {
       } = req.body;
 
       // Validate required fields
-      if (!name || !slug || !contactEmail || !ownerFirstName || !ownerLastName || !ownerEmail || !ownerPassword) {
+      if (
+        !name ||
+        !slug ||
+        !contactEmail ||
+        !ownerFirstName ||
+        !ownerLastName ||
+        !ownerEmail ||
+        !ownerPassword
+      ) {
         res.status(400).json({
           success: false,
           error: {
@@ -228,7 +238,11 @@ export class TenantController {
    * GET /api/tenants/current/usage
    * Gets current tenant usage statistics
    */
-  async getCurrentUsage(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+  async getCurrentUsage(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
       const tenantId = req.tenantId;
 
@@ -269,7 +283,11 @@ export class TenantController {
    * PATCH /api/tenants/current/branding
    * Updates tenant branding
    */
-  async updateBranding(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+  async updateBranding(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
       const tenantId = req.tenantId;
       const { logoUrl, primaryColor, secondaryColor } = req.body;
@@ -332,7 +350,11 @@ export class TenantController {
    * PATCH /api/tenants/current/settings
    * Updates tenant settings
    */
-  async updateSettings(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+  async updateSettings(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
       const tenantId = req.tenantId;
       const settings = req.body;

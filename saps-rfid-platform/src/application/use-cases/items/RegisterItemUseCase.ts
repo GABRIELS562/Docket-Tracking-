@@ -1,16 +1,17 @@
-import { injectable, inject } from 'tsyringe';
 import { Result, ok, err } from 'neverthrow';
+import { injectable, inject } from 'tsyringe';
 
 import { Item, type ItemCategory } from '../../../domain/entities/Item';
+import { ItemRegisteredEvent } from '../../../domain/events/ItemRegisteredEvent';
 import { ItemNumber } from '../../../domain/value-objects/ItemNumber';
-import { RfidEpc } from '../../../domain/value-objects/RfidEpc';
 import { ReferenceId } from '../../../domain/value-objects/ReferenceId';
+import { RfidEpc } from '../../../domain/value-objects/RfidEpc';
+import { ItemMapper } from '../../mappers/ItemMapper';
+
 import type { IItemRepository } from '../../../domain/repositories/IItemRepository';
+import type { ItemDTO } from '../../dto/ItemDTO';
 import type { IEventBus } from '../../interfaces/IEventBus';
 import type { ILogger } from '../../interfaces/ILogger';
-import type { ItemDTO } from '../../dto/ItemDTO';
-import { ItemMapper } from '../../mappers/ItemMapper';
-import { ItemRegisteredEvent } from '../../../domain/events/ItemRegisteredEvent';
 
 /**
  * Input for registering a new item
@@ -141,7 +142,10 @@ export class RegisterItemUseCase {
     const epc = epcResult.value;
 
     // Step 2: Check if item number already exists within tenant
-    const itemNumberExistsResult = await this.itemRepo.existsByItemNumber(itemNumber, input.tenantId);
+    const itemNumberExistsResult = await this.itemRepo.existsByItemNumber(
+      itemNumber,
+      input.tenantId
+    );
     if (itemNumberExistsResult.isErr()) {
       return err(itemNumberExistsResult.error);
     }
@@ -161,7 +165,10 @@ export class RegisterItemUseCase {
     }
     if (epcExistsResult.value) {
       const error = new Error(`EPC ${epc.getValue()} is already assigned`);
-      this.logger.warn('Duplicate EPC attempted', { epc: epc.getValue(), tenantId: input.tenantId });
+      this.logger.warn('Duplicate EPC attempted', {
+        epc: epc.getValue(),
+        tenantId: input.tenantId,
+      });
       return err(error);
     }
 

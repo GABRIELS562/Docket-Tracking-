@@ -33,7 +33,14 @@ export interface ZoneDTO {
    * Zone type
    * @example "STORAGE"
    */
-  readonly zoneType: 'STORAGE' | 'EXAMINATION' | 'TRANSIT' | 'ARCHIVE' | 'OFFICE' | 'CORRIDOR' | 'ENTRANCE';
+  readonly zoneType:
+    | 'STORAGE'
+    | 'EXAMINATION'
+    | 'TRANSIT'
+    | 'ARCHIVE'
+    | 'OFFICE'
+    | 'CORRIDOR'
+    | 'ENTRANCE';
 
   /**
    * Maximum capacity (number of items)
@@ -133,7 +140,14 @@ export interface CreateZoneDTO {
    * Zone type
    * @example "STORAGE"
    */
-  readonly zoneType: 'STORAGE' | 'EXAMINATION' | 'TRANSIT' | 'ARCHIVE' | 'OFFICE' | 'CORRIDOR' | 'ENTRANCE';
+  readonly zoneType:
+    | 'STORAGE'
+    | 'EXAMINATION'
+    | 'TRANSIT'
+    | 'ARCHIVE'
+    | 'OFFICE'
+    | 'CORRIDOR'
+    | 'ENTRANCE';
 
   /**
    * Maximum capacity

@@ -1,7 +1,8 @@
-import type { Result } from 'neverthrow';
 import { ok, err } from 'neverthrow';
 
 import { InvalidReferenceIdError } from '../errors/InvalidReferenceIdError';
+
+import type { Result } from 'neverthrow';
 
 /**
  * Value Object representing a reference identifier
@@ -72,10 +73,7 @@ export class ReferenceId {
     // Check for printable characters only
     if (!ReferenceId.PATTERN.test(trimmed)) {
       return err(
-        new InvalidReferenceIdError(
-          value,
-          'Reference ID must contain only printable characters'
-        )
+        new InvalidReferenceIdError(value, 'Reference ID must contain only printable characters')
       );
     }
 

@@ -1,15 +1,16 @@
-import { injectable, inject } from 'tsyringe';
 import { Result, ok, err } from 'neverthrow';
-import type { ILocationHistoryRepository } from '../../../domain/repositories/ILocationHistoryRepository';
+import { injectable, inject } from 'tsyringe';
+
 import type { IItemRepository } from '../../../domain/repositories/IItemRepository';
-import type { IZoneRepository } from '../../../domain/repositories/IZoneRepository';
+import type { ILocationHistoryRepository } from '../../../domain/repositories/ILocationHistoryRepository';
 import type { IReaderRepository } from '../../../domain/repositories/IReaderRepository';
-import type { ILogger } from '../../interfaces/ILogger';
+import type { IZoneRepository } from '../../../domain/repositories/IZoneRepository';
 import type {
   GetSystemMetricsInput,
   SystemMetricsDTO,
   SystemMetricsTimeSeriesDTO,
 } from '../../dto/AnalyticsDTO';
+import type { ILogger } from '../../interfaces/ILogger';
 
 /**
  * Get System Metrics Use Case
@@ -34,9 +35,7 @@ export class GetSystemMetricsUseCase {
     private logger: ILogger
   ) {}
 
-  async execute(
-    input: GetSystemMetricsInput
-  ): Promise<Result<SystemMetricsDTO, Error>> {
+  async execute(input: GetSystemMetricsInput): Promise<Result<SystemMetricsDTO, Error>> {
     const { tenantId, hours, granularity } = input;
 
     this.logger.info('Getting system metrics', {
@@ -50,11 +49,7 @@ export class GetSystemMetricsUseCase {
       const startDate = new Date(endDate.getTime() - hours * 60 * 60 * 1000);
 
       // Execute queries in parallel
-      const [
-        currentStatusResult,
-        historyResult,
-        storageStatsResult,
-      ] = await Promise.all([
+      const [currentStatusResult, historyResult, storageStatsResult] = await Promise.all([
         this.getCurrentStatus(tenantId),
         this.getHistoricalMetrics(tenantId, startDate, endDate, granularity),
         this.locationHistoryRepo.getStorageStats(tenantId),
@@ -70,7 +65,7 @@ export class GetSystemMetricsUseCase {
 
       // Convert table size from bytes to MB
       const tableSizeMb = storageStats
-        ? Math.round(storageStats.tableSizeBytes / (1024 * 1024) * 100) / 100
+        ? Math.round((storageStats.tableSizeBytes / (1024 * 1024)) * 100) / 100
         : 0;
 
       const metrics: SystemMetricsDTO = {
@@ -106,23 +101,18 @@ export class GetSystemMetricsUseCase {
         tenantId,
         error: error instanceof Error ? error.message : String(error),
       });
-      return err(
-        error instanceof Error ? error : new Error('Failed to get system metrics')
-      );
+      return err(error instanceof Error ? error : new Error('Failed to get system metrics'));
     }
   }
 
-  private async getCurrentStatus(
-    tenantId: string
-  ): Promise<Result<CurrentStatus, Error>> {
+  private async getCurrentStatus(tenantId: string): Promise<Result<CurrentStatus, Error>> {
     // Get counts in parallel
-    const [itemsResult, zonesResult, readersResult, recentReadsResult] =
-      await Promise.all([
-        this.itemRepo.countActive(tenantId),
-        this.zoneRepo.findAllActive(tenantId),
-        this.readerRepo.findAllActive(tenantId),
-        this.getRecentReadsPerMinute(tenantId),
-      ]);
+    const [itemsResult, zonesResult, readersResult, recentReadsResult] = await Promise.all([
+      this.itemRepo.countActive(tenantId),
+      this.zoneRepo.findAllActive(tenantId),
+      this.readerRepo.findAllActive(tenantId),
+      this.getRecentReadsPerMinute(tenantId),
+    ]);
 
     const totalItems = itemsResult.isOk() ? itemsResult.value : 0;
     const activeZones = zonesResult.isOk() ? zonesResult.value.length : 0;
@@ -138,9 +128,7 @@ export class GetSystemMetricsUseCase {
     });
   }
 
-  private async getRecentReadsPerMinute(
-    tenantId: string
-  ): Promise<Result<number, Error>> {
+  private async getRecentReadsPerMinute(tenantId: string): Promise<Result<number, Error>> {
     const endDate = new Date();
     const startDate = new Date(endDate.getTime() - 5 * 60 * 1000); // Last 5 minutes
 
@@ -157,10 +145,7 @@ export class GetSystemMetricsUseCase {
     }
 
     // Sum up all reads
-    const totalReads = analyticsResult.value.reduce(
-      (sum, bucket) => sum + bucket.totalReads,
-      0
-    );
+    const totalReads = analyticsResult.value.reduce((sum, bucket) => sum + bucket.totalReads, 0);
     const minutes = 5;
     return ok(Math.round(totalReads / minutes));
   }

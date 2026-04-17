@@ -1,11 +1,11 @@
-import { injectable, inject } from 'tsyringe';
 import { Result, ok, err } from 'neverthrow';
+import { injectable, inject } from 'tsyringe';
+
 import type {
   ILocationHistoryRepository,
   LocationHistoryEntry,
 } from '../../../domain/repositories/ILocationHistoryRepository';
 import type { IZoneRepository } from '../../../domain/repositories/IZoneRepository';
-import type { ILogger } from '../../interfaces/ILogger';
 import type {
   GetZoneAnalyticsInput,
   ZoneAnalyticsDTO,
@@ -13,6 +13,7 @@ import type {
   ZoneTopItemDTO,
   ZoneHeatMapDTO,
 } from '../../dto/AnalyticsDTO';
+import type { ILogger } from '../../interfaces/ILogger';
 
 /**
  * Get Zone Analytics Use Case
@@ -34,9 +35,7 @@ export class GetZoneAnalyticsUseCase {
     private logger: ILogger
   ) {}
 
-  async execute(
-    input: GetZoneAnalyticsInput
-  ): Promise<Result<ZoneAnalyticsDTO[], Error>> {
+  async execute(input: GetZoneAnalyticsInput): Promise<Result<ZoneAnalyticsDTO[], Error>> {
     const { tenantId, zoneId, startDate, endDate, granularity } = input;
 
     this.logger.info('Getting zone analytics', {
@@ -95,9 +94,7 @@ export class GetZoneAnalyticsUseCase {
         zoneId,
         error: error instanceof Error ? error.message : String(error),
       });
-      return err(
-        error instanceof Error ? error : new Error('Failed to get zone analytics')
-      );
+      return err(error instanceof Error ? error : new Error('Failed to get zone analytics'));
     }
   }
 
@@ -251,9 +248,7 @@ export class GetZoneAnalyticsUseCase {
 
     const topItems: ZoneTopItemDTO[] = [];
     for (const [itemId, stats] of itemStats) {
-      const dwellTime = Math.round(
-        (stats.lastSeen.getTime() - stats.firstSeen.getTime()) / 60000
-      );
+      const dwellTime = Math.round((stats.lastSeen.getTime() - stats.firstSeen.getTime()) / 60000);
       topItems.push({
         itemId,
         itemNumber: stats.itemNumber,
@@ -296,7 +291,7 @@ export class GetZoneAnalyticsUseCase {
       const hour = parts[1] ?? 0;
       result.push({
         dayOfWeek: day,
-        hour: hour,
+        hour,
         readCount: data.readCount,
         intensity: maxReads > 0 ? data.readCount / maxReads : 0,
       });
@@ -331,9 +326,10 @@ export class GetZoneAnalyticsUseCase {
     return Math.round(totalDwellTime / itemVisits.size / 60000); // Convert to minutes
   }
 
-  private calculateOccupancyStats(
-    timeSeries: ZoneTimeSeriesDTO[]
-  ): { peakOccupancy: number; avgOccupancy: number } {
+  private calculateOccupancyStats(timeSeries: ZoneTimeSeriesDTO[]): {
+    peakOccupancy: number;
+    avgOccupancy: number;
+  } {
     if (timeSeries.length === 0) {
       return { peakOccupancy: 0, avgOccupancy: 0 };
     }

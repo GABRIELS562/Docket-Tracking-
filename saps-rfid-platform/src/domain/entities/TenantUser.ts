@@ -1,4 +1,6 @@
-import { Result, ok, err } from 'neverthrow';
+import { ok, err } from 'neverthrow';
+
+import type { Result } from 'neverthrow';
 
 /**
  * User roles within a tenant
@@ -120,13 +122,7 @@ const DEFAULT_PERMISSIONS: Record<UserRole, string[]> = {
     'reports:read',
     'reports:create',
   ],
-  [UserRole.OPERATOR]: [
-    'items:read',
-    'items:create',
-    'items:update',
-    'zones:read',
-    'readers:read',
-  ],
+  [UserRole.OPERATOR]: ['items:read', 'items:create', 'items:update', 'zones:read', 'readers:read'],
   [UserRole.VIEWER]: ['items:read', 'zones:read', 'readers:read'],
 };
 

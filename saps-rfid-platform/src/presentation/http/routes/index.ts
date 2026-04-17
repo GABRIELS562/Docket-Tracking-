@@ -1,13 +1,14 @@
 import { Router } from 'express';
-import itemRoutes, { zoneItemsRouter } from './item.routes';
-import zoneRoutes from './zone.routes';
-import readerRoutes from './reader.routes';
-import healthRoutes from './health.routes';
-import tenantRoutes from './tenant.routes';
-import authRoutes from './auth.routes';
+
 import { createAnalyticsRoutes } from './analytics.routes';
+import authRoutes from './auth.routes';
 import { createFlowRoutes } from './flow.routes';
+import healthRoutes from './health.routes';
+import itemRoutes, { zoneItemsRouter } from './item.routes';
+import readerRoutes from './reader.routes';
 import { createSpatialRoutes } from './spatial.routes';
+import tenantRoutes from './tenant.routes';
+import zoneRoutes from './zone.routes';
 
 /**
  * API Routes Factory
@@ -35,10 +36,10 @@ export function createRoutes(): Router {
   router.use('/tenants', tenantRoutes);
   router.use('/items', itemRoutes);
   router.use('/zones', zoneRoutes);
-  router.use('/zones', zoneItemsRouter);      // Zone items sub-routes
+  router.use('/zones', zoneItemsRouter); // Zone items sub-routes
   router.use('/readers', readerRoutes);
   router.use('/analytics', createAnalyticsRoutes());
-  router.use('/flow', createFlowRoutes());            // Phase 2.2: Flow analytics
+  router.use('/flow', createFlowRoutes()); // Phase 2.2: Flow analytics
   router.use('/spatial', createSpatialRoutes()); // Phase 5: Spatial analytics
   router.use('/health', healthRoutes);
 

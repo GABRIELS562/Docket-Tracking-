@@ -3,7 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 interface ReaderActivity {
   readerId: string;
   reads: number;
-  status: 'online' | 'offline' | 'error';
+  status: 'online' | 'offline' | 'error' | 'connecting';
 }
 
 interface Props {
@@ -27,6 +27,8 @@ export default function ReaderActivityChart({ data }: Props) {
         return '#6b7280'; // Gray
       case 'error':
         return '#ef4444'; // Red
+      case 'connecting':
+        return '#f59e0b'; // Amber
       default:
         return '#3b82f6'; // Blue
     }

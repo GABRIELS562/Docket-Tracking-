@@ -2,12 +2,13 @@ import 'reflect-metadata';
 import 'dotenv/config';
 import { initializeConfig } from './config';
 import { initializeContainer, container } from './container';
+import { RFIDSimulator } from './infrastructure/rfid/RFIDSimulator';
 import { Server } from './presentation/http/Server';
 import { SocketServer } from './presentation/websocket/SocketServer';
-import { PostgresConnection } from './infrastructure/database/PostgresConnection';
-import { LLRPGateway } from './infrastructure/rfid/LLRPGateway';
-import { RFIDSimulator } from './infrastructure/rfid/RFIDSimulator';
-import { ILogger } from './application/interfaces/ILogger';
+
+import type { ILogger } from './application/interfaces/ILogger';
+import type { PostgresConnection } from './infrastructure/database/PostgresConnection';
+import type { LLRPGateway } from './infrastructure/rfid/LLRPGateway';
 
 /**
  * RFID Inventory Platform - Application Entry Point

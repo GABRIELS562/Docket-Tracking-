@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { container } from 'tsyringe';
+
 import { FlowAnalyticsController } from '../controllers/FlowAnalyticsController';
 import { AuthMiddlewareFactory } from '../middleware/authMiddleware';
 

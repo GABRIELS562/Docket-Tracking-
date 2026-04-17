@@ -8,6 +8,7 @@
  */
 
 import { injectable, inject } from 'tsyringe';
+
 import type { ILogger } from '../../application/interfaces/ILogger';
 
 /**
@@ -273,7 +274,7 @@ export class AnalyticsClient {
     items: AnalyticsItemPosition[],
     options?: AnalysisOptions
   ): Promise<AnalysisResult> {
-    return this.request<AnalysisResult>('POST', '/api/analyze', {
+    return await this.request<AnalysisResult>('POST', '/api/analyze', {
       items: items.map(this.formatItemPosition),
       options,
     });
@@ -286,7 +287,7 @@ export class AnalyticsClient {
     items: AnalyticsItemPosition[],
     options?: AnalysisOptions
   ): Promise<ThreeJSExport> {
-    return this.request<ThreeJSExport>('POST', '/api/analyze/threejs', {
+    return await this.request<ThreeJSExport>('POST', '/api/analyze/threejs', {
       items: items.map(this.formatItemPosition),
       options,
     });
@@ -300,7 +301,7 @@ export class AnalyticsClient {
     eps?: number,
     minSamples?: number
   ): Promise<{ clusters: ClusterData[]; statistics: Record<string, unknown> }> {
-    return this.request('POST', '/api/clusters', {
+    return await this.request('POST', '/api/clusters', {
       items: items.map(this.formatItemPosition),
       options: { eps, minSamples },
     });
@@ -317,7 +318,7 @@ export class AnalyticsClient {
     statistics: Record<string, unknown>;
     redistributionPlan: Array<Record<string, unknown>>;
   }> {
-    return this.request('POST', '/api/density', {
+    return await this.request('POST', '/api/density', {
       items: items.map(this.formatItemPosition),
       options: { overcrowdingThreshold },
     });
@@ -331,7 +332,7 @@ export class AnalyticsClient {
     gridSize: number = 5.0
   ): Promise<HeatmapExport> {
     const url = `/api/heatmap?grid_size=${gridSize}`;
-    return this.request<HeatmapExport>('POST', url, {
+    return await this.request<HeatmapExport>('POST', url, {
       items: items.map(this.formatItemPosition),
     });
   }
@@ -351,7 +352,7 @@ export class AnalyticsClient {
       volume: number;
     }>;
   }> {
-    return this.request('GET', '/api/zones');
+    return await this.request('GET', '/api/zones');
   }
 
   /**
@@ -362,7 +363,7 @@ export class AnalyticsClient {
     taskId: string,
     options?: AnalysisOptions
   ): Promise<{ taskId: string; status: string }> {
-    return this.request('POST', `/api/analyze/async?task_id=${taskId}`, {
+    return await this.request('POST', `/api/analyze/async?task_id=${taskId}`, {
       items: items.map(this.formatItemPosition),
       options,
     });
@@ -374,7 +375,7 @@ export class AnalyticsClient {
   async getAnalysisStatus(
     taskId: string
   ): Promise<{ status: string; result?: AnalysisResult; error?: string }> {
-    return this.request('GET', `/api/analyze/status/${taskId}`);
+    return await this.request('GET', `/api/analyze/status/${taskId}`);
   }
 
   /**
@@ -396,21 +397,14 @@ export class AnalyticsClient {
   /**
    * Make HTTP request with retries
    */
-  private async request<T>(
-    method: 'GET' | 'POST',
-    path: string,
-    body?: unknown
-  ): Promise<T> {
+  private async request<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
     const url = `${this.config.baseUrl}${path}`;
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt < this.config.retries; attempt++) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(
-          () => controller.abort(),
-          this.config.timeout
-        );
+        const timeoutId = setTimeout(() => controller.abort(), this.config.timeout);
 
         const options: RequestInit = {
           method,

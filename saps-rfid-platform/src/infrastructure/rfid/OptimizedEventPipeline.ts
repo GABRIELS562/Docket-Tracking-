@@ -1,8 +1,10 @@
 import { injectable, inject } from 'tsyringe';
+
+import { TagDetectedEvent } from '../../domain/events/TagDetectedEvent';
+
+import type { ParsedTagRead } from './TagProcessor';
 import type { IEventBus } from '../../application/interfaces/IEventBus';
 import type { ILogger } from '../../application/interfaces/ILogger';
-import { TagDetectedEvent } from '../../domain/events/TagDetectedEvent';
-import type { ParsedTagRead } from './TagProcessor';
 
 /**
  * Pipeline Configuration
@@ -193,11 +195,7 @@ export class OptimizedEventPipeline {
    *
    * @returns true if event was queued, false if dropped
    */
-  enqueue(
-    tagRead: ParsedTagRead,
-    readerId: string,
-    zoneId: string
-  ): boolean {
+  enqueue(tagRead: ParsedTagRead, readerId: string, zoneId: string): boolean {
     if (!this.isRunning) {
       this.logger.warn('Pipeline not running, dropping event');
       return false;
@@ -219,7 +217,7 @@ export class OptimizedEventPipeline {
       }
 
       // Remove oldest low-priority event to make room
-      const lowPriorityIdx = this.eventQueue.findIndex(e => e.event.rssi < -75);
+      const lowPriorityIdx = this.eventQueue.findIndex((e) => e.event.rssi < -75);
       if (lowPriorityIdx >= 0) {
         this.eventQueue.splice(lowPriorityIdx, 1);
         this.metrics.droppedEvents++;
@@ -332,7 +330,7 @@ export class OptimizedEventPipeline {
       chunks.push(batch.slice(i, i + chunkSize));
     }
 
-    await Promise.all(chunks.map(chunk => this.processChunk(chunk)));
+    await Promise.all(chunks.map((chunk) => this.processChunk(chunk)));
   }
 
   /**
@@ -360,9 +358,7 @@ export class OptimizedEventPipeline {
 
     // Calculate latencies
     const queueLatency = now - enqueuedAt;
-    const endToEndLatency = readerTimestamp
-      ? now - readerTimestamp
-      : queueLatency;
+    const endToEndLatency = readerTimestamp ? now - readerTimestamp : queueLatency;
 
     // Track latency
     this.recordLatency(endToEndLatency);
@@ -424,9 +420,7 @@ export class OptimizedEventPipeline {
 
     // Calculate events per second
     if (windowMs > 0) {
-      this.metrics.eventsPerSecond = Math.round(
-        (this.eventsInWindow / windowMs) * 1000
-      );
+      this.metrics.eventsPerSecond = Math.round((this.eventsInWindow / windowMs) * 1000);
     }
 
     // Reset window counters
@@ -438,9 +432,7 @@ export class OptimizedEventPipeline {
       const sorted = [...this.latencySamples].sort((a, b) => a - b);
       const len = sorted.length;
 
-      this.metrics.averageLatencyMs = Math.round(
-        sorted.reduce((a, b) => a + b, 0) / len
-      );
+      this.metrics.averageLatencyMs = Math.round(sorted.reduce((a, b) => a + b, 0) / len);
       this.metrics.p95LatencyMs = sorted[Math.floor(len * 0.95)] || 0;
       this.metrics.p99LatencyMs = sorted[Math.floor(len * 0.99)] || 0;
     }

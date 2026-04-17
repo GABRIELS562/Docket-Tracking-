@@ -1,11 +1,12 @@
-import type { Request, Response, NextFunction } from 'express';
 import jwt, { type SignOptions } from 'jsonwebtoken';
 import { injectable, inject } from 'tsyringe';
+
+import { TenantContext, createTenantContext } from '../../../application/context/TenantContext';
 
 import type { ILogger } from '../../../application/interfaces/ILogger';
 import type { ITenantRepository } from '../../../domain/repositories/ITenantRepository';
 import type { ITenantUserRepository } from '../../../domain/repositories/ITenantUserRepository';
-import { TenantContext, createTenantContext } from '../../../application/context/TenantContext';
+import type { Request, Response, NextFunction } from 'express';
 
 /**
  * JWT Payload structure
@@ -134,7 +135,7 @@ export class AuthMiddlewareFactory {
         };
         req.tenantId = payload.tenantId;
         req.tenantSlug = payload.tenantSlug;
-        req.requestId = req.headers['x-request-id'] as string ?? crypto.randomUUID();
+        req.requestId = (req.headers['x-request-id'] as string) ?? crypto.randomUUID();
 
         // Run rest of request in tenant context
         const context = createTenantContext(payload.tenantId, payload.tenantSlug, req.requestId);
@@ -187,7 +188,7 @@ export class AuthMiddlewareFactory {
           }
         }
 
-        req.requestId = req.headers['x-request-id'] as string ?? crypto.randomUUID();
+        req.requestId = (req.headers['x-request-id'] as string) ?? crypto.randomUUID();
         next();
       } catch (error) {
         // Don't fail on optional auth errors, just log

@@ -103,7 +103,7 @@ export default function TimelinePlayback() {
     setPlaybackMode(true);
   };
 
-  const handleSliderDragStart = (e: React.MouseEvent) => {
+  const handleSliderDragStart = (e: React.MouseEvent<HTMLDivElement>) => {
     setIsDragging(true);
     handleSliderClick(e);
   };

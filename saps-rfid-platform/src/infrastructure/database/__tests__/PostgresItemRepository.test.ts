@@ -1,4 +1,3 @@
-
 import { ok, err } from 'neverthrow';
 import { PostgresItemRepository } from '../repositories/PostgresItemRepository';
 import type { PostgresConnection } from '../PostgresConnection';
@@ -100,7 +99,8 @@ describe('PostgresItemRepository', () => {
       const item = createTestItem();
 
       // Mock duplicate checks (both return false)
-      jest.mocked(mockDb.queryOne)
+      jest
+        .mocked(mockDb.queryOne)
         .mockResolvedValueOnce(ok({ exists: false })) // item number check
         .mockResolvedValueOnce(ok({ exists: false })); // EPC check
 
@@ -137,7 +137,8 @@ describe('PostgresItemRepository', () => {
       const item = createTestItem();
 
       // Mock duplicate checks (item number OK, EPC exists)
-      jest.mocked(mockDb.queryOne)
+      jest
+        .mocked(mockDb.queryOne)
         .mockResolvedValueOnce(ok({ exists: false })) // item number check
         .mockResolvedValueOnce(ok({ exists: true })); // EPC check - exists!
 
@@ -151,7 +152,8 @@ describe('PostgresItemRepository', () => {
       const item = createTestItem();
 
       // Mock duplicate checks pass
-      jest.mocked(mockDb.queryOne)
+      jest
+        .mocked(mockDb.queryOne)
         .mockResolvedValueOnce(ok({ exists: false }))
         .mockResolvedValueOnce(ok({ exists: false }));
 
@@ -173,7 +175,8 @@ describe('PostgresItemRepository', () => {
       const item = createTestItem();
 
       // Mock duplicate checks pass
-      jest.mocked(mockDb.queryOne)
+      jest
+        .mocked(mockDb.queryOne)
         .mockResolvedValueOnce(ok({ exists: false }))
         .mockResolvedValueOnce(ok({ exists: false }));
 
@@ -195,7 +198,8 @@ describe('PostgresItemRepository', () => {
       const item = createTestItem();
 
       // Mock duplicate checks pass
-      jest.mocked(mockDb.queryOne)
+      jest
+        .mocked(mockDb.queryOne)
         .mockResolvedValueOnce(ok({ exists: false }))
         .mockResolvedValueOnce(ok({ exists: false }));
 
@@ -470,7 +474,11 @@ describe('PostgresItemRepository', () => {
     it('should find all items in a zone', async () => {
       const mockRows = [
         createMockItemRow({ current_zone_id: 'zone-001' }),
-        createMockItemRow({ id: 'item-002', item_number: 'INV-2025-000124', current_zone_id: 'zone-001' }),
+        createMockItemRow({
+          id: 'item-002',
+          item_number: 'INV-2025-000124',
+          current_zone_id: 'zone-001',
+        }),
       ];
       jest.mocked(mockDb.query).mockResolvedValue(ok(mockRows));
 
@@ -520,10 +528,7 @@ describe('PostgresItemRepository', () => {
 
       await repository.findRecentByZone('zone-001');
 
-      expect(mockDb.query).toHaveBeenCalledWith(
-        expect.any(String),
-        ['zone-001', 10]
-      );
+      expect(mockDb.query).toHaveBeenCalledWith(expect.any(String), ['zone-001', 10]);
     });
   });
 
@@ -542,10 +547,11 @@ describe('PostgresItemRepository', () => {
 
       expect(result.isOk()).toBe(true);
       expect(result._unsafeUnwrap()).toHaveLength(2);
-      expect(mockDb.query).toHaveBeenCalledWith(
-        expect.stringContaining('status IN'),
-        [ItemStatus.REGISTERED, ItemStatus.IN_TRANSIT, ItemStatus.IN_PROCESSING]
-      );
+      expect(mockDb.query).toHaveBeenCalledWith(expect.stringContaining('status IN'), [
+        ItemStatus.REGISTERED,
+        ItemStatus.IN_TRANSIT,
+        ItemStatus.IN_PROCESSING,
+      ]);
     });
   });
 
@@ -560,10 +566,9 @@ describe('PostgresItemRepository', () => {
       const result = await repository.findAllMissing();
 
       expect(result.isOk()).toBe(true);
-      expect(mockDb.query).toHaveBeenCalledWith(
-        expect.stringContaining('WHERE status = $1'),
-        [ItemStatus.MISSING]
-      );
+      expect(mockDb.query).toHaveBeenCalledWith(expect.stringContaining('WHERE status = $1'), [
+        ItemStatus.MISSING,
+      ]);
     });
   });
 
@@ -572,7 +577,9 @@ describe('PostgresItemRepository', () => {
   // ============================================================================
   describe('findStale()', () => {
     it('should find items not seen beyond threshold', async () => {
-      const mockRows = [createMockItemRow({ last_seen_at: new Date(Date.now() - 72 * 60 * 60 * 1000) })];
+      const mockRows = [
+        createMockItemRow({ last_seen_at: new Date(Date.now() - 72 * 60 * 60 * 1000) }),
+      ];
       jest.mocked(mockDb.query).mockResolvedValue(ok(mockRows));
 
       const result = await repository.findStale(48); // 48 hours threshold
@@ -626,12 +633,12 @@ describe('PostgresItemRepository', () => {
       const result = await repository.delete('item-001');
 
       expect(result.isOk()).toBe(true);
+      expect(mockDb.query).toHaveBeenCalledWith(expect.stringContaining('UPDATE items'), [
+        'item-001',
+        ItemStatus.DISPOSED,
+      ]);
       expect(mockDb.query).toHaveBeenCalledWith(
-        expect.stringContaining('UPDATE items'),
-        ['item-001', ItemStatus.DISPOSED]
-      );
-      expect(mockDb.query).toHaveBeenCalledWith(
-        expect.stringContaining("is_active = false"),
+        expect.stringContaining('is_active = false'),
         expect.any(Array)
       );
       expect(mockLogger.info).toHaveBeenCalledWith(

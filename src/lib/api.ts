@@ -25,6 +25,7 @@ export interface Docket {
   status: 'active' | 'archived' | 'missing';
   lastSeenAt: string | null;
   createdAt: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface Reader {
@@ -32,8 +33,15 @@ export interface Reader {
   readerName: string;
   ipAddress: string;
   zoneId: number;
-  status: 'online' | 'offline' | 'error';
+  zoneName?: string;
+  status: 'online' | 'offline' | 'error' | 'connecting';
   lastSeenAt: string | null;
+  errorMessage?: string;
+  configuration?: {
+    transmitPower?: number;
+    antennas?: number[];
+    rssiThreshold?: number;
+  };
 }
 
 export const zoneApi = {
@@ -97,7 +105,7 @@ export interface DistributionSummary {
 export interface ReaderActivity {
   readerId: string;
   reads: number;
-  status: 'online' | 'offline' | 'error';
+  status: 'online' | 'offline' | 'error' | 'connecting';
 }
 
 export const analyticsApi = {

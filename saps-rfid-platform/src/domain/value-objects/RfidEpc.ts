@@ -1,7 +1,8 @@
-import type { Result } from 'neverthrow';
 import { ok, err } from 'neverthrow';
 
 import { InvalidEpcError } from '../errors/InvalidEpcError';
+
+import type { Result } from 'neverthrow';
 
 /**
  * Value Object for RFID EPC (Electronic Product Code)

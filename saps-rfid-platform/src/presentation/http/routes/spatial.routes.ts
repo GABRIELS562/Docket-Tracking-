@@ -8,6 +8,7 @@
 
 import { Router } from 'express';
 import { container } from 'tsyringe';
+
 import { SpatialAnalyticsController } from '../controllers/SpatialAnalyticsController';
 import { AuthMiddlewareFactory } from '../middleware/authMiddleware';
 

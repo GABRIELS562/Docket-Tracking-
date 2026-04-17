@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { container } from 'tsyringe';
+
 import { ZoneController } from '../controllers/ZoneController';
 
 const router = Router();

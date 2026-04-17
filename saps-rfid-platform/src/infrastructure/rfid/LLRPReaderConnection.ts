@@ -1,8 +1,11 @@
 import EventEmitter from 'events';
-import { Result, ok, err } from 'neverthrow';
-import type { Reader } from '../../domain/entities/Reader';
+
+import { ok, err } from 'neverthrow';
+
 import type { IEventBus } from '../../application/interfaces/IEventBus';
 import type { ILogger } from '../../application/interfaces/ILogger';
+import type { Reader } from '../../domain/entities/Reader';
+import type { Result } from 'neverthrow';
 
 /**
  * LLRP Reader Connection - Full Protocol Implementation
@@ -524,7 +527,7 @@ export class LLRPReaderConnection extends EventEmitter {
                 antennaConfigurations: antennas.map((antennaId) => ({
                   antennaID: antennaId,
                   rfTransmitter: {
-                    transmitPower: transmitPower,
+                    transmitPower,
                     hopTableID: 1,
                   },
                   rfReceiver: {

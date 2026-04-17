@@ -1,8 +1,9 @@
-import type { Result } from 'neverthrow';
 import { ok, err } from 'neverthrow';
 
-import type { IpAddress } from '../value-objects/IpAddress';
 import { InvalidReaderError } from '../errors/InvalidReaderError';
+
+import type { IpAddress } from '../value-objects/IpAddress';
+import type { Result } from 'neverthrow';
 
 /**
  * Reader status enumeration
@@ -451,9 +452,7 @@ export class Reader {
    * @param config - New configuration (partial or full)
    * @returns Result indicating success or failure
    */
-  updateConfiguration(
-    config: Partial<ReaderConfiguration>
-  ): Result<void, InvalidReaderError> {
+  updateConfiguration(config: Partial<ReaderConfiguration>): Result<void, InvalidReaderError> {
     const newConfig: ReaderConfiguration = {
       ...this.props.configuration,
       ...config,

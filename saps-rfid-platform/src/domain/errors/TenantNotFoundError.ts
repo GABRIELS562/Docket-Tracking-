@@ -5,10 +5,8 @@ import { DomainError } from './DomainError';
  */
 export class TenantNotFoundError extends DomainError {
   constructor(identifier: string, identifierType: 'id' | 'slug' = 'id') {
-    super(
-      `Tenant with ${identifierType} "${identifier}" was not found`,
-      'TENANT_NOT_FOUND',
-      { [identifierType]: identifier }
-    );
+    super(`Tenant with ${identifierType} "${identifier}" was not found`, 'TENANT_NOT_FOUND', {
+      [identifierType]: identifier,
+    });
   }
 }

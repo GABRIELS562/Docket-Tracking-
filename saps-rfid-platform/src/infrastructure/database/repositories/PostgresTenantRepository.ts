@@ -1,12 +1,6 @@
 import { Result, ok, err } from 'neverthrow';
 import { injectable, inject } from 'tsyringe';
 
-import type { ILogger } from '../../../application/interfaces/ILogger';
-import type {
-  ITenantRepository,
-  TenantSearchCriteria,
-  TenantUsageStats,
-} from '../../../domain/repositories/ITenantRepository';
 import {
   Tenant,
   TenantProps,
@@ -16,6 +10,13 @@ import {
   TenantSettings,
 } from '../../../domain/entities/Tenant';
 import { BaseRepository } from '../BaseRepository';
+
+import type { ILogger } from '../../../application/interfaces/ILogger';
+import type {
+  ITenantRepository,
+  TenantSearchCriteria,
+  TenantUsageStats,
+} from '../../../domain/repositories/ITenantRepository';
 import type { PostgresConnection } from '../PostgresConnection';
 
 /**
@@ -154,7 +155,9 @@ export class PostgresTenantRepository extends BaseRepository implements ITenantR
     return ok(result.value.map((row) => this.mapRowToTenant(row)));
   }
 
-  async search(criteria: TenantSearchCriteria): Promise<Result<{ tenants: Tenant[]; total: number }, Error>> {
+  async search(
+    criteria: TenantSearchCriteria
+  ): Promise<Result<{ tenants: Tenant[]; total: number }, Error>> {
     const conditions: string[] = [];
     const params: unknown[] = [];
     let paramIndex = 1;
@@ -165,13 +168,13 @@ export class PostgresTenantRepository extends BaseRepository implements ITenantR
       paramIndex++;
     }
 
-    if (criteria.subscriptionTier) {
+    if (criteria.subscriptionTier != null) {
       conditions.push(`subscription_tier = $${paramIndex}`);
       params.push(criteria.subscriptionTier);
       paramIndex++;
     }
 
-    if (criteria.subscriptionStatus) {
+    if (criteria.subscriptionStatus != null) {
       conditions.push(`subscription_status = $${paramIndex}`);
       params.push(criteria.subscriptionStatus);
       paramIndex++;

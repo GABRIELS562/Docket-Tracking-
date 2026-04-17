@@ -10,11 +10,13 @@
 import { Request, Response, NextFunction, Router } from 'express';
 import { injectable, inject } from 'tsyringe';
 import { z } from 'zod';
-import type { ILogger } from '../../../application/interfaces/ILogger';
+
 import { AnalyticsClient } from '../../../infrastructure/analytics';
+
+import type { ILogger } from '../../../application/interfaces/ILogger';
+import type { Item } from '../../../domain/entities/Item';
 import type { IItemRepository } from '../../../domain/repositories/IItemRepository';
 import type { AuthenticatedRequest } from '../middleware/authMiddleware';
-import type { Item } from '../../../domain/entities/Item';
 
 /**
  * Request validation schemas
@@ -101,7 +103,11 @@ export class SpatialAnalyticsController {
    * POST /api/spatial/analyze
    * Perform full spatial analysis
    */
-  private async analyze(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+  private async analyze(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
       const validation = AnalyzeRequestSchema.safeParse(req.body);
       if (!validation.success) {
@@ -176,7 +182,13 @@ export class SpatialAnalyticsController {
       if (items.length === 0) {
         res.json({
           timestamp: new Date().toISOString(),
-          summary: { totalItems: 0, totalClusters: 0, hotspotCount: 0, overcrowdedZones: [], processingTimeMs: 0 },
+          summary: {
+            totalItems: 0,
+            totalClusters: 0,
+            hotspotCount: 0,
+            overcrowdedZones: [],
+            processingTimeMs: 0,
+          },
           clusters: [],
           hotspots: [],
           zoneDensities: [],
@@ -364,11 +376,7 @@ export class SpatialAnalyticsController {
    * GET /api/spatial/analyze/status/:taskId
    * Get async analysis status
    */
-  private async getAnalysisStatus(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> {
+  private async getAnalysisStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const taskId = req.params.taskId;
       if (!taskId) {

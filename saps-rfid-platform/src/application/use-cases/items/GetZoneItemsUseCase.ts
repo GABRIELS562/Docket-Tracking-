@@ -1,11 +1,12 @@
-import { injectable, inject } from 'tsyringe';
 import { Result, ok, err } from 'neverthrow';
+import { injectable, inject } from 'tsyringe';
+
+import { ItemMapper } from '../../mappers/ItemMapper';
 
 import type { IItemRepository } from '../../../domain/repositories/IItemRepository';
 import type { IZoneRepository } from '../../../domain/repositories/IZoneRepository';
-import type { ILogger } from '../../interfaces/ILogger';
 import type { ItemDTO } from '../../dto/ItemDTO';
-import { ItemMapper } from '../../mappers/ItemMapper';
+import type { ILogger } from '../../interfaces/ILogger';
 
 /**
  * Input for getting zone items
@@ -136,9 +137,7 @@ export class GetZoneItemsUseCase {
       // Step 4: Calculate occupancy metrics
       const capacity = zone.getCapacity();
       const totalItems = items.length;
-      const occupancyPercent = capacity
-        ? Math.round((totalItems / capacity) * 100)
-        : null;
+      const occupancyPercent = capacity ? Math.round((totalItems / capacity) * 100) : null;
 
       // Create zone info for mapping
       const zoneInfo = {

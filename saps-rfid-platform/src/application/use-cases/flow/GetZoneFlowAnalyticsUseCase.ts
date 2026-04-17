@@ -1,8 +1,6 @@
-import { injectable, inject } from 'tsyringe';
 import { Result, ok, err } from 'neverthrow';
-import type { ILocationHistoryRepository } from '../../../domain/repositories/ILocationHistoryRepository';
-import type { IZoneRepository } from '../../../domain/repositories/IZoneRepository';
-import type { ILogger } from '../../interfaces/ILogger';
+import { injectable, inject } from 'tsyringe';
+
 import {
   GetZoneFlowInput,
   ZoneFlowAnalyticsDTO,
@@ -11,6 +9,10 @@ import {
   ZoneFlowStatsDTO,
   HourlyFlowPatternDTO,
 } from '../../dto/AnalyticsDTO';
+
+import type { ILocationHistoryRepository } from '../../../domain/repositories/ILocationHistoryRepository';
+import type { IZoneRepository } from '../../../domain/repositories/IZoneRepository';
+import type { ILogger } from '../../interfaces/ILogger';
 
 /**
  * Get Zone Flow Analytics Use Case
@@ -303,8 +305,7 @@ export class GetZoneFlowAnalyticsUseCase {
 
       const netFlow = data.entries - data.exits;
       const throughput = Math.min(data.entries, data.exits);
-      const congestionIndex =
-        throughput > 0 ? Math.min(1, Math.abs(netFlow) / throughput) : 0;
+      const congestionIndex = throughput > 0 ? Math.min(1, Math.abs(netFlow) / throughput) : 0;
 
       stats.push({
         zoneId,
@@ -422,9 +423,7 @@ export class GetZoneFlowAnalyticsUseCase {
       uniqueItems: uniqueItems.size,
       activeZones: uniqueZones.size,
       avgTransitionsPerItem:
-        uniqueItems.size > 0
-          ? Math.round((transitions.length / uniqueItems.size) * 100) / 100
-          : 0,
+        uniqueItems.size > 0 ? Math.round((transitions.length / uniqueItems.size) * 100) / 100 : 0,
       busiestHour: busiestPattern?.hour ?? 0,
       busiestDay: busiestPattern ? dayNames[busiestPattern.dayOfWeek] ?? 'Unknown' : 'Unknown',
     };

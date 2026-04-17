@@ -12,12 +12,12 @@
  * ```
  */
 
-import { validateEnv, getEnv } from './validation';
 import { getDatabaseConfig } from './database.config';
+import { getJwtConfig } from './jwt.config';
+import { getLoggingConfig } from './logging.config';
 import { getRFIDConfig } from './rfid.config';
 import { getServerConfig } from './server.config';
-import { getLoggingConfig } from './logging.config';
-import { getJwtConfig } from './jwt.config';
+import { validateEnv, getEnv } from './validation';
 
 /**
  * Initialize and validate configuration

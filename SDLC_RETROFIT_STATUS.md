@@ -4,7 +4,7 @@
 **Branch:** `chore/sdlc-retrofit`
 **Owner:** Jaime
 **Methodology:** GitHub Spec Kit (Spec-Driven Development) + GitHub Actions CI/CD
-**Last updated:** 2026-04-17 (Phase 3 in progress)
+**Last updated:** 2026-04-17 (Phase 3 complete, Phase 4 next)
 
 ---
 
@@ -38,11 +38,17 @@ Mark each phase as ⬜ Not started, 🟡 In progress, or ✅ Done. Add notes on 
 - [x] `.specify/` and `.claude/` committed
 - **Notes:** Spec Kit installed successfully. `.claude/` already in .gitignore for security. Skills installed to `.claude/skills/`.
 
-### 🟡 Phase 3 — Constitution
+### ✅ Phase 3 — Constitution
 - [x] `.specify/memory/constitution.md` drafted
-- [ ] Reviewed and approved
-- [ ] Committed
-- **Notes:** Awaiting Jaime's review. One deviation: kept Winston instead of Pino (already implemented).
+- [x] Reviewed and approved
+- [x] Committed
+- [x] Constitution applied to codebase — both frontend and backend compile successfully
+- **Notes:** One deviation: kept Winston instead of Pino (already implemented). Fixes made during constitution application:
+  - Deleted orphaned `PostgresDocketRepository.ts` (replaced by `PostgresItemRepository.ts`)
+  - Fixed arithmetic bug in `GetFlowAnomaliesUseCase.ts`
+  - Added `src/vite-env.d.ts` for Vite types
+  - Updated type interfaces in `api.ts` and `ReaderActivityChart.tsx` to include `'connecting'` reader status
+  - Fixed unused variable warnings throughout frontend
 
 ### ⬜ Phase 4 — Code Quality Tooling
 - [ ] Husky + lint-staged installed
@@ -109,6 +115,8 @@ Record any deviations from the master prompt, trade-offs made, or choices that n
 | 2026-04-17 | Flattened repo structure before SDLC retrofit | Original repo had files nested in Docket-Tracking-/ subfolder, causing git tracking issues. Flattened to have files at repo root for cleaner structure. |
 | 2026-04-17 | Merged flatten branch to main before creating sdlc-retrofit | Ensures sdlc-retrofit branch starts from a clean, properly-structured main branch. |
 | 2026-04-17 | Keep Winston instead of Pino for logging | Prompt specified Pino, but Winston already implemented with proper JSON formatting. Migration cost not justified. |
+| 2026-04-17 | Deleted PostgresDocketRepository.ts | File referenced non-existent Docket domain entities. PostgresItemRepository.ts already exists with correct Item-based implementation. |
+| 2026-04-17 | Added 'connecting' status to Reader types | Frontend and backend types now include 'connecting' as valid reader status for consistency. |
 
 ---
 

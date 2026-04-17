@@ -1,5 +1,9 @@
-import { injectable, inject } from 'tsyringe';
 import { Result, ok, err } from 'neverthrow';
+import { injectable, inject } from 'tsyringe';
+
+import { BaseRepository } from '../BaseRepository';
+
+import type { ILogger } from '../../../application/interfaces/ILogger';
 import type {
   ILocationHistoryRepository,
   LocationHistoryEntry,
@@ -7,12 +11,10 @@ import type {
   ReadStatistics,
   AnalyticsQueryOptions,
 } from '../../../domain/repositories/ILocationHistoryRepository';
-import type { TagRead } from '../../../domain/value-objects/TagRead';
 import type { ItemNumber } from '../../../domain/value-objects/ItemNumber';
 import type { RfidEpc } from '../../../domain/value-objects/RfidEpc';
-import { BaseRepository } from '../BaseRepository';
+import type { TagRead } from '../../../domain/value-objects/TagRead';
 import type { PostgresConnection } from '../PostgresConnection';
-import type { ILogger } from '../../../application/interfaces/ILogger';
 
 /**
  * Database row interface for location history
@@ -174,7 +176,7 @@ export class TimescaleLocationHistoryRepository
 
     // If batch is full, flush immediately
     if (this.batchQueue.length >= this.BATCH_SIZE) {
-      return this.flushBatch();
+      return await this.flushBatch();
     }
 
     // Otherwise, schedule flush if not already scheduled
@@ -710,9 +712,7 @@ export class TimescaleLocationHistoryRepository
    * @description
    * Uses TimescaleDB's time_bucket() for efficient time-series aggregation.
    */
-  async getAnalytics(
-    options: AnalyticsQueryOptions
-  ): Promise<Result<ReadStatistics[], Error>> {
+  async getAnalytics(options: AnalyticsQueryOptions): Promise<Result<ReadStatistics[], Error>> {
     try {
       const bucketSize = options.bucketSize || '1 hour';
       const conditions: string[] = ['tenant_id = $1', 'time >= $2', 'time <= $3'];

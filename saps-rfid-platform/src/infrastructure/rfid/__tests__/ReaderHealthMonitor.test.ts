@@ -69,11 +69,7 @@ describe('ReaderHealthMonitor', () => {
       lastSeenAt?: Date | null;
     } = {}
   ): IReaderConnection {
-    const {
-      isConnected = true,
-      hasError = false,
-      lastSeenAt = new Date(),
-    } = options;
+    const { isConnected = true, hasError = false, lastSeenAt = new Date() } = options;
 
     return {
       getReader: () => createMockReader(readerId, status),
@@ -86,11 +82,7 @@ describe('ReaderHealthMonitor', () => {
 
   describe('Initialization', () => {
     it('should initialize without auto-start', () => {
-      monitor = new ReaderHealthMonitor(
-        mockConnectionPool,
-        mockReaderRepo,
-        mockLogger
-      );
+      monitor = new ReaderHealthMonitor(mockConnectionPool, mockReaderRepo, mockLogger);
 
       const status = monitor.getStatus();
       expect(status.isRunning).toBe(false);
@@ -101,16 +93,11 @@ describe('ReaderHealthMonitor', () => {
     });
 
     it('should initialize with custom configuration', () => {
-      monitor = new ReaderHealthMonitor(
-        mockConnectionPool,
-        mockReaderRepo,
-        mockLogger,
-        {
-          checkIntervalMs: 60000,
-          staleThresholdSeconds: 120,
-          autoStart: false,
-        }
-      );
+      monitor = new ReaderHealthMonitor(mockConnectionPool, mockReaderRepo, mockLogger, {
+        checkIntervalMs: 60000,
+        staleThresholdSeconds: 120,
+        autoStart: false,
+      });
 
       const status = monitor.getStatus();
       expect(status.checkIntervalMs).toBe(60000);
@@ -118,14 +105,9 @@ describe('ReaderHealthMonitor', () => {
     });
 
     it('should auto-start when configured', () => {
-      monitor = new ReaderHealthMonitor(
-        mockConnectionPool,
-        mockReaderRepo,
-        mockLogger,
-        {
-          autoStart: true,
-        }
-      );
+      monitor = new ReaderHealthMonitor(mockConnectionPool, mockReaderRepo, mockLogger, {
+        autoStart: true,
+      });
 
       const status = monitor.getStatus();
       expect(status.isRunning).toBe(true);
@@ -134,11 +116,7 @@ describe('ReaderHealthMonitor', () => {
 
   describe('Starting and Stopping', () => {
     beforeEach(() => {
-      monitor = new ReaderHealthMonitor(
-        mockConnectionPool,
-        mockReaderRepo,
-        mockLogger
-      );
+      monitor = new ReaderHealthMonitor(mockConnectionPool, mockReaderRepo, mockLogger);
     });
 
     it('should start monitoring', () => {
@@ -157,9 +135,7 @@ describe('ReaderHealthMonitor', () => {
     });
 
     it('should perform immediate check on start', async () => {
-      const connections = [
-        createMockConnection('reader-001', ReaderStatus.ONLINE),
-      ];
+      const connections = [createMockConnection('reader-001', ReaderStatus.ONLINE)];
       (mockConnectionPool.getAll as any).mockReturnValue(connections);
 
       monitor.start();
@@ -175,9 +151,7 @@ describe('ReaderHealthMonitor', () => {
       monitor.start();
       monitor.start(); // Second call
 
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        'Health monitor already running'
-      );
+      expect(mockLogger.warn).toHaveBeenCalledWith('Health monitor already running');
     });
 
     it('should stop monitoring', () => {
@@ -187,30 +161,21 @@ describe('ReaderHealthMonitor', () => {
       const status = monitor.getStatus();
       expect(status.isRunning).toBe(false);
 
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Stopping reader health monitor'
-      );
+      expect(mockLogger.info).toHaveBeenCalledWith('Stopping reader health monitor');
     });
 
     it('should handle stop when not running', () => {
       monitor.stop();
 
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        'Health monitor not running'
-      );
+      expect(mockLogger.debug).toHaveBeenCalledWith('Health monitor not running');
     });
   });
 
   describe('Status Determination', () => {
     beforeEach(() => {
-      monitor = new ReaderHealthMonitor(
-        mockConnectionPool,
-        mockReaderRepo,
-        mockLogger,
-        {
-          staleThresholdSeconds: 60,
-        }
-      );
+      monitor = new ReaderHealthMonitor(mockConnectionPool, mockReaderRepo, mockLogger, {
+        staleThresholdSeconds: 60,
+      });
     });
 
     it('should mark reader as ERROR when connection has error', async () => {
@@ -308,11 +273,7 @@ describe('ReaderHealthMonitor', () => {
 
   describe('Health Checks', () => {
     beforeEach(() => {
-      monitor = new ReaderHealthMonitor(
-        mockConnectionPool,
-        mockReaderRepo,
-        mockLogger
-      );
+      monitor = new ReaderHealthMonitor(mockConnectionPool, mockReaderRepo, mockLogger);
     });
 
     it('should check all readers in pool', async () => {
@@ -367,9 +328,7 @@ describe('ReaderHealthMonitor', () => {
     });
 
     it('should track check duration', async () => {
-      const connections = [
-        createMockConnection('reader-001', ReaderStatus.ONLINE),
-      ];
+      const connections = [createMockConnection('reader-001', ReaderStatus.ONLINE)];
       (mockConnectionPool.getAll as any).mockReturnValue(connections);
 
       const result = await monitor.forceCheck();
@@ -378,9 +337,7 @@ describe('ReaderHealthMonitor', () => {
     });
 
     it('should warn on slow health checks', async () => {
-      const connections = [
-        createMockConnection('reader-001', ReaderStatus.ONLINE),
-      ];
+      const connections = [createMockConnection('reader-001', ReaderStatus.ONLINE)];
       (mockConnectionPool.getAll as any).mockReturnValue(connections);
 
       // Mock slow processing by delaying the updateStatuses call
@@ -410,11 +367,7 @@ describe('ReaderHealthMonitor', () => {
 
   describe('Database Updates', () => {
     beforeEach(() => {
-      monitor = new ReaderHealthMonitor(
-        mockConnectionPool,
-        mockReaderRepo,
-        mockLogger
-      );
+      monitor = new ReaderHealthMonitor(mockConnectionPool, mockReaderRepo, mockLogger);
     });
 
     it('should batch update statuses', async () => {
@@ -449,9 +402,7 @@ describe('ReaderHealthMonitor', () => {
         }),
       ];
       (mockConnectionPool.getAll as any).mockReturnValue(connections);
-      (mockReaderRepo.updateStatuses as any).mockResolvedValue(
-        err(new Error('Database error'))
-      );
+      (mockReaderRepo.updateStatuses as any).mockResolvedValue(err(new Error('Database error')));
 
       const result = await monitor.forceCheck();
 
@@ -471,9 +422,7 @@ describe('ReaderHealthMonitor', () => {
         }),
       ];
       (mockConnectionPool.getAll as any).mockReturnValue(connections);
-      (mockReaderRepo.updateStatuses as any).mockRejectedValue(
-        new Error('Database exception')
-      );
+      (mockReaderRepo.updateStatuses as any).mockRejectedValue(new Error('Database exception'));
 
       const result = await monitor.forceCheck();
 
@@ -500,11 +449,7 @@ describe('ReaderHealthMonitor', () => {
 
   describe('Error Handling', () => {
     beforeEach(() => {
-      monitor = new ReaderHealthMonitor(
-        mockConnectionPool,
-        mockReaderRepo,
-        mockLogger
-      );
+      monitor = new ReaderHealthMonitor(mockConnectionPool, mockReaderRepo, mockLogger);
     });
 
     it('should handle errors checking individual readers', async () => {
@@ -537,16 +482,11 @@ describe('ReaderHealthMonitor', () => {
         getReaderId: () => 'reader-bad',
       } as unknown as IReaderConnection;
 
-      const goodConnection = createMockConnection(
-        'reader-good',
-        ReaderStatus.ONLINE,
-        { isConnected: false }
-      );
+      const goodConnection = createMockConnection('reader-good', ReaderStatus.ONLINE, {
+        isConnected: false,
+      });
 
-      (mockConnectionPool.getAll as any).mockReturnValue([
-        badConnection,
-        goodConnection,
-      ]);
+      (mockConnectionPool.getAll as any).mockReturnValue([badConnection, goodConnection]);
 
       const result = await monitor.forceCheck();
 
@@ -575,20 +515,13 @@ describe('ReaderHealthMonitor', () => {
 
   describe('Periodic Checks', () => {
     beforeEach(() => {
-      monitor = new ReaderHealthMonitor(
-        mockConnectionPool,
-        mockReaderRepo,
-        mockLogger,
-        {
-          checkIntervalMs: 10000, // 10 seconds for testing
-        }
-      );
+      monitor = new ReaderHealthMonitor(mockConnectionPool, mockReaderRepo, mockLogger, {
+        checkIntervalMs: 10000, // 10 seconds for testing
+      });
     });
 
     it('should perform periodic checks', async () => {
-      const connections = [
-        createMockConnection('reader-001', ReaderStatus.ONLINE),
-      ];
+      const connections = [createMockConnection('reader-001', ReaderStatus.ONLINE)];
       (mockConnectionPool.getAll as any).mockReturnValue(connections);
 
       monitor.start();
@@ -628,11 +561,7 @@ describe('ReaderHealthMonitor', () => {
 
   describe('Statistics', () => {
     beforeEach(() => {
-      monitor = new ReaderHealthMonitor(
-        mockConnectionPool,
-        mockReaderRepo,
-        mockLogger
-      );
+      monitor = new ReaderHealthMonitor(mockConnectionPool, mockReaderRepo, mockLogger);
     });
 
     it('should track total status changes', async () => {
@@ -653,9 +582,7 @@ describe('ReaderHealthMonitor', () => {
     });
 
     it('should store last check result', async () => {
-      const connections = [
-        createMockConnection('reader-001', ReaderStatus.ONLINE),
-      ];
+      const connections = [createMockConnection('reader-001', ReaderStatus.ONLINE)];
       (mockConnectionPool.getAll as any).mockReturnValue(connections);
 
       await monitor.forceCheck();
@@ -666,9 +593,7 @@ describe('ReaderHealthMonitor', () => {
     });
 
     it('should reset statistics', async () => {
-      const connections = [
-        createMockConnection('reader-001', ReaderStatus.ONLINE),
-      ];
+      const connections = [createMockConnection('reader-001', ReaderStatus.ONLINE)];
       (mockConnectionPool.getAll as any).mockReturnValue(connections);
 
       await monitor.forceCheck();
@@ -686,11 +611,7 @@ describe('ReaderHealthMonitor', () => {
 
   describe('Disposal', () => {
     it('should stop monitoring on dispose', () => {
-      monitor = new ReaderHealthMonitor(
-        mockConnectionPool,
-        mockReaderRepo,
-        mockLogger
-      );
+      monitor = new ReaderHealthMonitor(mockConnectionPool, mockReaderRepo, mockLogger);
 
       monitor.start();
       expect(monitor.getStatus().isRunning).toBe(true);
@@ -698,30 +619,19 @@ describe('ReaderHealthMonitor', () => {
       monitor.dispose();
 
       expect(monitor.getStatus().isRunning).toBe(false);
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'ReaderHealthMonitor disposed'
-      );
+      expect(mockLogger.info).toHaveBeenCalledWith('ReaderHealthMonitor disposed');
     });
   });
 
   describe('Edge Cases', () => {
     beforeEach(() => {
-      monitor = new ReaderHealthMonitor(
-        mockConnectionPool,
-        mockReaderRepo,
-        mockLogger
-      );
+      monitor = new ReaderHealthMonitor(mockConnectionPool, mockReaderRepo, mockLogger);
     });
 
     it('should handle stale threshold of 0 seconds', async () => {
-      monitor = new ReaderHealthMonitor(
-        mockConnectionPool,
-        mockReaderRepo,
-        mockLogger,
-        {
-          staleThresholdSeconds: 0,
-        }
-      );
+      monitor = new ReaderHealthMonitor(mockConnectionPool, mockReaderRepo, mockLogger, {
+        staleThresholdSeconds: 0,
+      });
 
       const connections = [
         createMockConnection('reader-001', ReaderStatus.ONLINE, {
@@ -738,14 +648,9 @@ describe('ReaderHealthMonitor', () => {
     });
 
     it('should handle very large check intervals', () => {
-      monitor = new ReaderHealthMonitor(
-        mockConnectionPool,
-        mockReaderRepo,
-        mockLogger,
-        {
-          checkIntervalMs: 1000000, // ~16 minutes
-        }
-      );
+      monitor = new ReaderHealthMonitor(mockConnectionPool, mockReaderRepo, mockLogger, {
+        checkIntervalMs: 1000000, // ~16 minutes
+      });
 
       const status = monitor.getStatus();
       expect(status.checkIntervalMs).toBe(1000000);

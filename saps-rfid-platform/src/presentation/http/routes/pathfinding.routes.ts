@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { container } from 'tsyringe';
+
 import { PathfindingController } from '../controllers/PathfindingController';
 import { AuthMiddlewareFactory } from '../middleware/authMiddleware';
 

@@ -797,9 +797,7 @@ describe('BaseRepository', () => {
 
       jest.mocked(mockDb.queryOne).mockResolvedValue(err(dbError as any));
 
-      const result = await repository.testExecuteQueryOne<any>(
-        'SELECT invalid_column FROM items'
-      );
+      const result = await repository.testExecuteQueryOne<any>('SELECT invalid_column FROM items');
 
       expect(result.isErr()).toBe(true);
       expect(result._unsafeUnwrapErr().message).toContain('Column not found');
@@ -846,7 +844,8 @@ describe('BaseRepository', () => {
       ];
 
       // Mock count query
-      jest.mocked(mockDb.queryOne)
+      jest
+        .mocked(mockDb.queryOne)
         .mockResolvedValueOnce(ok({ count: '50' }))
         .mockResolvedValue(ok(null));
 
@@ -1024,10 +1023,7 @@ describe('BaseRepository', () => {
 
       expect(result.isOk()).toBe(true);
       expect(result._unsafeUnwrap()).toBe(42);
-      expect(mockDb.queryOne).toHaveBeenCalledWith(
-        'SELECT COUNT(*) as count FROM items ',
-        []
-      );
+      expect(mockDb.queryOne).toHaveBeenCalledWith('SELECT COUNT(*) as count FROM items ', []);
     });
 
     it('should return count with criteria', async () => {

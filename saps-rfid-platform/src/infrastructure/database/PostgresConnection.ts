@@ -1,8 +1,10 @@
-import { Pool, PoolClient, PoolConfig } from 'pg';
 import { Result, ok, err } from 'neverthrow';
+import { Pool, PoolClient, PoolConfig } from 'pg';
 import { injectable, inject } from 'tsyringe';
-import type { ILogger } from '../../application/interfaces/ILogger';
+
 import { getDatabaseConfig } from '../../config/database.config';
+
+import type { ILogger } from '../../application/interfaces/ILogger';
 
 /**
  * Internal Database Configuration (extends PoolConfig for pool creation)
@@ -532,8 +534,7 @@ export class PostgresConnection {
         await client.query('ROLLBACK');
       } catch (rollbackError) {
         this.logger.error('Rollback failed', {
-          error:
-            rollbackError instanceof Error ? rollbackError.message : 'Unknown error',
+          error: rollbackError instanceof Error ? rollbackError.message : 'Unknown error',
         });
       }
 
@@ -588,11 +589,8 @@ export class PostgresConnection {
       slowQueries: this.slowQueryCount,
       errors: this.errorCount,
       slowQueryRate:
-        this.queryCount > 0
-          ? Math.round((this.slowQueryCount / this.queryCount) * 100)
-          : 0,
-      errorRate:
-        this.queryCount > 0 ? Math.round((this.errorCount / this.queryCount) * 100) : 0,
+        this.queryCount > 0 ? Math.round((this.slowQueryCount / this.queryCount) * 100) : 0,
+      errorRate: this.queryCount > 0 ? Math.round((this.errorCount / this.queryCount) * 100) : 0,
     };
   }
 

@@ -1,8 +1,6 @@
-import { injectable, inject } from 'tsyringe';
 import { Result, ok, err } from 'neverthrow';
-import type { ILocationHistoryRepository } from '../../../domain/repositories/ILocationHistoryRepository';
-import type { IZoneRepository } from '../../../domain/repositories/IZoneRepository';
-import type { ILogger } from '../../interfaces/ILogger';
+import { injectable, inject } from 'tsyringe';
+
 import {
   GetPathPatternsInput,
   PathPatternsDTO,
@@ -10,6 +8,10 @@ import {
   PathNodeDTO,
   PathSubsequenceDTO,
 } from '../../dto/AnalyticsDTO';
+
+import type { ILocationHistoryRepository } from '../../../domain/repositories/ILocationHistoryRepository';
+import type { IZoneRepository } from '../../../domain/repositories/IZoneRepository';
+import type { ILogger } from '../../interfaces/ILogger';
 
 /**
  * Get Path Patterns Use Case

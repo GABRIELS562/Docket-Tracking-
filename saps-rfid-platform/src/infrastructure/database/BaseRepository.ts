@@ -1,7 +1,9 @@
-import { Result, ok, err } from 'neverthrow';
-import { PoolClient } from 'pg';
+import { ok, err } from 'neverthrow';
+
 import type { PostgresConnection } from './PostgresConnection';
 import type { ILogger } from '../../application/interfaces/ILogger';
+import type { Result } from 'neverthrow';
+import type { PoolClient } from 'pg';
 
 /**
  * Query Building Helper
@@ -83,7 +85,10 @@ export interface PaginatedResult<T> {
  * ```
  */
 export abstract class BaseRepository {
-  constructor(protected db: PostgresConnection, protected logger: ILogger) {}
+  constructor(
+    protected db: PostgresConnection,
+    protected logger: ILogger
+  ) {}
 
   /**
    * Handle database errors consistently
@@ -171,22 +176,17 @@ export abstract class BaseRepository {
 
         // Class 42 - Syntax Error or Access Rule Violation
         case '42P01': // undefined_table
-          return new Error(
-            `Table not found: ${error.message}. ` + `Check your database schema.`
-          );
+          return new Error(`Table not found: ${error.message}. ` + `Check your database schema.`);
 
         case '42703': // undefined_column
-          return new Error(
-            `Column not found: ${error.message}. ` + `Check your query or schema.`
-          );
+          return new Error(`Column not found: ${error.message}. ` + `Check your query or schema.`);
 
         case '42601': // syntax_error
           return new Error(`SQL syntax error: ${error.message}`);
 
         case '42501': // insufficient_privilege
           return new Error(
-            `Permission denied: ${error.message}. ` +
-              `Check database user permissions.`
+            `Permission denied: ${error.message}. ` + `Check database user permissions.`
           );
 
         case '42P07': // duplicate_table
@@ -203,9 +203,7 @@ export abstract class BaseRepository {
           );
 
         case '40P01': // deadlock_detected
-          return new Error(
-            `Deadlock detected: ${error.message}. ` + `Retry the transaction.`
-          );
+          return new Error(`Deadlock detected: ${error.message}. ` + `Retry the transaction.`);
 
         // Class 57 - Operator Intervention
         case '57014': // query_canceled
@@ -216,8 +214,7 @@ export abstract class BaseRepository {
 
         case '57P03': // cannot_connect_now
           return new Error(
-            `Cannot connect to database: ${error.message}. ` +
-              `Database may be starting up.`
+            `Cannot connect to database: ${error.message}. ` + `Database may be starting up.`
           );
 
         // Class 08 - Connection Exception
@@ -236,8 +233,7 @@ export abstract class BaseRepository {
         // Class 53 - Insufficient Resources
         case '53000': // insufficient_resources
           return new Error(
-            `Insufficient resources: ${error.message}. ` +
-              `Database may be overloaded.`
+            `Insufficient resources: ${error.message}. ` + `Database may be overloaded.`
           );
 
         case '53100': // disk_full
@@ -287,10 +283,7 @@ export abstract class BaseRepository {
    * @description
    * Wrapper around db.query() with consistent error handling.
    */
-  protected async executeQuery<T>(
-    sql: string,
-    params?: any[]
-  ): Promise<Result<T[], Error>> {
+  protected async executeQuery<T>(sql: string, params?: any[]): Promise<Result<T[], Error>> {
     const result = await this.db.query<T>(sql, params);
 
     if (result.isErr()) {
@@ -365,10 +358,7 @@ export abstract class BaseRepository {
    * const result = await this.executeQuery(sql, where.params);
    * ```
    */
-  protected buildWhereClause(
-    criteria: Record<string, any>,
-    startIndex: number = 1
-  ): WhereClause {
+  protected buildWhereClause(criteria: Record<string, any>, startIndex: number = 1): WhereClause {
     const conditions: string[] = [];
     const params: any[] = [];
     let paramIndex = startIndex;
@@ -408,11 +398,7 @@ export abstract class BaseRepository {
    * // Returns: { sql: 'item_number LIKE $1', params: ['%INV%'] }
    * ```
    */
-  protected buildLikeClause(
-    field: string,
-    value: string,
-    paramIndex: number
-  ): WhereClause {
+  protected buildLikeClause(field: string, value: string, paramIndex: number): WhereClause {
     return {
       sql: `${field} LIKE $${paramIndex}`,
       params: [`%${value}%`],
@@ -436,11 +422,7 @@ export abstract class BaseRepository {
    * // Returns: { sql: 'status IN ($1, $2)', params: ['active', 'pending'] }
    * ```
    */
-  protected buildInClause(
-    field: string,
-    values: any[],
-    startIndex: number = 1
-  ): WhereClause {
+  protected buildInClause(field: string, values: any[], startIndex: number = 1): WhereClause {
     if (values.length === 0) {
       return { sql: '1=0', params: [] }; // No match
     }
@@ -466,10 +448,7 @@ export abstract class BaseRepository {
    * // Returns: 'ORDER BY created_at DESC'
    * ```
    */
-  protected buildOrderByClause(
-    field: string,
-    direction: 'ASC' | 'DESC' = 'ASC'
-  ): string {
+  protected buildOrderByClause(field: string, direction: 'ASC' | 'DESC' = 'ASC'): string {
     return `ORDER BY ${field} ${direction}`;
   }
 
@@ -528,10 +507,7 @@ export abstract class BaseRepository {
   ): Promise<Result<PaginatedResult<T>, Error>> {
     try {
       // Get total count
-      const countResult = await this.executeQueryOne<{ count: string }>(
-        countSql,
-        params
-      );
+      const countResult = await this.executeQueryOne<{ count: string }>(countSql, params);
 
       if (countResult.isErr()) {
         return err(countResult.error);

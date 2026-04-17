@@ -10,10 +10,6 @@ import { DomainError } from './DomainError';
  */
 export class InvalidItemNumberError extends DomainError {
   constructor(value: string, reason: string) {
-    super(
-      `Invalid item number "${value}": ${reason}`,
-      'INVALID_ITEM_NUMBER',
-      { value, reason }
-    );
+    super(`Invalid item number "${value}": ${reason}`, 'INVALID_ITEM_NUMBER', { value, reason });
   }
 }

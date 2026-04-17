@@ -1,6 +1,5 @@
 import { useRef, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { Docket } from '@/lib/api';
 import { useStore } from '@/store/useStore';

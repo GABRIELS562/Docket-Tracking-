@@ -1,18 +1,19 @@
-import { injectable, inject } from 'tsyringe';
 import { Result, ok, err } from 'neverthrow';
+import { injectable, inject } from 'tsyringe';
+
 import type {
   ILocationHistoryRepository,
   LocationHistoryEntry,
 } from '../../../domain/repositories/ILocationHistoryRepository';
 import type { IReaderRepository } from '../../../domain/repositories/IReaderRepository';
 import type { IZoneRepository } from '../../../domain/repositories/IZoneRepository';
-import type { ILogger } from '../../interfaces/ILogger';
 import type {
   GetReaderAnalyticsInput,
   ReaderAnalyticsDTO,
   AntennaStatsDTO,
   ReaderTimeSeriesDTO,
 } from '../../dto/AnalyticsDTO';
+import type { ILogger } from '../../interfaces/ILogger';
 
 /**
  * Get Reader Analytics Use Case
@@ -36,9 +37,7 @@ export class GetReaderAnalyticsUseCase {
     private logger: ILogger
   ) {}
 
-  async execute(
-    input: GetReaderAnalyticsInput
-  ): Promise<Result<ReaderAnalyticsDTO[], Error>> {
+  async execute(input: GetReaderAnalyticsInput): Promise<Result<ReaderAnalyticsDTO[], Error>> {
     const { tenantId, readerId, startDate, endDate, granularity } = input;
 
     this.logger.info('Getting reader analytics', {
@@ -63,12 +62,14 @@ export class GetReaderAnalyticsUseCase {
         }
         const reader = readerResult.value;
         const zoneName = await this.getZoneName(reader.getZoneId(), tenantId);
-        readers = [{
-          id: reader.getId(),
-          name: reader.getName(),
-          zoneId: reader.getZoneId() || '',
-          zoneName,
-        }];
+        readers = [
+          {
+            id: reader.getId(),
+            name: reader.getName(),
+            zoneId: reader.getZoneId() || '',
+            zoneName,
+          },
+        ];
       } else {
         const readersResult = await this.readerRepo.findAll(tenantId);
         if (readersResult.isErr()) {
@@ -123,9 +124,7 @@ export class GetReaderAnalyticsUseCase {
         readerId,
         error: error instanceof Error ? error.message : String(error),
       });
-      return err(
-        error instanceof Error ? error : new Error('Failed to get reader analytics')
-      );
+      return err(error instanceof Error ? error : new Error('Failed to get reader analytics'));
     }
   }
 
@@ -204,15 +203,14 @@ export class GetReaderAnalyticsUseCase {
     return {
       totalReads: history.length,
       uniqueTags: uniqueTags.size,
-      avgRssi: rssiValues.length > 0
-        ? Math.round(rssiValues.reduce((a, b) => a + b, 0) / rssiValues.length)
-        : 0,
+      avgRssi:
+        rssiValues.length > 0
+          ? Math.round(rssiValues.reduce((a, b) => a + b, 0) / rssiValues.length)
+          : 0,
       minRssi: rssiValues.length > 0 ? Math.min(...rssiValues) : 0,
       maxRssi: rssiValues.length > 0 ? Math.max(...rssiValues) : 0,
       lowConfidenceReads,
-      errorRate: history.length > 0
-        ? Math.round((lowConfidenceReads / history.length) * 100)
-        : 0,
+      errorRate: history.length > 0 ? Math.round((lowConfidenceReads / history.length) * 100) : 0,
     };
   }
 
@@ -249,9 +247,7 @@ export class GetReaderAnalyticsUseCase {
         antennaPort: port,
         readCount: stats.readCount,
         uniqueTags: stats.tags.size,
-        avgRssi: stats.rssiCount > 0
-          ? Math.round(stats.rssiSum / stats.rssiCount)
-          : 0,
+        avgRssi: stats.rssiCount > 0 ? Math.round(stats.rssiSum / stats.rssiCount) : 0,
       });
     }
 
@@ -346,15 +342,12 @@ export class GetReaderAnalyticsUseCase {
     }
 
     // Check for no recent reads
-    const lastRead = history.length > 0
-      ? history.reduce((latest, h) =>
-          h.time > latest.time ? h : latest
-        ).time
-      : null;
+    const lastRead =
+      history.length > 0
+        ? history.reduce((latest, h) => (h.time > latest.time ? h : latest)).time
+        : null;
 
-    const timeSinceLastRead = lastRead
-      ? Date.now() - lastRead.getTime()
-      : Infinity;
+    const timeSinceLastRead = lastRead ? Date.now() - lastRead.getTime() : Infinity;
 
     if (timeSinceLastRead > 30 * 60 * 1000) {
       issues.push('No reads in the last 30 minutes');

@@ -1,8 +1,9 @@
-import { Request, Response, NextFunction } from 'express';
-import { ILogger } from '../../../application/interfaces/ILogger';
 import { DomainError } from '../../../shared/errors/DomainError';
-import { ValidationError } from '../../../shared/errors/ValidationError';
 import { NotFoundError } from '../../../shared/errors/NotFoundError';
+import { ValidationError } from '../../../shared/errors/ValidationError';
+
+import type { ILogger } from '../../../application/interfaces/ILogger';
+import type { Request, Response, NextFunction } from 'express';
 
 /**
  * Global Error Handler middleware
@@ -105,9 +106,7 @@ export const errorHandler = (logger: ILogger) => {
       error: {
         code: 'INTERNAL_SERVER_ERROR',
         message:
-          process.env.NODE_ENV === 'production'
-            ? 'An unexpected error occurred'
-            : err.message,
+          process.env.NODE_ENV === 'production' ? 'An unexpected error occurred' : err.message,
         ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }),
       },
       meta: {

@@ -1,10 +1,11 @@
-import type { Result } from 'neverthrow';
 import { ok, err } from 'neverthrow';
 
-import type { Zone } from '../entities/Zone';
-import type { Reader } from '../entities/Reader';
-import type { TagRead } from '../value-objects/TagRead';
 import { LocationConfidenceCalculator } from './LocationConfidenceCalculator';
+
+import type { Reader } from '../entities/Reader';
+import type { Zone } from '../entities/Zone';
+import type { TagRead } from '../value-objects/TagRead';
+import type { Result } from 'neverthrow';
 
 /**
  * Zone assignment decision result

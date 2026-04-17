@@ -1,4 +1,6 @@
-import { Result, ok, err } from 'neverthrow';
+import { ok, err } from 'neverthrow';
+
+import type { Result } from 'neverthrow';
 
 /**
  * Subscription tiers available for tenants
@@ -219,9 +221,7 @@ export class Tenant {
       contactPhone: props.contactPhone ?? null,
       subscriptionTier: tier,
       subscriptionStatus:
-        tier === SubscriptionTier.TRIAL
-          ? SubscriptionStatus.TRIAL
-          : SubscriptionStatus.ACTIVE,
+        tier === SubscriptionTier.TRIAL ? SubscriptionStatus.TRIAL : SubscriptionStatus.ACTIVE,
       limits: DEFAULT_LIMITS[tier],
       branding: {
         logoUrl: null,

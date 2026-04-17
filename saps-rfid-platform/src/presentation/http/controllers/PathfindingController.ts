@@ -1,6 +1,8 @@
 import { Response, NextFunction } from 'express';
 import { injectable } from 'tsyringe';
+
 import { FindPathUseCase } from '../../../application/use-cases/pathfinding';
+
 import type { AuthenticatedRequest } from '../middleware/authMiddleware';
 
 /**
@@ -14,9 +16,7 @@ import type { AuthenticatedRequest } from '../middleware/authMiddleware';
  */
 @injectable()
 export class PathfindingController {
-  constructor(
-    private readonly findPathUseCase: FindPathUseCase
-  ) {}
+  constructor(private readonly findPathUseCase: FindPathUseCase) {}
 
   /**
    * Find path between two points or zones

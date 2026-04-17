@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { container } from 'tsyringe';
+
 import { ItemController } from '../controllers/ItemController';
 import { validate, validateParams, validateQuery } from '../middleware/requestValidator';
 import {
@@ -22,10 +23,8 @@ const getController = () => container.resolve(ItemController);
  * @access  Public
  * @body    { itemNumber, referenceId, rfidEpc, description, category, serialNumber?, receivedBy?, metadata? }
  */
-router.post(
-  '/',
-  validate(createItemSchema),
-  (req, res, next) => getController().create(req, res, next)
+router.post('/', validate(createItemSchema), (req, res, next) =>
+  getController().create(req, res, next)
 );
 
 /**
@@ -34,10 +33,8 @@ router.post(
  * @access  Public
  * @query   { q?, status?, zoneId?, category?, limit?, offset?, sortBy?, sortOrder? }
  */
-router.get(
-  '/',
-  validateQuery(searchItemsQuerySchema),
-  (req, res, next) => getController().search(req, res, next)
+router.get('/', validateQuery(searchItemsQuerySchema), (req, res, next) =>
+  getController().search(req, res, next)
 );
 
 /**
@@ -46,10 +43,8 @@ router.get(
  * @access  Public
  * @param   itemNumber - Item number (flexible format, e.g., INV-2025-000001)
  */
-router.get(
-  '/:itemNumber',
-  validateParams(itemNumberParamSchema),
-  (req, res, next) => getController().getById(req, res, next)
+router.get('/:itemNumber', validateParams(itemNumberParamSchema), (req, res, next) =>
+  getController().getById(req, res, next)
 );
 
 /**

@@ -1,12 +1,13 @@
+import bcrypt from 'bcrypt';
 import { Result, ok, err } from 'neverthrow';
 import { injectable, inject } from 'tsyringe';
-import bcrypt from 'bcrypt';
 
-import type { ILogger } from '../interfaces/ILogger';
-import type { ITenantRepository } from '../../domain/repositories/ITenantRepository';
-import type { ITenantUserRepository } from '../../domain/repositories/ITenantUserRepository';
 import { Tenant, SubscriptionTier } from '../../domain/entities/Tenant';
 import { TenantUser, UserRole } from '../../domain/entities/TenantUser';
+
+import type { ITenantRepository } from '../../domain/repositories/ITenantRepository';
+import type { ITenantUserRepository } from '../../domain/repositories/ITenantUserRepository';
+import type { ILogger } from '../interfaces/ILogger';
 
 /**
  * Input for provisioning a new tenant
@@ -92,7 +93,10 @@ export class TenantProvisioningService {
     }
 
     // Hash password
-    const passwordHash = await bcrypt.hash(input.ownerPassword, TenantProvisioningService.BCRYPT_ROUNDS);
+    const passwordHash = await bcrypt.hash(
+      input.ownerPassword,
+      TenantProvisioningService.BCRYPT_ROUNDS
+    );
 
     // Create owner user
     const ownerResult = TenantUser.create({
@@ -166,9 +170,7 @@ export class TenantProvisioningService {
     }
 
     if (!tenant.isWithinLimit('maxUsers', userCount.value)) {
-      return err(
-        new Error(`User limit reached (${userCount.value}/${tenant.limits.maxUsers})`)
-      );
+      return err(new Error(`User limit reached (${userCount.value}/${tenant.limits.maxUsers})`));
     }
 
     // Check email uniqueness within tenant
@@ -218,10 +220,7 @@ export class TenantProvisioningService {
   /**
    * Upgrades a tenant's subscription tier
    */
-  async upgradeTenant(
-    tenantId: string,
-    newTier: SubscriptionTier
-  ): Promise<Result<Tenant, Error>> {
+  async upgradeTenant(tenantId: string, newTier: SubscriptionTier): Promise<Result<Tenant, Error>> {
     const tenantResult = await this.tenantRepo.findById(tenantId);
     if (tenantResult.isErr() || !tenantResult.value) {
       return err(new Error('Tenant not found'));
@@ -303,7 +302,7 @@ export class TenantProvisioningService {
    * Validates password against hash
    */
   async validatePassword(password: string, hash: string): Promise<boolean> {
-    return bcrypt.compare(password, hash);
+    return await bcrypt.compare(password, hash);
   }
 
   /**

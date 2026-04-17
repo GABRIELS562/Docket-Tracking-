@@ -122,11 +122,7 @@ export interface PaginatedResponse<T> {
  * @param offset - Offset
  * @returns Pagination metadata object
  */
-export function createPaginationMeta(
-  total: number,
-  limit: number,
-  offset: number
-): PaginationMeta {
+export function createPaginationMeta(total: number, limit: number, offset: number): PaginationMeta {
   const totalPages = Math.ceil(total / limit);
   const page = Math.floor(offset / limit) + 1;
 

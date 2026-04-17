@@ -1,9 +1,11 @@
-import winston from 'winston';
+import fs from 'fs';
+import path from 'path';
+
 import { injectable } from 'tsyringe';
+import winston from 'winston';
+
 import { ILogger } from '../../application/interfaces/ILogger';
 import { getLoggingConfig } from '../../config';
-import path from 'path';
-import fs from 'fs';
 
 /**
  * Winston Logger Implementation

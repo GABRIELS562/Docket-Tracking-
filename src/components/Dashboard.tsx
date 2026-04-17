@@ -9,10 +9,8 @@ interface Props {
 }
 
 export default function Dashboard({ zones, dockets, readers }: Props) {
-  const { isConnected, isDemoMode, docketLimit } = useStore();
+  const { isConnected, isDemoMode } = useStore();
 
-  const totalOccupancy = zones.reduce((sum, z) => sum + z.currentOccupancy, 0);
-  const totalCapacity = zones.reduce((sum, z) => sum + z.capacity, 0);
   const onlineReaders = readers.filter(r => r.status === 'online').length;
   const totalDockets = isDemoMode ? 670 : dockets.length;
 

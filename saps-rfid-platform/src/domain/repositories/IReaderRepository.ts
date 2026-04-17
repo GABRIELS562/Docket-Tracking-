@@ -1,8 +1,7 @@
-import type { Result } from 'neverthrow';
-
 import type { Reader, ReaderStatus } from '../entities/Reader';
-import type { IpAddress } from '../value-objects/IpAddress';
 import type { ReaderNotFoundError } from '../errors/ReaderNotFoundError';
+import type { IpAddress } from '../value-objects/IpAddress';
+import type { Result } from 'neverthrow';
 
 /**
  * Reader health statistics
@@ -227,7 +226,10 @@ export interface IReaderRepository {
    * }
    * ```
    */
-  findByIpAddress(ipAddress: IpAddress, tenantId: string): Promise<Result<Reader, ReaderNotFoundError>>;
+  findByIpAddress(
+    ipAddress: IpAddress,
+    tenantId: string
+  ): Promise<Result<Reader, ReaderNotFoundError>>;
 
   /**
    * Finds all readers for a tenant

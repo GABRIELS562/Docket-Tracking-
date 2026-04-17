@@ -1,8 +1,9 @@
-import { injectable, inject } from 'tsyringe';
 import { Result, ok, err } from 'neverthrow';
+import { injectable, inject } from 'tsyringe';
+
+import type { Zone } from '../../../domain/entities/Zone';
 import type { IZoneRepository } from '../../../domain/repositories/IZoneRepository';
 import type { ILogger } from '../../interfaces/ILogger';
-import type { Zone } from '../../../domain/entities/Zone';
 
 /**
  * Input for getting all zones
@@ -64,7 +65,10 @@ export class GetAllZonesUseCase {
 
   async execute(input: GetAllZonesInput): Promise<Result<ZoneDTO[], Error>> {
     try {
-      this.logger.debug('Getting all zones', { tenantId: input.tenantId, activeOnly: input.activeOnly });
+      this.logger.debug('Getting all zones', {
+        tenantId: input.tenantId,
+        activeOnly: input.activeOnly,
+      });
 
       let zonesResult;
       if (input.activeOnly) {

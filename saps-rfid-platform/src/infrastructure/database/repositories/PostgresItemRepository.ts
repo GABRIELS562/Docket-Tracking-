@@ -1,22 +1,30 @@
-import { injectable, inject } from 'tsyringe';
 import { Result, ok, err } from 'neverthrow';
+import { injectable, inject } from 'tsyringe';
+
+import { Item, ItemStatus } from '../../../domain/entities/Item';
+import { DuplicateEpcError } from '../../../domain/errors/DuplicateEpcError';
+import { DuplicateItemNumberError } from '../../../domain/errors/DuplicateItemNumberError';
+import { ItemNotFoundError } from '../../../domain/errors/ItemNotFoundError';
+import { ItemNumber as ItemNumberVO } from '../../../domain/value-objects/ItemNumber';
+import { ReferenceId as ReferenceIdVO } from '../../../domain/value-objects/ReferenceId';
+import { RfidEpc as RfidEpcVO } from '../../../domain/value-objects/RfidEpc';
+import { BaseRepository } from '../BaseRepository';
+
+import type { ILogger } from '../../../application/interfaces/ILogger';
 import type {
   IItemRepository,
   ItemSearchCriteria,
   ItemSearchResult,
 } from '../../../domain/repositories/IItemRepository';
-import { Item, ItemStatus } from '../../../domain/entities/Item';
+
+
 import type { ItemNumber } from '../../../domain/value-objects/ItemNumber';
-import { ItemNumber as ItemNumberVO } from '../../../domain/value-objects/ItemNumber';
+
+
 import type { RfidEpc } from '../../../domain/value-objects/RfidEpc';
-import { RfidEpc as RfidEpcVO } from '../../../domain/value-objects/RfidEpc';
-import { ReferenceId as ReferenceIdVO } from '../../../domain/value-objects/ReferenceId';
-import { ItemNotFoundError } from '../../../domain/errors/ItemNotFoundError';
-import { DuplicateItemNumberError } from '../../../domain/errors/DuplicateItemNumberError';
-import { DuplicateEpcError } from '../../../domain/errors/DuplicateEpcError';
-import { BaseRepository } from '../BaseRepository';
+
+
 import type { PostgresConnection } from '../PostgresConnection';
-import type { ILogger } from '../../../application/interfaces/ILogger';
 
 /**
  * Database row interface
@@ -223,7 +231,10 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
    * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing item or ItemNotFoundError
    */
-  async findByItemNumber(itemNumber: ItemNumber, tenantId: string): Promise<Result<Item, ItemNotFoundError>> {
+  async findByItemNumber(
+    itemNumber: ItemNumber,
+    tenantId: string
+  ): Promise<Result<Item, ItemNotFoundError>> {
     const sql = `
       SELECT * FROM items
       WHERE item_number = $1 AND tenant_id = $2
@@ -310,7 +321,7 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
       }
 
       // Status filter
-      if (criteria.status) {
+      if (criteria.status != null) {
         conditions.push(`status = $${paramIndex}`);
         params.push(criteria.status);
         paramIndex++;
@@ -395,11 +406,7 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
 
-      const dataResult = await this.executeQuery<ItemRow>(dataSql, [
-        ...params,
-        limit,
-        offset,
-      ]);
+      const dataResult = await this.executeQuery<ItemRow>(dataSql, [...params, limit, offset]);
 
       if (dataResult.isErr()) {
         return err(dataResult.error);
@@ -476,7 +483,11 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
    * @param limit - Maximum number of results (default: 10)
    * @returns Result containing array of recently seen items
    */
-  async findRecentByZone(zoneId: string, tenantId: string, limit: number = 10): Promise<Result<Item[], Error>> {
+  async findRecentByZone(
+    zoneId: string,
+    tenantId: string,
+    limit: number = 10
+  ): Promise<Result<Item[], Error>> {
     const sql = `
       SELECT * FROM items
       WHERE current_zone_id = $1
@@ -746,14 +757,20 @@ export class PostgresItemRepository extends BaseRepository implements IItemRepos
    * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing boolean (true if exists)
    */
-  async existsByItemNumber(itemNumber: ItemNumber, tenantId: string): Promise<Result<boolean, Error>> {
+  async existsByItemNumber(
+    itemNumber: ItemNumber,
+    tenantId: string
+  ): Promise<Result<boolean, Error>> {
     const sql = `
       SELECT EXISTS(
         SELECT 1 FROM items WHERE item_number = $1 AND tenant_id = $2
       ) as exists
     `;
 
-    const result = await this.executeQueryOne<{ exists: boolean }>(sql, [itemNumber.getValue(), tenantId]);
+    const result = await this.executeQueryOne<{ exists: boolean }>(sql, [
+      itemNumber.getValue(),
+      tenantId,
+    ]);
 
     if (result.isErr()) {
       return err(result.error);

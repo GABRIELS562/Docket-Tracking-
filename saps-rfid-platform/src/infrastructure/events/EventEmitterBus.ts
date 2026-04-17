@@ -1,8 +1,10 @@
 import { EventEmitter } from 'events';
+
 import { injectable, inject } from 'tsyringe';
+
 import { IEventBus } from '../../application/interfaces/IEventBus';
-import { DomainEvent } from '../../domain/events/DomainEvent';
 import { ILogger } from '../../application/interfaces/ILogger';
+import { DomainEvent } from '../../domain/events/DomainEvent';
 
 /**
  * Event Bus Implementation using Node.js EventEmitter

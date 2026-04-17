@@ -1,7 +1,7 @@
-import type { Result } from 'neverthrow';
 import { ok, err } from 'neverthrow';
 
 import type { RfidEpc } from './RfidEpc';
+import type { Result } from 'neverthrow';
 
 /**
  * Value Object representing a single RFID tag read event

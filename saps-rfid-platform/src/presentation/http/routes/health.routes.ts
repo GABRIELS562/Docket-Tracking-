@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { container } from 'tsyringe';
+
 import { HealthController } from '../controllers/HealthController';
 
 const router = Router();

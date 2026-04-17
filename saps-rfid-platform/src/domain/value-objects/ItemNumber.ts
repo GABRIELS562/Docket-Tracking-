@@ -1,7 +1,8 @@
-import type { Result } from 'neverthrow';
 import { ok, err } from 'neverthrow';
 
 import { InvalidItemNumberError } from '../errors/InvalidItemNumberError';
+
+import type { Result } from 'neverthrow';
 
 /**
  * Value Object representing an inventory item number

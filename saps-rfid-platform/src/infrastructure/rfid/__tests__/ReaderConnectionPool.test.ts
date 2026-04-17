@@ -1,4 +1,3 @@
-
 import { ReaderConnectionPool } from '../ReaderConnectionPool';
 import type { IReaderConnection } from '../ReaderConnection';
 import type { Reader } from '../../../domain/entities/Reader';
@@ -70,9 +69,7 @@ describe('ReaderConnectionPool', () => {
       expect(pool.isEmpty()).toBe(true);
       expect(pool.getAll()).toHaveLength(0);
 
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'ReaderConnectionPool initialized'
-      );
+      expect(mockLogger.info).toHaveBeenCalledWith('ReaderConnectionPool initialized');
     });
 
     it('should have zero statistics initially', () => {
@@ -117,11 +114,7 @@ describe('ReaderConnectionPool', () => {
       pool.add(createMockConnection(reader3));
 
       expect(pool.size()).toBe(3);
-      expect(pool.getAllReaderIds()).toEqual([
-        'reader-001',
-        'reader-002',
-        'reader-003',
-      ]);
+      expect(pool.getAllReaderIds()).toEqual(['reader-001', 'reader-002', 'reader-003']);
     });
 
     it('should replace existing connection', () => {
@@ -184,9 +177,7 @@ describe('ReaderConnectionPool', () => {
     it('should handle disconnect errors gracefully', () => {
       const reader = createMockReader('reader-001', 'Reader 1');
       const connection = createMockConnection(reader);
-      (connection.disconnect as any).mockRejectedValue(
-        new Error('Disconnect failed')
-      );
+      (connection.disconnect as any).mockRejectedValue(new Error('Disconnect failed'));
 
       pool.add(connection);
       pool.remove('reader-001');
@@ -228,10 +219,7 @@ describe('ReaderConnectionPool', () => {
       const connections = pool.getAll();
 
       expect(connections).toHaveLength(2);
-      expect(connections.map((c) => c.getReaderId())).toEqual([
-        'reader-001',
-        'reader-002',
-      ]);
+      expect(connections.map((c) => c.getReaderId())).toEqual(['reader-001', 'reader-002']);
     });
 
     it('should get all reader IDs', () => {
@@ -435,9 +423,7 @@ describe('ReaderConnectionPool', () => {
     it('should handle empty pool gracefully', async () => {
       await pool.disconnectAll();
 
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'No connections to disconnect'
-      );
+      expect(mockLogger.info).toHaveBeenCalledWith('No connections to disconnect');
     });
 
     it('should handle disconnect failures gracefully', async () => {
@@ -448,9 +434,7 @@ describe('ReaderConnectionPool', () => {
       const conn2 = createMockConnection(reader2);
 
       // Make conn1 fail on disconnect
-      (conn1.disconnect as any).mockRejectedValue(
-        new Error('Disconnect failed')
-      );
+      (conn1.disconnect as any).mockRejectedValue(new Error('Disconnect failed'));
 
       pool.add(conn1);
       pool.add(conn2);

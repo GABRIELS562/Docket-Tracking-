@@ -198,9 +198,7 @@ describe('TagProcessor', () => {
       const result = await processor.process(message);
 
       expect(result.isOk()).toBe(true);
-      expect(result._unsafeUnwrap()[0].epc).toBe(
-        epcBuffer.toString('hex').toUpperCase()
-      );
+      expect(result._unsafeUnwrap()[0].epc).toBe(epcBuffer.toString('hex').toUpperCase());
     });
 
     it('should handle string EPC data', async () => {
@@ -491,9 +489,7 @@ describe('TagProcessor', () => {
       const result = await processor.process(message);
 
       expect(result.isErr()).toBe(true);
-      expect(result._unsafeUnwrapErr().message).toContain(
-        'Invalid message type'
-      );
+      expect(result._unsafeUnwrapErr().message).toContain('Invalid message type');
     });
 
     it('should reject messages without type', async () => {
@@ -530,9 +526,7 @@ describe('TagProcessor', () => {
       const result = await processor.process(message);
 
       expect(result.isErr()).toBe(true);
-      expect(result._unsafeUnwrapErr().message).toContain(
-        'missing tagReportData'
-      );
+      expect(result._unsafeUnwrapErr().message).toContain('missing tagReportData');
     });
 
     it('should handle non-array tagReportData', async () => {
@@ -544,9 +538,7 @@ describe('TagProcessor', () => {
       const result = await processor.process(message);
 
       expect(result.isErr()).toBe(true);
-      expect(result._unsafeUnwrapErr().message).toContain(
-        'tagReportData is not an array'
-      );
+      expect(result._unsafeUnwrapErr().message).toContain('tagReportData is not an array');
     });
 
     it('should handle empty tagReportData array', async () => {
@@ -648,9 +640,7 @@ describe('TagProcessor', () => {
 
       const message2 = {
         type: 'RO_ACCESS_REPORT',
-        tagReportData: [
-          { epcData: 'TAG3', peakRSSI: -60, antennaID: 1 },
-        ],
+        tagReportData: [{ epcData: 'TAG3', peakRSSI: -60, antennaID: 1 }],
       };
 
       await processor.process(message1);
@@ -663,9 +653,7 @@ describe('TagProcessor', () => {
     it('should track average processing time', async () => {
       const message = {
         type: 'RO_ACCESS_REPORT',
-        tagReportData: [
-          { epcData: 'TAG1', peakRSSI: -50, antennaID: 1 },
-        ],
+        tagReportData: [{ epcData: 'TAG1', peakRSSI: -50, antennaID: 1 }],
       };
 
       await processor.process(message);
@@ -678,9 +666,7 @@ describe('TagProcessor', () => {
     it('should allow statistics reset', async () => {
       const message = {
         type: 'RO_ACCESS_REPORT',
-        tagReportData: [
-          { epcData: 'TAG1', peakRSSI: -50, antennaID: 1 },
-        ],
+        tagReportData: [{ epcData: 'TAG1', peakRSSI: -50, antennaID: 1 }],
       };
 
       await processor.process(message);
@@ -766,11 +752,7 @@ describe('TagProcessor', () => {
       const tagReads = result._unsafeUnwrap();
 
       expect(tagReads).toHaveLength(3);
-      expect(tagReads.map((r) => r.epc)).toEqual([
-        'VALID_TAG_1',
-        'VALID_TAG_2',
-        'VALID_TAG_3',
-      ]);
+      expect(tagReads.map((r) => r.epc)).toEqual(['VALID_TAG_1', 'VALID_TAG_2', 'VALID_TAG_3']);
     });
 
     it('should handle very long EPC strings', async () => {
