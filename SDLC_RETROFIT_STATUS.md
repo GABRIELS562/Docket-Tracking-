@@ -4,7 +4,7 @@
 **Branch:** `chore/sdlc-retrofit`
 **Owner:** Jaime
 **Methodology:** GitHub Spec Kit (Spec-Driven Development) + GitHub Actions CI/CD
-**Last updated:** 2026-04-17 (Phase 3 complete, Phase 4 next)
+**Last updated:** 2026-04-17 (Phase 4 complete, Phase 5 next)
 
 ---
 
@@ -28,17 +28,20 @@ This file tracks the retrofit of comprehensive SDLC rigor onto the existing code
 Mark each phase as ⬜ Not started, 🟡 In progress, or ✅ Done. Add notes on deviations or follow-ups.
 
 ### ✅ Phase 1 — Safety Net
+
 - [x] `git status` clean
 - [x] Branch `chore/sdlc-retrofit` created and pushed
 - [x] Status tracker committed
 - **Notes:** Flattened repo structure first (moved files from nested Docket-Tracking-/ to root). Branch chore/flatten-structure merged to main before creating sdlc-retrofit branch.
 
 ### ✅ Phase 2 — Install Spec Kit
+
 - [x] `specify init . --here --ai claude` run
 - [x] `.specify/` and `.claude/` committed
 - **Notes:** Spec Kit installed successfully. `.claude/` already in .gitignore for security. Skills installed to `.claude/skills/`.
 
 ### ✅ Phase 3 — Constitution
+
 - [x] `.specify/memory/constitution.md` drafted
 - [x] Reviewed and approved
 - [x] Committed
@@ -50,16 +53,18 @@ Mark each phase as ⬜ Not started, 🟡 In progress, or ✅ Done. Add notes on 
   - Updated type interfaces in `api.ts` and `ReaderActivityChart.tsx` to include `'connecting'` reader status
   - Fixed unused variable warnings throughout frontend
 
-### ⬜ Phase 4 — Code Quality Tooling
-- [ ] Husky + lint-staged installed
-- [ ] Commitlint configured
-- [ ] Prettier configured
-- [ ] ESLint verified (or initialized if missing)
-- [ ] Pre-commit and commit-msg hooks executable
-- [ ] Test commit succeeds with hooks running
-- **Notes:**
+### ✅ Phase 4 — Code Quality Tooling
+
+- [x] Husky + lint-staged installed
+- [x] Commitlint configured (commitlint.config.cjs with Conventional Commits)
+- [x] Prettier configured (.prettierrc, .prettierignore)
+- [x] ESLint configured (eslint.config.js for TypeScript/React)
+- [x] Pre-commit and commit-msg hooks executable
+- [x] Test commit succeeds with hooks running
+- **Notes:** Used .cjs extension for commitlint config due to package.json "type": "module". Added npm scripts: lint, lint:fix, format, format:check, typecheck.
 
 ### ⬜ Phase 5 — GitHub Actions CI
+
 - [ ] `.github/workflows/ci.yml` (quality + security + docker jobs)
 - [ ] `.github/workflows/codeql.yml`
 - [ ] `.github/dependabot.yml`
@@ -67,12 +72,14 @@ Mark each phase as ⬜ Not started, 🟡 In progress, or ✅ Done. Add notes on 
 - **Notes:**
 
 ### ⬜ Phase 6 — Observability Baseline
+
 - [ ] Pino installed
 - [ ] Logger module created
 - [ ] `console.log` sweep-replace NOT done (tracked as ongoing retrofit task)
 - **Notes:**
 
 ### ⬜ Phase 7 — Push & GitHub Config (manual, by Jaime)
+
 - [ ] Branch pushed
 - [ ] Branch protection on `main` configured
 - [ ] Dependabot alerts + security updates enabled
@@ -81,6 +88,7 @@ Mark each phase as ⬜ Not started, 🟡 In progress, or ✅ Done. Add notes on 
 - **Notes:**
 
 ### ⬜ Phase 8 — Retroactive Spec
+
 - [ ] `/speckit.specify` — existing system documented
 - [ ] `/speckit.clarify` — ambiguities resolved
 - [ ] `/speckit.plan` — Constitution Check produced retrofit backlog
@@ -89,6 +97,7 @@ Mark each phase as ⬜ Not started, 🟡 In progress, or ✅ Done. Add notes on 
 - **Notes:**
 
 ### ⬜ Phase 9 — Final Review & Merge
+
 - [ ] Branch pushed
 - [ ] PR opened `chore/sdlc-retrofit` → `main`
 - [ ] CI green
@@ -110,13 +119,13 @@ The Constitution Check in `/speckit.plan` will list every place the existing cod
 
 Record any deviations from the master prompt, trade-offs made, or choices that need revisiting.
 
-| Date | Decision | Rationale |
-|------|----------|-----------|
-| 2026-04-17 | Flattened repo structure before SDLC retrofit | Original repo had files nested in Docket-Tracking-/ subfolder, causing git tracking issues. Flattened to have files at repo root for cleaner structure. |
-| 2026-04-17 | Merged flatten branch to main before creating sdlc-retrofit | Ensures sdlc-retrofit branch starts from a clean, properly-structured main branch. |
-| 2026-04-17 | Keep Winston instead of Pino for logging | Prompt specified Pino, but Winston already implemented with proper JSON formatting. Migration cost not justified. |
-| 2026-04-17 | Deleted PostgresDocketRepository.ts | File referenced non-existent Docket domain entities. PostgresItemRepository.ts already exists with correct Item-based implementation. |
-| 2026-04-17 | Added 'connecting' status to Reader types | Frontend and backend types now include 'connecting' as valid reader status for consistency. |
+| Date       | Decision                                                    | Rationale                                                                                                                                               |
+| ---------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-04-17 | Flattened repo structure before SDLC retrofit               | Original repo had files nested in Docket-Tracking-/ subfolder, causing git tracking issues. Flattened to have files at repo root for cleaner structure. |
+| 2026-04-17 | Merged flatten branch to main before creating sdlc-retrofit | Ensures sdlc-retrofit branch starts from a clean, properly-structured main branch.                                                                      |
+| 2026-04-17 | Keep Winston instead of Pino for logging                    | Prompt specified Pino, but Winston already implemented with proper JSON formatting. Migration cost not justified.                                       |
+| 2026-04-17 | Deleted PostgresDocketRepository.ts                         | File referenced non-existent Docket domain entities. PostgresItemRepository.ts already exists with correct Item-based implementation.                   |
+| 2026-04-17 | Added 'connecting' status to Reader types                   | Frontend and backend types now include 'connecting' as valid reader status for consistency.                                                             |
 
 ---
 
