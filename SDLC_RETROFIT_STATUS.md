@@ -135,6 +135,7 @@ Record any deviations from the master prompt, trade-offs made, or choices that n
 Things flagged during retrofit that we're consciously deferring, not forgetting.
 
 - [ ] Structured logging: `console.log` calls throughout the codebase still need to be migrated to Winston logger. Do opportunistically as files are touched.
+- [ ] **Backend tests: 160 of 643 tests failing** - Test suite disabled in CI until fixed. Tests need database mocking/setup fixes.
 - [ ] Create `specs/` directory structure (referenced in constitution but doesn't exist yet)
 - [ ] Create `specs/rfid/` with LLRP protocol documentation
 - [ ] Create `docs/adr/` for Architecture Decision Records
