@@ -18,6 +18,7 @@ export default [
         },
       },
       globals: {
+        // Browser globals
         window: 'readonly',
         document: 'readonly',
         console: 'readonly',
@@ -26,6 +27,14 @@ export default [
         setInterval: 'readonly',
         clearInterval: 'readonly',
         fetch: 'readonly',
+        navigator: 'readonly',
+        localStorage: 'readonly',
+        sessionStorage: 'readonly',
+        history: 'readonly',
+        location: 'readonly',
+        performance: 'readonly',
+        crypto: 'readonly',
+        // URL/Network
         URLSearchParams: 'readonly',
         URL: 'readonly',
         RequestInit: 'readonly',
@@ -33,27 +42,36 @@ export default [
         Blob: 'readonly',
         File: 'readonly',
         FileReader: 'readonly',
+        WebSocket: 'readonly',
+        Worker: 'readonly',
+        // DOM Elements
         HTMLElement: 'readonly',
         HTMLDivElement: 'readonly',
         HTMLInputElement: 'readonly',
         HTMLButtonElement: 'readonly',
+        HTMLCanvasElement: 'readonly',
+        HTMLImageElement: 'readonly',
+        HTMLAudioElement: 'readonly',
+        // Canvas/Graphics
+        CanvasRenderingContext2D: 'readonly',
+        Image: 'readonly',
+        // Audio
+        Audio: 'readonly',
+        AudioContext: 'readonly',
+        // Events
         MouseEvent: 'readonly',
         KeyboardEvent: 'readonly',
         Event: 'readonly',
         EventTarget: 'readonly',
-        WebSocket: 'readonly',
-        Worker: 'readonly',
-        navigator: 'readonly',
-        localStorage: 'readonly',
-        sessionStorage: 'readonly',
-        history: 'readonly',
-        location: 'readonly',
-        performance: 'readonly',
-        requestAnimationFrame: 'readonly',
-        cancelAnimationFrame: 'readonly',
+        // Observers
         ResizeObserver: 'readonly',
         IntersectionObserver: 'readonly',
         MutationObserver: 'readonly',
+        // Animation
+        requestAnimationFrame: 'readonly',
+        cancelAnimationFrame: 'readonly',
+        // React (for JSX)
+        React: 'readonly',
       },
     },
     plugins: {

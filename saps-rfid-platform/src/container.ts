@@ -70,8 +70,8 @@ import {
 // Application Services - Tenants
 import { TenantProvisioningService } from './application/services/TenantProvisioningService';
 import { config } from './config';
-import { IReaderRepository } from './domain/repositories/IReaderRepository';
-import { IZoneRepository } from './domain/repositories/IZoneRepository';
+import type { IReaderRepository } from './domain/repositories/IReaderRepository';
+import type { IZoneRepository } from './domain/repositories/IZoneRepository';
 
 // Presentation - Middleware
 

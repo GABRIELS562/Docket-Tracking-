@@ -17,12 +17,9 @@ import type {
   ItemSearchResult,
 } from '../../../domain/repositories/IItemRepository';
 
-
 import type { ItemNumber } from '../../../domain/value-objects/ItemNumber';
 
-
 import type { RfidEpc } from '../../../domain/value-objects/RfidEpc';
-
 
 import type { PostgresConnection } from '../PostgresConnection';
 
