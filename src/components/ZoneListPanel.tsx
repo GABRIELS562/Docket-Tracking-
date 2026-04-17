@@ -60,17 +60,10 @@ export default function ZoneListPanel({ zones, isOpen, onClose }: Props) {
                   {/* Zone Header */}
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: color }}
-                      />
-                      <span className="font-medium text-white text-sm">
-                        {zone.zoneName}
-                      </span>
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
+                      <span className="font-medium text-white text-sm">{zone.zoneName}</span>
                     </div>
-                    {isOverCapacity && (
-                      <AlertTriangle className="w-4 h-4 text-red-400" />
-                    )}
+                    {isOverCapacity && <AlertTriangle className="w-4 h-4 text-red-400" />}
                   </div>
 
                   {/* Zone Type */}

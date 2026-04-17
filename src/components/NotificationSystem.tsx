@@ -1,13 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  CheckCircle,
-  AlertTriangle,
-  XCircle,
-  Info,
-  X,
-  Bell,
-  BellOff
-} from 'lucide-react';
+import { CheckCircle, AlertTriangle, XCircle, Info, X, Bell, BellOff } from 'lucide-react';
 import { Notification, NotificationType } from '@/hooks/useNotifications';
 
 interface NotificationSystemProps {
@@ -85,15 +77,11 @@ function NotificationToast({ notification, onRemove }: NotificationToastProps) {
         <div className="p-4">
           <div className="flex items-start gap-3">
             {/* Icon */}
-            <div className={`flex-shrink-0 ${config.iconColor}`}>
-              {config.icon}
-            </div>
+            <div className={`flex-shrink-0 ${config.iconColor}`}>{config.icon}</div>
 
             {/* Content */}
             <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-semibold text-white mb-1">
-                {notification.title}
-              </h4>
+              <h4 className="text-sm font-semibold text-white mb-1">{notification.title}</h4>
               <p className="text-sm text-gray-300">{notification.message}</p>
 
               {/* Metadata */}

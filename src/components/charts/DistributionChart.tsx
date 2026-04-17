@@ -10,14 +10,21 @@ interface Props {
   data: ZoneDistribution[];
 }
 
-const COLORS = ['#3b82f6', '#a78bfa', '#fcd34d', '#fb923c', '#ef4444', '#10b981', '#8b5cf6', '#6b7280'];
+const COLORS = [
+  '#3b82f6',
+  '#a78bfa',
+  '#fcd34d',
+  '#fb923c',
+  '#ef4444',
+  '#10b981',
+  '#8b5cf6',
+  '#6b7280',
+];
 
 export default function DistributionChart({ data }: Props) {
   if (!data || data.length === 0) {
     return (
-      <div className="h-80 flex items-center justify-center text-gray-500">
-        No data available
-      </div>
+      <div className="h-80 flex items-center justify-center text-gray-500">No data available</div>
     );
   }
 

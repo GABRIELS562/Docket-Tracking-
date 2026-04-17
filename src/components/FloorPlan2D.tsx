@@ -8,7 +8,10 @@ interface FloorPlan2DProps {
 }
 
 // Zone positions in 2D canvas coordinates - FSL-PAROW First Floor ACTUAL Layout
-const ZONE_2D_POSITIONS: Record<number, { x: number; y: number; width: number; height: number; label: string }> = {
+const ZONE_2D_POSITIONS: Record<
+  number,
+  { x: number; y: number; width: number; height: number; label: string }
+> = {
   // FAR LEFT - Large Office Accommodation
   1: { x: 120, y: 384, width: 140, height: 240, label: 'Office Accommodation' },
 
@@ -116,11 +119,7 @@ export default function FloorPlan2D({ zones, dockets }: FloorPlan2DProps) {
       // Occupancy info
       ctx.font = '9px Inter, sans-serif';
       ctx.fillStyle = '#9ca3af';
-      ctx.fillText(
-        `${zone.currentOccupancy}/${zone.capacity}`,
-        pos.x,
-        pos.y + 10
-      );
+      ctx.fillText(`${zone.currentOccupancy}/${zone.capacity}`, pos.x, pos.y + 10);
 
       // Occupancy bar
       const barWidth = Math.min(pos.width * 0.8, 90);
@@ -208,12 +207,7 @@ export default function FloorPlan2D({ zones, dockets }: FloorPlan2DProps) {
       const rectX = pos.x - pos.width / 2;
       const rectY = pos.y - pos.height / 2;
 
-      if (
-        x >= rectX &&
-        x <= rectX + pos.width &&
-        y >= rectY &&
-        y <= rectY + pos.height
-      ) {
+      if (x >= rectX && x <= rectX + pos.width && y >= rectY && y <= rectY + pos.height) {
         setSelectedZone(zone.zoneId);
         return;
       }

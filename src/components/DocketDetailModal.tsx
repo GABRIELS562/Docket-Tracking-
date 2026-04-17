@@ -92,9 +92,7 @@ export default function DocketDetailModal({ docket, isOpen, onClose }: Props) {
                   <Package className="w-8 h-8 text-blue-400" />
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-2xl font-bold text-white mb-2">
-                    {docket.labNumber}
-                  </h2>
+                  <h2 className="text-2xl font-bold text-white mb-2">{docket.labNumber}</h2>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-medium border ${
@@ -165,9 +163,7 @@ export default function DocketDetailModal({ docket, isOpen, onClose }: Props) {
                     icon={<AlertCircle className="w-4 h-4" />}
                     label="RFID EPC"
                     value={
-                      <code className="text-xs font-mono text-blue-400">
-                        {docket.rfidEpc}
-                      </code>
+                      <code className="text-xs font-mono text-blue-400">{docket.rfidEpc}</code>
                     }
                   />
                 </div>
@@ -196,9 +192,7 @@ export default function DocketDetailModal({ docket, isOpen, onClose }: Props) {
 
                         <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
                           <div className="flex items-center justify-between mb-2">
-                            <span className="font-medium text-white">
-                              {location.zoneName}
-                            </span>
+                            <span className="font-medium text-white">{location.zoneName}</span>
                             <span className="text-xs text-gray-500">
                               {formatRelativeTime(location.timestamp)}
                             </span>

@@ -1,13 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  CheckCircle,
-  AlertTriangle,
-  XCircle,
-  Info,
-  X,
-  Trash2,
-  Clock
-} from 'lucide-react';
+import { CheckCircle, AlertTriangle, XCircle, Info, X, Trash2, Clock } from 'lucide-react';
 import { Notification, NotificationType } from '@/hooks/useNotifications';
 import { formatRelativeTime } from '@/lib/utils';
 
@@ -51,9 +43,7 @@ export default function NotificationHistory({
             <div className="flex items-center justify-between p-4 border-b border-gray-700">
               <div className="flex items-center gap-2">
                 <Clock className="w-5 h-5 text-blue-400" />
-                <h2 className="text-lg font-bold text-white">
-                  Notification History
-                </h2>
+                <h2 className="text-lg font-bold text-white">Notification History</h2>
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -75,11 +65,7 @@ export default function NotificationHistory({
             {/* Stats */}
             <div className="p-4 bg-gray-800/50 border-b border-gray-700">
               <div className="grid grid-cols-4 gap-2 text-center">
-                <StatCard
-                  label="Total"
-                  value={history.length}
-                  color="text-gray-400"
-                />
+                <StatCard label="Total" value={history.length} color="text-gray-400" />
                 <StatCard
                   label="Success"
                   value={history.filter((n) => n.type === 'success').length}
@@ -156,16 +142,12 @@ function HistoryItem({ notification, onMarkAsRead }: HistoryItemProps) {
     >
       <div className="flex items-start gap-3">
         {/* Icon */}
-        <div className={`flex-shrink-0 ${config.iconColor}`}>
-          {config.icon}
-        </div>
+        <div className={`flex-shrink-0 ${config.iconColor}`}>{config.icon}</div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <h4 className="text-sm font-semibold text-white">
-              {notification.title}
-            </h4>
+            <h4 className="text-sm font-semibold text-white">{notification.title}</h4>
             {!notification.read && (
               <span className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1" />
             )}
@@ -185,9 +167,7 @@ function HistoryItem({ notification, onMarkAsRead }: HistoryItemProps) {
           )}
 
           {/* Timestamp */}
-          <p className="text-xs text-gray-600 mt-2">
-            {formatRelativeTime(notification.timestamp)}
-          </p>
+          <p className="text-xs text-gray-600 mt-2">{formatRelativeTime(notification.timestamp)}</p>
         </div>
       </div>
     </motion.div>

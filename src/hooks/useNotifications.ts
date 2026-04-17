@@ -26,44 +26,42 @@ export function useNotifications() {
     audioRef.current.volume = 0.3;
   }, []);
 
-  const playSound = useCallback((type: NotificationType) => {
-    if (!soundEnabled || !audioRef.current) return;
+  const playSound = useCallback(
+    (type: NotificationType) => {
+      if (!soundEnabled || !audioRef.current) return;
 
-    // Use different frequencies for different notification types
-    const frequencies: Record<NotificationType, number> = {
-      success: 800,
-      info: 600,
-      warning: 500,
-      error: 400,
-    };
+      // Use different frequencies for different notification types
+      const frequencies: Record<NotificationType, number> = {
+        success: 800,
+        info: 600,
+        warning: 500,
+        error: 400,
+      };
 
-    const frequency = frequencies[type];
+      const frequency = frequencies[type];
 
-    // Generate beep using Web Audio API
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
+      // Generate beep using Web Audio API
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
 
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
 
-    oscillator.frequency.value = frequency;
-    oscillator.type = 'sine';
+      oscillator.frequency.value = frequency;
+      oscillator.type = 'sine';
 
-    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
 
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.2);
-  }, [soundEnabled]);
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.2);
+    },
+    [soundEnabled]
+  );
 
   const addNotification = useCallback(
-    (
-      type: NotificationType,
-      title: string,
-      message: string,
-      metadata?: Record<string, any>
-    ) => {
+    (type: NotificationType, title: string, message: string, metadata?: Record<string, any>) => {
       const notification: Notification = {
         id: `${Date.now()}-${Math.random()}`,
         type,
@@ -101,9 +99,7 @@ export function useNotifications() {
   }, []);
 
   const markAsRead = useCallback((id: string) => {
-    setHistory((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
+    setHistory((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
   }, []);
 
   const clearHistory = useCallback(() => {

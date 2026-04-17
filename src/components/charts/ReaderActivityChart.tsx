@@ -1,4 +1,13 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+} from 'recharts';
 
 interface ReaderActivity {
   readerId: string;
@@ -13,9 +22,7 @@ interface Props {
 export default function ReaderActivityChart({ data }: Props) {
   if (!data || data.length === 0) {
     return (
-      <div className="h-80 flex items-center justify-center text-gray-500">
-        No data available
-      </div>
+      <div className="h-80 flex items-center justify-center text-gray-500">No data available</div>
     );
   }
 

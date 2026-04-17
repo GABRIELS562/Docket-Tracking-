@@ -1,4 +1,13 @@
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
 
 interface OccupancyData {
   timestamp: string;
@@ -17,15 +26,13 @@ const ZONE_COLORS: Record<string, string> = {
   'Ballistics Lab': '#ef4444',
   'Security Hub': '#10b981',
   'Main Entrance': '#8b5cf6',
-  'Auditorium': '#6b7280',
+  Auditorium: '#6b7280',
 };
 
 export default function OccupancyChart({ data }: Props) {
   if (!data || data.length === 0) {
     return (
-      <div className="h-80 flex items-center justify-center text-gray-500">
-        No data available
-      </div>
+      <div className="h-80 flex items-center justify-center text-gray-500">No data available</div>
     );
   }
 

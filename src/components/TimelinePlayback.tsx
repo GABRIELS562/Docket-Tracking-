@@ -88,7 +88,15 @@ export default function TimelinePlayback() {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [isPlaying, playbackTime, playbackSpeed, endTime, setPlaybackTime, setIsPlaying, isPlaybackMode]);
+  }, [
+    isPlaying,
+    playbackTime,
+    playbackSpeed,
+    endTime,
+    setPlaybackTime,
+    setIsPlaying,
+    isPlaybackMode,
+  ]);
 
   // Handle slider drag
   const handleSliderClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -266,9 +274,7 @@ export default function TimelinePlayback() {
 
           {/* Status indicators */}
           <div className="mt-4 pt-4 border-t border-gray-800 flex items-center justify-between text-xs">
-            <div className="text-gray-500">
-              Viewing historical data from the past 24 hours
-            </div>
+            <div className="text-gray-500">Viewing historical data from the past 24 hours</div>
             <div className="flex items-center gap-2">
               {isPlaying && (
                 <span className="flex items-center gap-2 text-green-400">
@@ -279,9 +285,7 @@ export default function TimelinePlayback() {
               {!isPlaying && playbackTime < endTime && (
                 <span className="text-yellow-400">Paused</span>
               )}
-              {playbackTime >= endTime && (
-                <span className="text-gray-400">End of timeline</span>
-              )}
+              {playbackTime >= endTime && <span className="text-gray-400">End of timeline</span>}
             </div>
           </div>
         </div>

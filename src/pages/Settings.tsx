@@ -56,8 +56,13 @@ export default function Settings() {
                 ℹ️ About Demo Mode
               </h4>
               <ul className="text-sm text-blue-800 dark:text-blue-400 space-y-1">
-                <li>• <strong>Demo Mode:</strong> Perfect for testing and demonstrations without a backend</li>
-                <li>• <strong>Live Mode:</strong> Connects to your backend API and WebSocket server</li>
+                <li>
+                  • <strong>Demo Mode:</strong> Perfect for testing and demonstrations without a
+                  backend
+                </li>
+                <li>
+                  • <strong>Live Mode:</strong> Connects to your backend API and WebSocket server
+                </li>
                 <li>• Simulates real-time updates every 10-30 seconds in demo mode</li>
                 <li>• All features work identically in both modes</li>
               </ul>
@@ -70,8 +75,18 @@ export default function Settings() {
                   API Configuration
                 </h4>
                 <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                  <p>• API URL: <code className="px-2 py-1 bg-gray-200 dark:bg-gray-800 rounded">http://localhost:8080/api</code></p>
-                  <p>• WebSocket: <code className="px-2 py-1 bg-gray-200 dark:bg-gray-800 rounded">ws://localhost:8080</code></p>
+                  <p>
+                    • API URL:{' '}
+                    <code className="px-2 py-1 bg-gray-200 dark:bg-gray-800 rounded">
+                      http://localhost:8080/api
+                    </code>
+                  </p>
+                  <p>
+                    • WebSocket:{' '}
+                    <code className="px-2 py-1 bg-gray-200 dark:bg-gray-800 rounded">
+                      ws://localhost:8080
+                    </code>
+                  </p>
                 </div>
               </div>
             )}
@@ -142,10 +157,19 @@ export default function Settings() {
                 💡 Performance Tips
               </h4>
               <ul className="text-sm text-green-800 dark:text-green-400 space-y-1">
-                <li>• <strong>10-50:</strong> Minimal view - Best for demos on slow devices</li>
-                <li>• <strong>100:</strong> Balanced - Good performance with decent visualization (Default)</li>
-                <li>• <strong>250-500:</strong> Dense - Shows busy labs, requires good GPU</li>
-                <li>• <strong>670:</strong> Full view - All dockets visible, may impact performance</li>
+                <li>
+                  • <strong>10-50:</strong> Minimal view - Best for demos on slow devices
+                </li>
+                <li>
+                  • <strong>100:</strong> Balanced - Good performance with decent visualization
+                  (Default)
+                </li>
+                <li>
+                  • <strong>250-500:</strong> Dense - Shows busy labs, requires good GPU
+                </li>
+                <li>
+                  • <strong>670:</strong> Full view - All dockets visible, may impact performance
+                </li>
               </ul>
             </div>
           </div>
@@ -156,9 +180,7 @@ export default function Settings() {
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
             Additional Settings
           </h2>
-          <p className="text-gray-600 dark:text-gray-400">
-            More settings coming soon...
-          </p>
+          <p className="text-gray-600 dark:text-gray-400">More settings coming soon...</p>
         </div>
       </div>
     </div>
