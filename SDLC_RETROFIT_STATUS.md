@@ -4,7 +4,7 @@
 **Branch:** `chore/sdlc-retrofit`
 **Owner:** Jaime
 **Methodology:** GitHub Spec Kit (Spec-Driven Development) + GitHub Actions CI/CD
-**Last updated:** 2026-04-17
+**Last updated:** 2026-04-17 (Phase 3 in progress)
 
 ---
 
@@ -33,16 +33,16 @@ Mark each phase as ⬜ Not started, 🟡 In progress, or ✅ Done. Add notes on 
 - [x] Status tracker committed
 - **Notes:** Flattened repo structure first (moved files from nested Docket-Tracking-/ to root). Branch chore/flatten-structure merged to main before creating sdlc-retrofit branch.
 
-### ⬜ Phase 2 — Install Spec Kit
-- [ ] `specify init . --here --ai claude` run
-- [ ] `.specify/` and `.claude/` committed
-- **Notes:**
+### ✅ Phase 2 — Install Spec Kit
+- [x] `specify init . --here --ai claude` run
+- [x] `.specify/` and `.claude/` committed
+- **Notes:** Spec Kit installed successfully. `.claude/` already in .gitignore for security. Skills installed to `.claude/skills/`.
 
-### ⬜ Phase 3 — Constitution
-- [ ] `.specify/memory/constitution.md` drafted
+### 🟡 Phase 3 — Constitution
+- [x] `.specify/memory/constitution.md` drafted
 - [ ] Reviewed and approved
 - [ ] Committed
-- **Notes:**
+- **Notes:** Awaiting Jaime's review. One deviation: kept Winston instead of Pino (already implemented).
 
 ### ⬜ Phase 4 — Code Quality Tooling
 - [ ] Husky + lint-staged installed
@@ -108,6 +108,7 @@ Record any deviations from the master prompt, trade-offs made, or choices that n
 |------|----------|-----------|
 | 2026-04-17 | Flattened repo structure before SDLC retrofit | Original repo had files nested in Docket-Tracking-/ subfolder, causing git tracking issues. Flattened to have files at repo root for cleaner structure. |
 | 2026-04-17 | Merged flatten branch to main before creating sdlc-retrofit | Ensures sdlc-retrofit branch starts from a clean, properly-structured main branch. |
+| 2026-04-17 | Keep Winston instead of Pino for logging | Prompt specified Pino, but Winston already implemented with proper JSON formatting. Migration cost not justified. |
 
 ---
 
@@ -115,8 +116,10 @@ Record any deviations from the master prompt, trade-offs made, or choices that n
 
 Things flagged during retrofit that we're consciously deferring, not forgetting.
 
-- [ ] Structured logging: `console.log` calls throughout the codebase still need to be migrated to Pino. Do opportunistically as files are touched.
-- [ ] _(add as they come up)_
+- [ ] Structured logging: `console.log` calls throughout the codebase still need to be migrated to Winston logger. Do opportunistically as files are touched.
+- [ ] Create `specs/` directory structure (referenced in constitution but doesn't exist yet)
+- [ ] Create `specs/rfid/` with LLRP protocol documentation
+- [ ] Create `docs/adr/` for Architecture Decision Records
 
 ---
 
