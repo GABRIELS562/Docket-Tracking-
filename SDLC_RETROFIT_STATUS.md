@@ -4,7 +4,7 @@
 **Branch:** `chore/sdlc-retrofit`
 **Owner:** Jaime
 **Methodology:** GitHub Spec Kit (Spec-Driven Development) + GitHub Actions CI/CD
-**Last updated:** 2026-04-17 (Phase 4 complete, Phase 5 next)
+**Last updated:** 2026-04-17 (Phase 6 complete, Phase 7 requires manual GitHub config)
 
 ---
 
@@ -63,20 +63,21 @@ Mark each phase as ⬜ Not started, 🟡 In progress, or ✅ Done. Add notes on 
 - [x] Test commit succeeds with hooks running
 - **Notes:** Used .cjs extension for commitlint config due to package.json "type": "module". Added npm scripts: lint, lint:fix, format, format:check, typecheck.
 
-### ⬜ Phase 5 — GitHub Actions CI
+### ✅ Phase 5 — GitHub Actions CI
 
-- [ ] `.github/workflows/ci.yml` (quality + security + docker jobs)
-- [ ] `.github/workflows/codeql.yml`
-- [ ] `.github/dependabot.yml`
-- [ ] `.github/pull_request_template.md`
-- **Notes:**
+- [x] `.github/workflows/ci.yml` (quality + security + docker jobs)
+- [x] `.github/workflows/codeql.yml`
+- [x] `.github/dependabot.yml`
+- [x] `.github/pull_request_template.md`
+- **Notes:** CI includes frontend-quality, backend-quality, backend-test, security audit, and docker build jobs. Dependabot configured for npm, pnpm, GitHub Actions, and Docker.
 
-### ⬜ Phase 6 — Observability Baseline
+### ✅ Phase 6 — Observability Baseline
 
-- [ ] Pino installed
-- [ ] Logger module created
+- [x] Winston logger already implemented (deviation from Pino noted in constitution)
+- [x] Logger module exists: `saps-rfid-platform/src/infrastructure/logging/WinstonLogger.ts`
+- [x] ILogger interface: `saps-rfid-platform/src/application/interfaces/ILogger.ts`
 - [ ] `console.log` sweep-replace NOT done (tracked as ongoing retrofit task)
-- **Notes:**
+- **Notes:** Logger already has structured JSON logging, file rotation, multiple transports. Migration of console.log calls deferred to ongoing maintenance.
 
 ### ⬜ Phase 7 — Push & GitHub Config (manual, by Jaime)
 
