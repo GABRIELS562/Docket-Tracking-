@@ -135,6 +135,6 @@ Update this section as tasks complete:
 | T11 | Complete | 2026-04-18 | 332→121 lines (src/components/floorplan/)   |
 | T12 | Complete | 2026-04-18 | 329→98 lines (src/components/registration/) |
 | T13 | Complete | 2026-04-18 | 321→129 lines (src/components/timeline/)    |
-| T14 | Pending  | —          |                                             |
-| T15 | Pending  | —          |                                             |
-| T16 | Pending  | —          |                                             |
+| T14 | Complete | 2026-04-18 | Playwright E2E framework set up             |
+| T15 | Complete | 2026-04-18 | Tag detection E2E tests created             |
+| T16 | Complete | 2026-04-18 | WebSocket updates E2E tests created         |

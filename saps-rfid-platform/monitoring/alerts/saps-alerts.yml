@@ -1,0 +1,132 @@
+# ==============================================================================
+# SAPS RFID Platform - Prometheus Alert Rules
+# ==============================================================================
+
+groups:
+  - name: saps-rfid-alerts
+    rules:
+      # Application Health
+      - alert: SAPSApplicationDown
+        expr: up{job="saps-rfid-app"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SAPS RFID Application is down"
+          description: "The SAPS RFID application has been unreachable for more than 1 minute."
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate detected"
+          description: "More than 5% of requests are failing with 5xx errors."
+
+      - alert: HighResponseLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 0.3
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High response latency"
+          description: "95th percentile response time is above 300ms."
+
+      # Database Health
+      - alert: DatabaseConnectionPoolExhausted
+        expr: pg_stat_activity_count / pg_settings_max_connections > 0.8
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Database connection pool nearly exhausted"
+          description: "More than 80% of database connections are in use."
+
+      - alert: DatabaseDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "Cannot connect to the PostgreSQL database."
+
+      # Redis Health
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis is down"
+          description: "Cannot connect to Redis cache."
+
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis memory usage high"
+          description: "Redis is using more than 90% of its allocated memory."
+
+      # RFID Reader Health
+      - alert: RFIDReaderDisconnected
+        expr: rfid_reader_connected == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "RFID Reader disconnected"
+          description: "An RFID reader has been disconnected for more than 2 minutes."
+
+      - alert: NoRFIDTagsDetected
+        expr: rate(rfid_tags_detected_total[15m]) == 0
+        for: 15m
+        labels:
+          severity: info
+        annotations:
+          summary: "No RFID tags detected"
+          description: "No RFID tags have been detected in the last 15 minutes."
+
+      # Resource Utilization
+      - alert: HighCPUUsage
+        expr: process_cpu_seconds_total > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage"
+          description: "Application CPU usage is above 80%."
+
+      - alert: HighMemoryUsage
+        expr: process_resident_memory_bytes / 1024 / 1024 / 1024 > 1.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Application memory usage is above 1.5GB."
+
+  - name: saps-slo-alerts
+    rules:
+      # SLO: 99.9% availability
+      - alert: SLOAvailabilityBreach
+        expr: (1 - (sum(rate(http_requests_total{status=~"5.."}[30m])) / sum(rate(http_requests_total[30m])))) < 0.999
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SLO availability breach"
+          description: "Service availability has dropped below 99.9% SLO."
+
+      # SLO: 95% of requests under 300ms
+      - alert: SLOLatencyBreach
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[30m])) > 0.3
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SLO latency breach"
+          description: "95th percentile latency exceeds 300ms SLO target."

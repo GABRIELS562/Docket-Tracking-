@@ -8,6 +8,7 @@ module.exports = {
     '^.+\\.ts$': [
       'ts-jest',
       {
+        isolatedModules: true,
         tsconfig: {
           experimentalDecorators: true,
           emitDecoratorMetadata: true,
@@ -55,11 +56,6 @@ module.exports = {
   restoreMocks: true,
   maxWorkers: '50%',
   collectCoverage: false, // Enable with --coverage flag
-  globals: {
-    'ts-jest': {
-      isolatedModules: true,
-    },
-  },
   // Ignore patterns
   // TODO: Tests skipped due to structural mismatches with implementation.
   // See SDLC_RETROFIT_STATUS.md for tracking. Re-enable after fixing.

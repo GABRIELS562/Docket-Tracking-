@@ -6,3 +6,8 @@ export { useZoneItems, useItemSearch, useItem } from './useItems';
 
 // Reader hooks
 export { useReaders, useZoneReaders, useReaderHealth } from './useReaders';
+
+// App-level hooks
+export { useAppData, useZoneNavigation } from './useAppData';
+export { useGlobalSearch } from './useGlobalSearch';
+export { useNotifications } from './useNotifications';

@@ -1,0 +1,6 @@
+# Place SSL certificates here for production:
+# - fullchain.pem (SSL certificate chain)
+# - privkey.pem (Private key)
+# - dhparam.pem (DH parameters, generate with: openssl dhparam -out dhparam.pem 2048)
+#
+# NEVER commit actual certificates to version control
