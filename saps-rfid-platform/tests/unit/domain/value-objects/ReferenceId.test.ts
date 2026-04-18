@@ -255,5 +255,145 @@ describe('ReferenceId', () => {
 
       expect(referenceId.toJSON()).toBe('ORD-2025-001234');
     });
+
+    it('should serialize correctly with JSON.stringify', () => {
+      const referenceId = ReferenceId.create('ORD-2025-001234')._unsafeUnwrap();
+      const obj = { referenceId };
+
+      expect(JSON.stringify(obj)).toBe('{"referenceId":"ORD-2025-001234"}');
+    });
+  });
+
+  describe('getValue', () => {
+    it('should return the raw value', () => {
+      const referenceId = ReferenceId.create('TEST-REF-001')._unsafeUnwrap();
+
+      expect(referenceId.getValue()).toBe('TEST-REF-001');
+    });
+  });
+
+  describe('edge cases', () => {
+    it('should handle year 2030', () => {
+      const referenceId = ReferenceId.create('ORD-2030-000001')._unsafeUnwrap();
+
+      expect(referenceId.getYear()).toBe(2030);
+    });
+
+    it('should handle year 2099', () => {
+      const referenceId = ReferenceId.create('ORD-2099-000001')._unsafeUnwrap();
+
+      expect(referenceId.getYear()).toBe(2099);
+    });
+
+    it('should not extract 2-digit year below 20 from slash format', () => {
+      const referenceId = ReferenceId.create('12345/19')._unsafeUnwrap();
+
+      expect(referenceId.getYear()).toBeNull();
+    });
+
+    it('should extract 2-digit year 99 from slash format', () => {
+      const referenceId = ReferenceId.create('12345/99')._unsafeUnwrap();
+
+      expect(referenceId.getYear()).toBe(2099);
+    });
+
+    it('should extract 2-digit year 20 from slash format', () => {
+      const referenceId = ReferenceId.create('12345/20')._unsafeUnwrap();
+
+      expect(referenceId.getYear()).toBe(2020);
+    });
+
+    it('should handle reference with complex special characters', () => {
+      const result = ReferenceId.create('PO#2025-001 (Q1) @Region:A');
+
+      expect(result.isOk()).toBe(true);
+      if (result.isOk()) {
+        expect(result.value.getValue()).toBe('PO#2025-001 (Q1) @Region:A');
+      }
+    });
+
+    it('should handle reference with quotes', () => {
+      const result = ReferenceId.create('Project "Alpha" v1.0');
+
+      expect(result.isOk()).toBe(true);
+      if (result.isOk()) {
+        expect(result.value.getValue()).toBe('Project "Alpha" v1.0');
+      }
+    });
+
+    it('should handle exactly 100 character reference', () => {
+      const maxString = 'A'.repeat(100);
+      const result = ReferenceId.create(maxString);
+
+      expect(result.isOk()).toBe(true);
+      if (result.isOk()) {
+        expect(result.value.getValue().length).toBe(100);
+      }
+    });
+
+    it('should reject reference with 101 characters', () => {
+      const tooLong = 'A'.repeat(101);
+      const result = ReferenceId.create(tooLong);
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.message).toContain('cannot exceed 100 characters');
+      }
+    });
+
+    it('should reject reference with backspace control character', () => {
+      const result = ReferenceId.create('Invalid\x08Ref');
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.message).toContain('printable characters');
+      }
+    });
+
+    it('should reject reference with escape control character', () => {
+      const result = ReferenceId.create('Invalid\x1BRef');
+
+      expect(result.isErr()).toBe(true);
+    });
+
+    it('should reject reference with carriage return', () => {
+      const result = ReferenceId.create('Invalid\rRef');
+
+      expect(result.isErr()).toBe(true);
+    });
+
+    it('should handle prefix extraction with special characters', () => {
+      const referenceId = ReferenceId.create('ABC-123#456')._unsafeUnwrap();
+
+      expect(referenceId.getPrefix()).toBe('ABC');
+    });
+
+    it('should handle reference starting with special character', () => {
+      const result = ReferenceId.create('#2025-001');
+
+      expect(result.isOk()).toBe(true);
+      if (result.isOk()) {
+        expect(result.value.getPrefix()).toBeNull();
+      }
+    });
+
+    it('should handle reference with multiple years', () => {
+      const referenceId = ReferenceId.create('2025-2026-Budget')._unsafeUnwrap();
+
+      // Should extract the first year
+      expect(referenceId.getYear()).toBe(2025);
+    });
+  });
+
+  describe('error validation', () => {
+    it('should return InvalidReferenceIdError for invalid input', () => {
+      const result = ReferenceId.create('Invalid\x00Control');
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error).toBeInstanceOf(InvalidReferenceIdError);
+        expect(result.error.name).toBe('InvalidReferenceIdError');
+      }
+    });
   });
 });

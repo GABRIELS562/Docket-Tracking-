@@ -633,5 +633,104 @@ describe('IpAddress', () => {
       expect(ip1.equals(ip2)).toBe(false);
       expect(ip1.toInteger()).not.toBe(ip2.toInteger());
     });
+
+    it('should handle minimum boundary values in each octet', () => {
+      const result = IpAddress.create('0.1.2.3');
+
+      expect(result.isOk()).toBe(true);
+      if (result.isOk()) {
+        expect(result.value.getOctets()).toEqual([0, 1, 2, 3]);
+      }
+    });
+
+    it('should handle maximum boundary values in each octet', () => {
+      const result = IpAddress.create('254.253.252.251');
+
+      expect(result.isOk()).toBe(true);
+      if (result.isOk()) {
+        expect(result.value.getOctets()).toEqual([254, 253, 252, 251]);
+      }
+    });
+
+    it('should correctly compute toInteger for boundary IP', () => {
+      const ip = IpAddress.create('128.128.128.128')._unsafeUnwrap();
+      // 128 * 2^24 + 128 * 2^16 + 128 * 2^8 + 128
+      // = 2155905152
+
+      expect(ip.toInteger()).toBe(2155905152);
+    });
+
+    it('should correctly identify boundary of 172.16.x.x private range', () => {
+      const ip1 = IpAddress.create('172.16.0.0')._unsafeUnwrap();
+      const ip2 = IpAddress.create('172.31.255.255')._unsafeUnwrap();
+
+      expect(ip1.isPrivate()).toBe(true);
+      expect(ip2.isPrivate()).toBe(true);
+    });
+
+    it('should handle leading zeros as valid input', () => {
+      const result = IpAddress.create('010.001.001.001');
+
+      expect(result.isOk()).toBe(true);
+      if (result.isOk()) {
+        // Note: parseInt treats leading zeros as decimal, not octal
+        expect(result.value.getOctets()).toEqual([10, 1, 1, 1]);
+      }
+    });
+  });
+
+  describe('private range boundary tests', () => {
+    it('should return true for 10.x.x.x edge cases', () => {
+      const ip1 = IpAddress.create('10.0.0.0')._unsafeUnwrap();
+      const ip2 = IpAddress.create('10.255.255.255')._unsafeUnwrap();
+
+      expect(ip1.isPrivate()).toBe(true);
+      expect(ip2.isPrivate()).toBe(true);
+    });
+
+    it('should return false for addresses just outside 10.x.x.x', () => {
+      const ip1 = IpAddress.create('9.255.255.255')._unsafeUnwrap();
+      const ip2 = IpAddress.create('11.0.0.0')._unsafeUnwrap();
+
+      expect(ip1.isPrivate()).toBe(false);
+      expect(ip2.isPrivate()).toBe(false);
+    });
+
+    it('should return true for 172.16-31.x.x edge cases', () => {
+      const ip1 = IpAddress.create('172.16.0.0')._unsafeUnwrap();
+      const ip2 = IpAddress.create('172.31.255.255')._unsafeUnwrap();
+
+      expect(ip1.isPrivate()).toBe(true);
+      expect(ip2.isPrivate()).toBe(true);
+    });
+
+    it('should return true for 192.168.x.x edge cases', () => {
+      const ip1 = IpAddress.create('192.168.0.0')._unsafeUnwrap();
+      const ip2 = IpAddress.create('192.168.255.255')._unsafeUnwrap();
+
+      expect(ip1.isPrivate()).toBe(true);
+      expect(ip2.isPrivate()).toBe(true);
+    });
+  });
+
+  describe('error message validation', () => {
+    it('should include original value in error for empty input', () => {
+      const result = IpAddress.create('');
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.message).toContain('cannot be empty');
+      }
+    });
+
+    it('should include specific guidance in error for invalid format', () => {
+      const result = IpAddress.create('not.an.ip');
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.message).toContain('valid IPv4');
+        expect(result.error.message).toContain('192.168.1.100');
+      }
+    });
   });
 });
