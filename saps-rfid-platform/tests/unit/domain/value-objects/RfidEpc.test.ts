@@ -15,7 +15,7 @@ describe('RfidEpc', () => {
     });
 
     it('should normalize to uppercase', () => {
-      const result = RfidEpc.create('e28011606000204deca48da');
+      const result = RfidEpc.create('e280116060002004deca48da');
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
@@ -24,7 +24,7 @@ describe('RfidEpc', () => {
     });
 
     it('should accept mixed case', () => {
-      const result = RfidEpc.create('E28011606000204deca48DA');
+      const result = RfidEpc.create('E280116060002004deca48DA');
 
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
@@ -70,7 +70,7 @@ describe('RfidEpc', () => {
     });
 
     it('should reject non-hex characters', () => {
-      const result = RfidEpc.create('G28011606000204DECA48DA');
+      const result = RfidEpc.create('G280116060002004DECA48DA');
 
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
@@ -79,13 +79,13 @@ describe('RfidEpc', () => {
     });
 
     it('should reject special characters', () => {
-      const result = RfidEpc.create('E28011606000204DECA4-DA');
+      const result = RfidEpc.create('E280116060002004DECA4-DA');
 
       expect(result.isErr()).toBe(true);
     });
 
     it('should reject spaces in EPC', () => {
-      const result = RfidEpc.create('E280 1160 6000 204D ECA4 8DA');
+      const result = RfidEpc.create('E280 1160 6000 2004 DECA 48DA');
 
       expect(result.isErr()).toBe(true);
     });
@@ -120,19 +120,19 @@ describe('RfidEpc', () => {
     it('should format with default separator', () => {
       const epc = RfidEpc.create(validEpc)._unsafeUnwrap();
 
-      expect(epc.format()).toBe('E280-1160-6000-204D-ECA4-8DA');
+      expect(epc.format()).toBe('E280-1160-6000-2004-DECA-48DA');
     });
 
     it('should format with custom separator', () => {
       const epc = RfidEpc.create(validEpc)._unsafeUnwrap();
 
-      expect(epc.format(' ')).toBe('E280 1160 6000 204D ECA4 8DA');
+      expect(epc.format(' ')).toBe('E280 1160 6000 2004 DECA 48DA');
     });
 
     it('should format with colon separator', () => {
       const epc = RfidEpc.create(validEpc)._unsafeUnwrap();
 
-      expect(epc.format(':')).toBe('E280:1160:6000:204D:ECA4:8DA');
+      expect(epc.format(':')).toBe('E280:1160:6000:2004:DECA:48DA');
     });
   });
 
@@ -146,7 +146,7 @@ describe('RfidEpc', () => {
 
     it('should return true for case-insensitive equal EPCs', () => {
       const epc1 = RfidEpc.create('E280116060002004DECA48DA')._unsafeUnwrap();
-      const epc2 = RfidEpc.create('e28011606000204deca48da')._unsafeUnwrap();
+      const epc2 = RfidEpc.create('e280116060002004deca48da')._unsafeUnwrap();
 
       expect(epc1.equals(epc2)).toBe(true);
     });
