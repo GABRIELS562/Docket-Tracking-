@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { injectable, inject } from 'tsyringe';
+
 import { PostgresConnection } from '../../../infrastructure/database/PostgresConnection';
 import { LLRPGateway } from '../../../infrastructure/rfid/LLRPGateway';
 

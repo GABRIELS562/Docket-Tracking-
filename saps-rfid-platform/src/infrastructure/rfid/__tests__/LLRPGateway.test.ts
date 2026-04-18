@@ -1,4 +1,3 @@
-
 import { LLRPGateway, type IMetricsCollector } from '../LLRPGateway';
 import type { IReaderRepository } from '../../../domain/repositories/IReaderRepository';
 import type { IEventBus } from '../../../application/interfaces/IEventBus';
@@ -81,12 +80,7 @@ describe('LLRPGateway', () => {
 
   describe('Initialization', () => {
     it('should initialize with default configuration', () => {
-      gateway = new LLRPGateway(
-        mockReaderRepo,
-        mockEventBus,
-        mockLogger,
-        mockMetricsCollector
-      );
+      gateway = new LLRPGateway(mockReaderRepo, mockEventBus, mockLogger, mockMetricsCollector);
 
       expect(gateway.isGatewayRunning()).toBe(false);
 
@@ -97,21 +91,15 @@ describe('LLRPGateway', () => {
     });
 
     it('should initialize with custom configuration', () => {
-      gateway = new LLRPGateway(
-        mockReaderRepo,
-        mockEventBus,
-        mockLogger,
-        mockMetricsCollector,
-        {
-          maxReaders: 20,
-          deduplicationWindowSeconds: 5,
-          maxCacheSize: 20000,
-          healthCheckIntervalMs: 60000,
-          metricsIntervalMs: 5000,
-          maxReconnectionAttempts: 10,
-          useCircuitBreaker: false,
-        }
-      );
+      gateway = new LLRPGateway(mockReaderRepo, mockEventBus, mockLogger, mockMetricsCollector, {
+        maxReaders: 20,
+        deduplicationWindowSeconds: 5,
+        maxCacheSize: 20000,
+        healthCheckIntervalMs: 60000,
+        metricsIntervalMs: 5000,
+        maxReconnectionAttempts: 10,
+        useCircuitBreaker: false,
+      });
 
       expect(mockLogger.info).toHaveBeenCalledWith(
         'LLRP Gateway constructed',
@@ -125,12 +113,7 @@ describe('LLRPGateway', () => {
     });
 
     it('should prevent double initialization', async () => {
-      gateway = new LLRPGateway(
-        mockReaderRepo,
-        mockEventBus,
-        mockLogger,
-        mockMetricsCollector
-      );
+      gateway = new LLRPGateway(mockReaderRepo, mockEventBus, mockLogger, mockMetricsCollector);
 
       const result1 = await gateway.initialize();
       expect(result1.isOk()).toBe(true);
@@ -148,12 +131,7 @@ describe('LLRPGateway', () => {
 
       (mockReaderRepo.findAll as any).mockResolvedValue(ok(readers));
 
-      gateway = new LLRPGateway(
-        mockReaderRepo,
-        mockEventBus,
-        mockLogger,
-        mockMetricsCollector
-      );
+      gateway = new LLRPGateway(mockReaderRepo, mockEventBus, mockLogger, mockMetricsCollector);
 
       const result = await gateway.initialize();
 
@@ -169,12 +147,7 @@ describe('LLRPGateway', () => {
       const repoError = new Error('Database connection failed');
       (mockReaderRepo.findAll as any).mockResolvedValue(err(repoError));
 
-      gateway = new LLRPGateway(
-        mockReaderRepo,
-        mockEventBus,
-        mockLogger,
-        mockMetricsCollector
-      );
+      gateway = new LLRPGateway(mockReaderRepo, mockEventBus, mockLogger, mockMetricsCollector);
 
       const result = await gateway.initialize();
 
@@ -194,13 +167,9 @@ describe('LLRPGateway', () => {
 
       (mockReaderRepo.findAll as any).mockResolvedValue(ok(readers));
 
-      gateway = new LLRPGateway(
-        mockReaderRepo,
-        mockEventBus,
-        mockLogger,
-        mockMetricsCollector,
-        { maxReaders: 10 }
-      );
+      gateway = new LLRPGateway(mockReaderRepo, mockEventBus, mockLogger, mockMetricsCollector, {
+        maxReaders: 10,
+      });
 
       await gateway.initialize();
 
@@ -214,12 +183,7 @@ describe('LLRPGateway', () => {
     });
 
     it('should start health monitoring on initialization', async () => {
-      gateway = new LLRPGateway(
-        mockReaderRepo,
-        mockEventBus,
-        mockLogger,
-        mockMetricsCollector
-      );
+      gateway = new LLRPGateway(mockReaderRepo, mockEventBus, mockLogger, mockMetricsCollector);
 
       await gateway.initialize();
 
@@ -228,12 +192,7 @@ describe('LLRPGateway', () => {
     });
 
     it('should start metrics collection on initialization', async () => {
-      gateway = new LLRPGateway(
-        mockReaderRepo,
-        mockEventBus,
-        mockLogger,
-        mockMetricsCollector
-      );
+      gateway = new LLRPGateway(mockReaderRepo, mockEventBus, mockLogger, mockMetricsCollector);
 
       await gateway.initialize();
 
@@ -246,12 +205,7 @@ describe('LLRPGateway', () => {
 
   describe('Statistics', () => {
     beforeEach(async () => {
-      gateway = new LLRPGateway(
-        mockReaderRepo,
-        mockEventBus,
-        mockLogger,
-        mockMetricsCollector
-      );
+      gateway = new LLRPGateway(mockReaderRepo, mockEventBus, mockLogger, mockMetricsCollector);
 
       await gateway.initialize();
     });
@@ -312,15 +266,9 @@ describe('LLRPGateway', () => {
 
   describe('Metrics Collection', () => {
     beforeEach(async () => {
-      gateway = new LLRPGateway(
-        mockReaderRepo,
-        mockEventBus,
-        mockLogger,
-        mockMetricsCollector,
-        {
-          metricsIntervalMs: 1000, // 1 second for testing
-        }
-      );
+      gateway = new LLRPGateway(mockReaderRepo, mockEventBus, mockLogger, mockMetricsCollector, {
+        metricsIntervalMs: 1000, // 1 second for testing
+      });
 
       await gateway.initialize();
     });
@@ -399,21 +347,13 @@ describe('LLRPGateway', () => {
 
       await jest.advanceTimersByTimeAsync(1100);
 
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        'Error collecting metrics',
-        expect.any(Object)
-      );
+      expect(mockLogger.error).toHaveBeenCalledWith('Error collecting metrics', expect.any(Object));
     });
   });
 
   describe('Graceful Shutdown', () => {
     beforeEach(async () => {
-      gateway = new LLRPGateway(
-        mockReaderRepo,
-        mockEventBus,
-        mockLogger,
-        mockMetricsCollector
-      );
+      gateway = new LLRPGateway(mockReaderRepo, mockEventBus, mockLogger, mockMetricsCollector);
 
       await gateway.initialize();
     });
@@ -425,9 +365,7 @@ describe('LLRPGateway', () => {
 
       expect(gateway.isGatewayRunning()).toBe(false);
 
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Initiating RFID Gateway shutdown'
-      );
+      expect(mockLogger.info).toHaveBeenCalledWith('Initiating RFID Gateway shutdown');
       expect(mockLogger.info).toHaveBeenCalledWith(
         'RFID Gateway shutdown complete',
         expect.any(Object)
@@ -467,9 +405,7 @@ describe('LLRPGateway', () => {
 
       await shutdownPromise;
 
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Waiting for in-flight tag reads to complete'
-      );
+      expect(mockLogger.info).toHaveBeenCalledWith('Waiting for in-flight tag reads to complete');
     });
 
     it('should return same promise on multiple shutdown calls', async () => {
@@ -502,27 +438,17 @@ describe('LLRPGateway', () => {
 
       await expect(gateway.shutdown()).rejects.toThrow();
 
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        'Error during shutdown',
-        expect.any(Object)
-      );
+      expect(mockLogger.error).toHaveBeenCalledWith('Error during shutdown', expect.any(Object));
     });
   });
 
   describe('Error Handling', () => {
     beforeEach(async () => {
-      gateway = new LLRPGateway(
-        mockReaderRepo,
-        mockEventBus,
-        mockLogger,
-        mockMetricsCollector
-      );
+      gateway = new LLRPGateway(mockReaderRepo, mockEventBus, mockLogger, mockMetricsCollector);
     });
 
     it('should handle initialization errors gracefully', async () => {
-      (mockReaderRepo.findAll as any).mockRejectedValue(
-        new Error('Unexpected error')
-      );
+      (mockReaderRepo.findAll as any).mockRejectedValue(new Error('Unexpected error'));
 
       const result = await gateway.initialize();
 
@@ -564,12 +490,7 @@ describe('LLRPGateway', () => {
 
   describe('Performance', () => {
     beforeEach(async () => {
-      gateway = new LLRPGateway(
-        mockReaderRepo,
-        mockEventBus,
-        mockLogger,
-        mockMetricsCollector
-      );
+      gateway = new LLRPGateway(mockReaderRepo, mockEventBus, mockLogger, mockMetricsCollector);
 
       await gateway.initialize();
     });
@@ -608,15 +529,9 @@ describe('LLRPGateway', () => {
 
   describe('Configuration', () => {
     it('should accept custom deduplication window', () => {
-      gateway = new LLRPGateway(
-        mockReaderRepo,
-        mockEventBus,
-        mockLogger,
-        mockMetricsCollector,
-        {
-          deduplicationWindowSeconds: 10,
-        }
-      );
+      gateway = new LLRPGateway(mockReaderRepo, mockEventBus, mockLogger, mockMetricsCollector, {
+        deduplicationWindowSeconds: 10,
+      });
 
       // Verify configuration was applied
       expect(mockLogger.info).toHaveBeenCalledWith(
@@ -630,15 +545,9 @@ describe('LLRPGateway', () => {
     });
 
     it('should accept custom health check interval', () => {
-      gateway = new LLRPGateway(
-        mockReaderRepo,
-        mockEventBus,
-        mockLogger,
-        mockMetricsCollector,
-        {
-          healthCheckIntervalMs: 60000,
-        }
-      );
+      gateway = new LLRPGateway(mockReaderRepo, mockEventBus, mockLogger, mockMetricsCollector, {
+        healthCheckIntervalMs: 60000,
+      });
 
       expect(mockLogger.info).toHaveBeenCalledWith(
         'LLRP Gateway constructed',
@@ -651,15 +560,9 @@ describe('LLRPGateway', () => {
     });
 
     it('should accept custom metrics interval', () => {
-      gateway = new LLRPGateway(
-        mockReaderRepo,
-        mockEventBus,
-        mockLogger,
-        mockMetricsCollector,
-        {
-          metricsIntervalMs: 5000,
-        }
-      );
+      gateway = new LLRPGateway(mockReaderRepo, mockEventBus, mockLogger, mockMetricsCollector, {
+        metricsIntervalMs: 5000,
+      });
 
       expect(mockLogger.info).toHaveBeenCalledWith(
         'LLRP Gateway constructed',
@@ -672,15 +575,9 @@ describe('LLRPGateway', () => {
     });
 
     it('should allow disabling circuit breaker', () => {
-      gateway = new LLRPGateway(
-        mockReaderRepo,
-        mockEventBus,
-        mockLogger,
-        mockMetricsCollector,
-        {
-          useCircuitBreaker: false,
-        }
-      );
+      gateway = new LLRPGateway(mockReaderRepo, mockEventBus, mockLogger, mockMetricsCollector, {
+        useCircuitBreaker: false,
+      });
 
       const cbStatuses = gateway.getCircuitBreakerStatuses();
       expect(Object.keys(cbStatuses).length).toBe(0);
@@ -689,12 +586,7 @@ describe('LLRPGateway', () => {
 
   describe('Edge Cases', () => {
     beforeEach(async () => {
-      gateway = new LLRPGateway(
-        mockReaderRepo,
-        mockEventBus,
-        mockLogger,
-        mockMetricsCollector
-      );
+      gateway = new LLRPGateway(mockReaderRepo, mockEventBus, mockLogger, mockMetricsCollector);
     });
 
     it('should handle zero readers', async () => {

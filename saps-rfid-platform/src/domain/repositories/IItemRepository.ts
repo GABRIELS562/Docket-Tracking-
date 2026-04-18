@@ -1,11 +1,10 @@
-import type { Result } from 'neverthrow';
-
 import type { Item, ItemStatus } from '../entities/Item';
+import type { DuplicateEpcError } from '../errors/DuplicateEpcError';
+import type { DuplicateItemNumberError } from '../errors/DuplicateItemNumberError';
+import type { ItemNotFoundError } from '../errors/ItemNotFoundError';
 import type { ItemNumber } from '../value-objects/ItemNumber';
 import type { RfidEpc } from '../value-objects/RfidEpc';
-import type { ItemNotFoundError } from '../errors/ItemNotFoundError';
-import type { DuplicateItemNumberError } from '../errors/DuplicateItemNumberError';
-import type { DuplicateEpcError } from '../errors/DuplicateEpcError';
+import type { Result } from 'neverthrow';
 
 /**
  * Search criteria for items
@@ -188,7 +187,10 @@ export interface IItemRepository {
    * }
    * ```
    */
-  save(item: Item, tenantId: string): Promise<Result<void, DuplicateItemNumberError | DuplicateEpcError | Error>>;
+  save(
+    item: Item,
+    tenantId: string
+  ): Promise<Result<void, DuplicateItemNumberError | DuplicateEpcError | Error>>;
 
   /**
    * Finds an item by its unique ID
@@ -217,7 +219,10 @@ export interface IItemRepository {
    * }
    * ```
    */
-  findByItemNumber(itemNumber: ItemNumber, tenantId: string): Promise<Result<Item, ItemNotFoundError>>;
+  findByItemNumber(
+    itemNumber: ItemNumber,
+    tenantId: string
+  ): Promise<Result<Item, ItemNotFoundError>>;
 
   /**
    * Finds an item by its RFID EPC
@@ -278,7 +283,11 @@ export interface IItemRepository {
    * Returns items sorted by lastSeenAt descending (most recent first).
    * Only includes items that have been seen at least once.
    */
-  findRecentByZone(zoneId: string, tenantId: string, limit?: number): Promise<Result<Item[], Error>>;
+  findRecentByZone(
+    zoneId: string,
+    tenantId: string,
+    limit?: number
+  ): Promise<Result<Item[], Error>>;
 
   /**
    * Finds all active items (not archived or disposed)

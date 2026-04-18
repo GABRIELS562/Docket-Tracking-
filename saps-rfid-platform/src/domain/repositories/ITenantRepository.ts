@@ -1,6 +1,5 @@
-import type { Result } from 'neverthrow';
-
 import type { Tenant, SubscriptionTier, SubscriptionStatus } from '../entities/Tenant';
+import type { Result } from 'neverthrow';
 
 /**
  * Tenant search criteria
@@ -90,7 +89,9 @@ export interface ITenantRepository {
   /**
    * Searches tenants by criteria
    */
-  search(criteria: TenantSearchCriteria): Promise<Result<{ tenants: Tenant[]; total: number }, Error>>;
+  search(
+    criteria: TenantSearchCriteria
+  ): Promise<Result<{ tenants: Tenant[]; total: number }, Error>>;
 
   /**
    * Finds tenants with expiring trials

@@ -1,16 +1,18 @@
-import express, { Express, Request, Response } from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import compression from 'compression';
-import morgan from 'morgan';
 import { Server as HttpServer } from 'http';
+
+import compression from 'compression';
+import cors from 'cors';
+import express, { Express, Request, Response } from 'express';
+import helmet from 'helmet';
+import morgan from 'morgan';
 import { injectable, inject } from 'tsyringe';
-import { ILogger } from '../../application/interfaces/ILogger';
-import { errorHandler } from './middleware/errorHandler';
+
 import { correlationId } from './middleware/correlationId';
-import { requestLogger } from './middleware/requestLogger';
+import { errorHandler } from './middleware/errorHandler';
 import { rateLimiter } from './middleware/rateLimiter';
+import { requestLogger } from './middleware/requestLogger';
 import { createRoutes } from './routes';
+import { ILogger } from '../../application/interfaces/ILogger';
 
 /**
  * HTTP Server - Express application setup
@@ -172,7 +174,7 @@ export class Server {
    * @returns Promise that resolves when server is listening
    */
   async start(): Promise<void> {
-    return new Promise((resolve) => {
+    return await new Promise((resolve) => {
       this.httpServer = this.app.listen(this.port, () => {
         this.logger.info('HTTP Server started', {
           port: this.port,
@@ -204,7 +206,7 @@ export class Server {
       return;
     }
 
-    return new Promise((resolve, reject) => {
+    return await new Promise((resolve, reject) => {
       this.httpServer!.close((err) => {
         if (err) {
           this.logger.error('Error stopping server', { error: err });

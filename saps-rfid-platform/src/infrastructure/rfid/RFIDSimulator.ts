@@ -1,7 +1,9 @@
 import { injectable, inject } from 'tsyringe';
-import type { ILogger } from '../../application/interfaces/ILogger';
-import type { IEventBus } from '../../application/interfaces/IEventBus';
+
 import { TagDetectedEvent } from '../../domain/events/TagDetectedEvent';
+
+import type { IEventBus } from '../../application/interfaces/IEventBus';
+import type { ILogger } from '../../application/interfaces/ILogger';
 
 /**
  * RFID Simulator Configuration
@@ -167,14 +169,7 @@ export class RFIDSimulator {
    * - Descriptive labels
    */
   private generateItems(): void {
-    const categories = [
-      'Electronics',
-      'Equipment',
-      'Supplies',
-      'Tools',
-      'Materials',
-      'Components',
-    ];
+    const categories = ['Electronics', 'Equipment', 'Supplies', 'Tools', 'Materials', 'Components'];
 
     for (let i = 0; i < this.config.itemCount; i++) {
       // Generate SGTIN-96 EPC
@@ -182,8 +177,7 @@ export class RFIDSimulator {
 
       // Random item type (weighted: 70% boxes, 20% assets, 10% pallets)
       const rand = Math.random();
-      const itemType =
-        rand < 0.7 ? 'box' : rand < 0.9 ? 'asset' : 'pallet';
+      const itemType = rand < 0.7 ? 'box' : rand < 0.9 ? 'asset' : 'pallet';
 
       // Random initial zone
       const currentZone = Math.floor(Math.random() * this.config.zoneCount);
@@ -206,8 +200,7 @@ export class RFIDSimulator {
       total: this.items.size,
       byType: {
         boxes: Array.from(this.items.values()).filter((i) => i.itemType === 'box').length,
-        pallets: Array.from(this.items.values()).filter((i) => i.itemType === 'pallet')
-          .length,
+        pallets: Array.from(this.items.values()).filter((i) => i.itemType === 'pallet').length,
         assets: Array.from(this.items.values()).filter((i) => i.itemType === 'asset').length,
       },
     });
@@ -362,14 +355,7 @@ export class RFIDSimulator {
     const timestamp = new Date();
 
     // Create and publish proper domain event
-    const event = new TagDetectedEvent(
-      item.epc,
-      readerId,
-      zoneId,
-      rssi,
-      antennaPort,
-      timestamp
-    );
+    const event = new TagDetectedEvent(item.epc, readerId, zoneId, rssi, antennaPort, timestamp);
 
     // Emit via event bus
     this.eventBus.publish(event);

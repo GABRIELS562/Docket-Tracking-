@@ -1,13 +1,14 @@
-import { injectable, inject } from 'tsyringe';
 import { Result, ok, err } from 'neverthrow';
+import { injectable, inject } from 'tsyringe';
+
+import { ItemNotFoundError } from '../../../domain/errors/ItemNotFoundError';
+import { ItemNumber } from '../../../domain/value-objects/ItemNumber';
 
 import type { IItemRepository } from '../../../domain/repositories/IItemRepository';
-import type { IZoneRepository } from '../../../domain/repositories/IZoneRepository';
 import type { ILocationHistoryRepository } from '../../../domain/repositories/ILocationHistoryRepository';
-import type { ILogger } from '../../interfaces/ILogger';
+import type { IZoneRepository } from '../../../domain/repositories/IZoneRepository';
 import type { ItemDetailsDTO, ItemLocationHistoryDTO } from '../../dto/ItemDTO';
-import { ItemNumber } from '../../../domain/value-objects/ItemNumber';
-import { ItemNotFoundError } from '../../../domain/errors/ItemNotFoundError';
+import type { ILogger } from '../../interfaces/ILogger';
 
 /**
  * Input for getting item details
@@ -82,7 +83,10 @@ export class GetItemDetailsUseCase {
       // Step 2: Find item by item number
       const itemResult = await this.itemRepo.findByItemNumber(itemNumber, input.tenantId);
       if (itemResult.isErr()) {
-        this.logger.warn('Item not found', { itemNumber: input.itemNumber, tenantId: input.tenantId });
+        this.logger.warn('Item not found', {
+          itemNumber: input.itemNumber,
+          tenantId: input.tenantId,
+        });
         return err(new ItemNotFoundError(input.itemNumber, 'itemNumber'));
       }
       const item = itemResult.value;

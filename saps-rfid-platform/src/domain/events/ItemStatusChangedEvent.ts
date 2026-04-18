@@ -1,4 +1,5 @@
 import { DomainEvent } from './DomainEvent';
+
 import type { ItemStatus } from '../entities/Item';
 
 /**
@@ -121,9 +122,11 @@ export class ItemStatusChangedEvent extends DomainEvent {
    * Checks if status change requires notification
    */
   requiresNotification(): boolean {
-    return this.currentStatus === 'in_processing' ||
-           this.currentStatus === 'archived' ||
-           this.currentStatus === 'disposed' ||
-           this.currentStatus === 'missing';
+    return (
+      this.currentStatus === 'in_processing' ||
+      this.currentStatus === 'archived' ||
+      this.currentStatus === 'disposed' ||
+      this.currentStatus === 'missing'
+    );
   }
 }

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { container } from 'tsyringe';
+
 import { ReaderController } from '../controllers/ReaderController';
 
 const router = Router();

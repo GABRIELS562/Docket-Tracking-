@@ -23,12 +23,8 @@ export default function Scene3D({ zones, dockets }: Scene3DProps) {
         {viewMode === 'top' && (
           <PerspectiveCamera makeDefault position={[0, 60, 0]} rotation={[-Math.PI / 2, 0, 0]} />
         )}
-        {viewMode === '3d' && (
-          <PerspectiveCamera makeDefault position={[40, 30, 40]} />
-        )}
-        {viewMode === 'firstPerson' && (
-          <PerspectiveCamera makeDefault position={[0, 1.7, 35]} />
-        )}
+        {viewMode === '3d' && <PerspectiveCamera makeDefault position={[40, 30, 40]} />}
+        {viewMode === 'firstPerson' && <PerspectiveCamera makeDefault position={[0, 1.7, 35]} />}
 
         <OrbitControls
           enableDamping
@@ -48,7 +44,7 @@ export default function Scene3D({ zones, dockets }: Scene3DProps) {
         <Suspense fallback={null}>
           {/* Floor Plan Overlay */}
           {(floorPlanMode === '3d' || floorPlanMode === 'split') && (
-            <FloorPlanOverlay zones={zones} opacity={0.7} />
+            <FloorPlanOverlay opacity={0.7} />
           )}
 
           <ForensicBuilding

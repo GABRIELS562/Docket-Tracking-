@@ -1,11 +1,6 @@
 import { Result, ok, err } from 'neverthrow';
 import { injectable, inject } from 'tsyringe';
 
-import type { ILogger } from '../../../application/interfaces/ILogger';
-import type {
-  ITenantUserRepository,
-  TenantUserSearchCriteria,
-} from '../../../domain/repositories/ITenantUserRepository';
 import {
   TenantUser,
   TenantUserProps,
@@ -13,6 +8,12 @@ import {
   UserPreferences,
 } from '../../../domain/entities/TenantUser';
 import { BaseRepository } from '../BaseRepository';
+
+import type { ILogger } from '../../../application/interfaces/ILogger';
+import type {
+  ITenantUserRepository,
+  TenantUserSearchCriteria,
+} from '../../../domain/repositories/ITenantUserRepository';
 import type { PostgresConnection } from '../PostgresConnection';
 
 /**
@@ -146,7 +147,10 @@ export class PostgresTenantUserRepository extends BaseRepository implements ITen
     return ok(this.mapRowToUser(row));
   }
 
-  async findByEmailAndTenant(email: string, tenantId: string): Promise<Result<TenantUser | null, Error>> {
+  async findByEmailAndTenant(
+    email: string,
+    tenantId: string
+  ): Promise<Result<TenantUser | null, Error>> {
     const sql = 'SELECT * FROM tenant_users WHERE email = $1 AND tenant_id = $2';
     const result = await this.executeQuery<TenantUserRow>(sql, [email.toLowerCase(), tenantId]);
 
@@ -173,7 +177,9 @@ export class PostgresTenantUserRepository extends BaseRepository implements ITen
     return ok(result.value.map((row) => this.mapRowToUser(row)));
   }
 
-  async search(criteria: TenantUserSearchCriteria): Promise<Result<{ users: TenantUser[]; total: number }, Error>> {
+  async search(
+    criteria: TenantUserSearchCriteria
+  ): Promise<Result<{ users: TenantUser[]; total: number }, Error>> {
     const conditions: string[] = ['tenant_id = $1'];
     const params: unknown[] = [criteria.tenantId];
     let paramIndex = 2;
@@ -188,7 +194,7 @@ export class PostgresTenantUserRepository extends BaseRepository implements ITen
       paramIndex++;
     }
 
-    if (criteria.role) {
+    if (criteria.role != null) {
       conditions.push(`role = $${paramIndex}`);
       params.push(criteria.role);
       paramIndex++;
@@ -238,7 +244,8 @@ export class PostgresTenantUserRepository extends BaseRepository implements ITen
   }
 
   async findByRole(tenantId: string, role: UserRole): Promise<Result<TenantUser[], Error>> {
-    const sql = 'SELECT * FROM tenant_users WHERE tenant_id = $1 AND role = $2 ORDER BY created_at DESC';
+    const sql =
+      'SELECT * FROM tenant_users WHERE tenant_id = $1 AND role = $2 ORDER BY created_at DESC';
     const result = await this.executeQuery<TenantUserRow>(sql, [tenantId, role]);
 
     if (result.isErr()) {
@@ -335,8 +342,12 @@ export class PostgresTenantUserRepository extends BaseRepository implements ITen
   }
 
   async existsByEmailAndTenant(email: string, tenantId: string): Promise<Result<boolean, Error>> {
-    const sql = 'SELECT EXISTS(SELECT 1 FROM tenant_users WHERE email = $1 AND tenant_id = $2) as exists';
-    const result = await this.executeQuery<{ exists: boolean }>(sql, [email.toLowerCase(), tenantId]);
+    const sql =
+      'SELECT EXISTS(SELECT 1 FROM tenant_users WHERE email = $1 AND tenant_id = $2) as exists';
+    const result = await this.executeQuery<{ exists: boolean }>(sql, [
+      email.toLowerCase(),
+      tenantId,
+    ]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -377,7 +388,10 @@ export class PostgresTenantUserRepository extends BaseRepository implements ITen
     return ok(counts);
   }
 
-  async findInactiveUsers(tenantId: string, daysSinceLastLogin: number): Promise<Result<TenantUser[], Error>> {
+  async findInactiveUsers(
+    tenantId: string,
+    daysSinceLastLogin: number
+  ): Promise<Result<TenantUser[], Error>> {
     const sql = `
       SELECT * FROM tenant_users
       WHERE tenant_id = $1
@@ -426,7 +440,8 @@ export class PostgresTenantUserRepository extends BaseRepository implements ITen
       avatarUrl: row.avatar_url,
       phone: row.phone,
       role: row.role as UserRole,
-      permissions: typeof row.permissions === 'string' ? JSON.parse(row.permissions) : row.permissions,
+      permissions:
+        typeof row.permissions === 'string' ? JSON.parse(row.permissions) : row.permissions,
       lastLoginAt: row.last_login_at ? new Date(row.last_login_at) : null,
       lastLoginIp: row.last_login_ip,
       failedLoginAttempts: row.failed_login_attempts,
@@ -437,7 +452,8 @@ export class PostgresTenantUserRepository extends BaseRepository implements ITen
       isActive: row.is_active,
       emailVerified: row.email_verified,
       emailVerifiedAt: row.email_verified_at ? new Date(row.email_verified_at) : null,
-      preferences: typeof row.preferences === 'string' ? JSON.parse(row.preferences) : row.preferences,
+      preferences:
+        typeof row.preferences === 'string' ? JSON.parse(row.preferences) : row.preferences,
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),
     };

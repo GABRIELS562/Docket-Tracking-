@@ -1,4 +1,5 @@
 import { DomainEvent } from './DomainEvent';
+
 import type { ZoneType } from '../entities/Zone';
 
 /**

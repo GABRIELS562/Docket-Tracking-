@@ -1,8 +1,7 @@
-import type { Result } from 'neverthrow';
-
-import type { TagRead } from '../value-objects/TagRead';
 import type { ItemNumber } from '../value-objects/ItemNumber';
 import type { RfidEpc } from '../value-objects/RfidEpc';
+import type { TagRead } from '../value-objects/TagRead';
+import type { Result } from 'neverthrow';
 
 /**
  * Location history entry from the time-series database
@@ -411,7 +410,10 @@ export interface ILocationHistoryRepository {
    * Returns the most recent tag read for the item.
    * Useful for quick location lookup without loading full history.
    */
-  getLastKnownLocation(itemId: string, tenantId: string): Promise<Result<LocationHistoryEntry | null, Error>>;
+  getLastKnownLocation(
+    itemId: string,
+    tenantId: string
+  ): Promise<Result<LocationHistoryEntry | null, Error>>;
 
   /**
    * Gets zone visit summary for a item

@@ -1,13 +1,16 @@
 import { Server as HttpServer } from 'http';
+
+import jwt from 'jsonwebtoken';
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { injectable, inject } from 'tsyringe';
-import jwt from 'jsonwebtoken';
+
 import { IEventBus } from '../../application/interfaces/IEventBus';
 import { ILogger } from '../../application/interfaces/ILogger';
 import { DomainEvent } from '../../domain/events/DomainEvent';
-import { TagDetectedEvent } from '../../domain/events/TagDetectedEvent';
 import { ItemMovedEvent } from '../../domain/events/ItemMovedEvent';
+import { TagDetectedEvent } from '../../domain/events/TagDetectedEvent';
 import { ZoneOccupancyChangedEvent } from '../../domain/events/ZoneOccupancyChangedEvent';
+
 import type { JwtConfig } from '../http/middleware/authMiddleware';
 
 /**
@@ -108,7 +111,9 @@ export class SocketServer {
     }
 
     this.io.use((socket: TenantSocket, next) => {
-      const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.replace('Bearer ', '');
+      const token =
+        socket.handshake.auth?.token ||
+        socket.handshake.headers?.authorization?.replace('Bearer ', '');
 
       if (!token) {
         // Allow anonymous connections for public data (if needed)
@@ -329,15 +334,17 @@ export class SocketServer {
         zoneId: occupancyEvent.zoneId,
         occupancy: occupancyEvent.currentOccupancy,
         capacity: occupancyEvent.capacity,
-        occupancyPercentage: Math.round((occupancyEvent.currentOccupancy / occupancyEvent.capacity) * 100),
+        occupancyPercentage: Math.round(
+          (occupancyEvent.currentOccupancy / occupancyEvent.capacity) * 100
+        ),
         status:
           occupancyEvent.currentOccupancy >= occupancyEvent.capacity
             ? 'full'
             : occupancyEvent.currentOccupancy / occupancyEvent.capacity >= 0.9
-            ? 'critical'
-            : occupancyEvent.currentOccupancy / occupancyEvent.capacity >= 0.7
-            ? 'warning'
-            : 'normal',
+              ? 'critical'
+              : occupancyEvent.currentOccupancy / occupancyEvent.capacity >= 0.7
+                ? 'warning'
+                : 'normal',
         timestamp: occupancyEvent.occurredAt.toISOString(),
       };
 

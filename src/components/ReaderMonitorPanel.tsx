@@ -13,9 +13,9 @@ interface Props {
 export default function ReaderMonitorPanel({ readers, isOpen, onToggle }: Props) {
   const { setSelectedZone } = useStore();
 
-  const onlineReaders = readers.filter(r => r.status === 'online').length;
-  const offlineReaders = readers.filter(r => r.status === 'offline').length;
-  const errorReaders = readers.filter(r => r.status === 'error').length;
+  const onlineReaders = readers.filter((r) => r.status === 'online').length;
+  const offlineReaders = readers.filter((r) => r.status === 'offline').length;
+  const errorReaders = readers.filter((r) => r.status === 'error').length;
 
   const handleReaderClick = (reader: Reader) => {
     setSelectedZone(reader.zoneId);
@@ -85,9 +85,7 @@ export default function ReaderMonitorPanel({ readers, isOpen, onToggle }: Props)
                   {(offlineReaders > 0 || errorReaders > 0) && (
                     <>
                       <span className="text-gray-600">•</span>
-                      <span className="text-red-400">
-                        {offlineReaders + errorReaders} issues
-                      </span>
+                      <span className="text-red-400">{offlineReaders + errorReaders} issues</span>
                     </>
                   )}
                 </div>
@@ -167,9 +165,7 @@ function ReaderCard({ reader, onClick }: ReaderCardProps) {
         {/* Header */}
         <div className="flex items-center gap-2">
           <StatusIcon className={`w-4 h-4 ${config.color}`} />
-          <span className="text-xs font-bold text-white truncate">
-            {reader.readerName}
-          </span>
+          <span className="text-xs font-bold text-white truncate">{reader.readerName}</span>
         </div>
 
         {/* Zone */}
@@ -179,9 +175,7 @@ function ReaderCard({ reader, onClick }: ReaderCardProps) {
         </div>
 
         {/* IP Address */}
-        <div className="text-xs font-mono text-gray-500">
-          {reader.ipAddress}
-        </div>
+        <div className="text-xs font-mono text-gray-500">{reader.ipAddress}</div>
 
         {/* Signal Strength Bar */}
         {reader.status === 'online' && (
@@ -199,8 +193,8 @@ function ReaderCard({ reader, onClick }: ReaderCardProps) {
                   signalStrength > 70
                     ? 'bg-green-500'
                     : signalStrength > 40
-                    ? 'bg-yellow-500'
-                    : 'bg-red-500'
+                      ? 'bg-yellow-500'
+                      : 'bg-red-500'
                 }`}
               />
             </div>
@@ -224,7 +218,8 @@ function ReaderCard({ reader, onClick }: ReaderCardProps) {
         {/* Config info */}
         {reader.status === 'online' && reader.configuration && (
           <div className="text-xs text-gray-600 pt-1 border-t border-gray-700">
-            {reader.configuration.transmitPower}dBm • {reader.configuration.antennas?.length || 0} ant
+            {reader.configuration.transmitPower}dBm • {reader.configuration.antennas?.length || 0}{' '}
+            ant
           </div>
         )}
       </div>

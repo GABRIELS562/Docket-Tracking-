@@ -1,5 +1,7 @@
-import { Result, ok, err } from 'neverthrow';
+import { ok, err } from 'neverthrow';
+
 import type { ILogger } from '../../application/interfaces/ILogger';
+import type { Result } from 'neverthrow';
 
 /**
  * Parsed tag read from LLRP message
@@ -299,16 +301,12 @@ export class TagProcessor {
   private getTagReportData(message: LLRPMessage): LLRPTagReport[] {
     // Try lowercase field name
     if (message.tagReportData) {
-      return Array.isArray(message.tagReportData)
-        ? message.tagReportData
-        : [message.tagReportData];
+      return Array.isArray(message.tagReportData) ? message.tagReportData : [message.tagReportData];
     }
 
     // Try uppercase field name
     if (message.TagReportData) {
-      return Array.isArray(message.TagReportData)
-        ? message.TagReportData
-        : [message.TagReportData];
+      return Array.isArray(message.TagReportData) ? message.TagReportData : [message.TagReportData];
     }
 
     return [];
@@ -346,9 +344,7 @@ export class TagProcessor {
       const readCount = this.extractReadCount(tagReport);
 
       // Determine timestamp (prefer reader timestamp, fallback to current time)
-      const timestamp = lastSeenTimestamp
-        ? new Date(lastSeenTimestamp)
-        : new Date();
+      const timestamp = lastSeenTimestamp ? new Date(lastSeenTimestamp) : new Date();
 
       return {
         epc,
@@ -379,11 +375,7 @@ export class TagProcessor {
    */
   private extractEPC(tagReport: LLRPTagReport): string | null {
     // Try different possible field names
-    const epcData =
-      tagReport.epcData ||
-      tagReport.EPCData ||
-      tagReport.epc ||
-      tagReport.EPC;
+    const epcData = tagReport.epcData || tagReport.EPCData || tagReport.epc || tagReport.EPC;
 
     if (!epcData) {
       return null;
@@ -424,11 +416,7 @@ export class TagProcessor {
    * Default to -70 dBm (medium strength) if missing.
    */
   private extractRSSI(tagReport: LLRPTagReport): number {
-    const rssi =
-      tagReport.peakRSSI ??
-      tagReport.PeakRSSI ??
-      tagReport.rssi ??
-      tagReport.RSSI;
+    const rssi = tagReport.peakRSSI ?? tagReport.PeakRSSI ?? tagReport.rssi ?? tagReport.RSSI;
 
     if (typeof rssi !== 'number') {
       return -70; // Default medium strength
@@ -461,10 +449,7 @@ export class TagProcessor {
    */
   private extractAntennaPort(tagReport: LLRPTagReport): number {
     const antennaId =
-      tagReport.antennaID ??
-      tagReport.AntennaID ??
-      tagReport.antenna ??
-      tagReport.Antenna;
+      tagReport.antennaID ?? tagReport.AntennaID ?? tagReport.antenna ?? tagReport.Antenna;
 
     if (typeof antennaId !== 'number') {
       return 1; // Default to antenna 1
@@ -511,10 +496,7 @@ export class TagProcessor {
    * in a single read cycle. Higher counts often indicate stronger signal.
    */
   private extractReadCount(tagReport: LLRPTagReport): number {
-    const count =
-      tagReport.tagSeenCount ??
-      tagReport.TagSeenCount ??
-      tagReport.readCount;
+    const count = tagReport.tagSeenCount ?? tagReport.TagSeenCount ?? tagReport.readCount;
 
     if (typeof count !== 'number') {
       return 1; // Default to 1 read

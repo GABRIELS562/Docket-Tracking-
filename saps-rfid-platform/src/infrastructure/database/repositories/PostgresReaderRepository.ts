@@ -1,18 +1,20 @@
-import { injectable, inject } from 'tsyringe';
 import { Result, ok, err } from 'neverthrow';
+import { injectable, inject } from 'tsyringe';
+
+import { Reader, ReaderStatus } from '../../../domain/entities/Reader';
+import { ReaderNotFoundError } from '../../../domain/errors/ReaderNotFoundError';
+import { IpAddress as IpAddressVO } from '../../../domain/value-objects/IpAddress';
+import { BaseRepository } from '../BaseRepository';
+
+import type { ILogger } from '../../../application/interfaces/ILogger';
 import type {
   IReaderRepository,
   ReaderHealthStats,
   ReaderStatusUpdate,
   ReaderSearchCriteria,
 } from '../../../domain/repositories/IReaderRepository';
-import { Reader, ReaderStatus } from '../../../domain/entities/Reader';
 import type { IpAddress } from '../../../domain/value-objects/IpAddress';
-import { IpAddress as IpAddressVO } from '../../../domain/value-objects/IpAddress';
-import { ReaderNotFoundError } from '../../../domain/errors/ReaderNotFoundError';
-import { BaseRepository } from '../BaseRepository';
 import type { PostgresConnection } from '../PostgresConnection';
-import type { ILogger } from '../../../application/interfaces/ILogger';
 
 /**
  * Database row interface
@@ -240,7 +242,10 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
    * @param tenantId - Tenant ID for multi-tenant isolation
    * @returns Result containing the reader or ReaderNotFoundError
    */
-  async findByIpAddress(ipAddress: IpAddress, tenantId: string): Promise<Result<Reader, ReaderNotFoundError>> {
+  async findByIpAddress(
+    ipAddress: IpAddress,
+    tenantId: string
+  ): Promise<Result<Reader, ReaderNotFoundError>> {
     const sql = `
       SELECT * FROM readers
       WHERE ip_address = $1 AND tenant_id = $2
@@ -480,7 +485,7 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
       }
 
       // Status filter
-      if (criteria.status) {
+      if (criteria.status != null) {
         conditions.push(`status = $${paramIndex}`);
         params.push(criteria.status);
         paramIndex++;
@@ -714,17 +719,22 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
    * Atomically updates multiple readers.
    * Only updates readers belonging to the specified tenant.
    */
-  async updateStatuses(updates: ReaderStatusUpdate[], tenantId: string): Promise<Result<void, Error>> {
+  async updateStatuses(
+    updates: ReaderStatusUpdate[],
+    tenantId: string
+  ): Promise<Result<void, Error>> {
     if (updates.length === 0) {
       return ok(undefined);
     }
 
     try {
       // Build VALUES clause for bulk update
-      const values = updates.map((_, index) => {
-        const base = index * 4 + 2; // Start at $2 since $1 is tenantId
-        return `($${base}, $${base + 1}, $${base + 2}, $${base + 3})`;
-      }).join(', ');
+      const values = updates
+        .map((_, index) => {
+          const base = index * 4 + 2; // Start at $2 since $1 is tenantId
+          return `($${base}, $${base + 1}, $${base + 2}, $${base + 3})`;
+        })
+        .join(', ');
 
       const params: any[] = [tenantId];
       for (const u of updates) {
@@ -797,7 +807,10 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
       ) as exists
     `;
 
-    const result = await this.executeQueryOne<{ exists: boolean }>(sql, [ipAddress.getValue(), tenantId]);
+    const result = await this.executeQueryOne<{ exists: boolean }>(sql, [
+      ipAddress.getValue(),
+      tenantId,
+    ]);
 
     if (result.isErr()) {
       return err(result.error);
@@ -1046,10 +1059,12 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
 
     try {
       // Build VALUES clause for bulk update
-      const values = updates.map((_, index) => {
-        const base = index * 4 + 1;
-        return `($${base}, $${base + 1}, $${base + 2}, $${base + 3})`;
-      }).join(', ');
+      const values = updates
+        .map((_, index) => {
+          const base = index * 4 + 1;
+          return `($${base}, $${base + 1}, $${base + 2}, $${base + 3})`;
+        })
+        .join(', ');
 
       const params: any[] = [];
       for (const u of updates) {
@@ -1078,7 +1093,10 @@ export class PostgresReaderRepository extends BaseRepository implements IReaderR
 
       return ok(undefined);
     } catch (error) {
-      this.logger.error('Bulk status update (system-wide) failed', { error, count: updates.length });
+      this.logger.error('Bulk status update (system-wide) failed', {
+        error,
+        count: updates.length,
+      });
       return err(error as Error);
     }
   }

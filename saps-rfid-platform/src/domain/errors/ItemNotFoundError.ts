@@ -5,10 +5,9 @@ import { DomainError } from './DomainError';
  */
 export class ItemNotFoundError extends DomainError {
   constructor(identifier: string, identifierType: 'itemNumber' | 'epc' | 'id') {
-    super(
-      `Item not found with ${identifierType}: ${identifier}`,
-      'ITEM_NOT_FOUND',
-      { identifier, identifierType }
-    );
+    super(`Item not found with ${identifierType}: ${identifier}`, 'ITEM_NOT_FOUND', {
+      identifier,
+      identifierType,
+    });
   }
 }

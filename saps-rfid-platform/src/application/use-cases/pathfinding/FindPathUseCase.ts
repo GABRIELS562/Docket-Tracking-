@@ -1,7 +1,6 @@
-import { injectable, inject } from 'tsyringe';
 import { Result, ok, err } from 'neverthrow';
-import type { IZoneRepository } from '../../../domain/repositories/IZoneRepository';
-import type { ILogger } from '../../interfaces/ILogger';
+import { injectable, inject } from 'tsyringe';
+
 import {
   PathfindingService,
   PathResult,
@@ -9,23 +8,30 @@ import {
   Point,
 } from '../../../domain/services/PathfindingService';
 
+import type { IZoneRepository } from '../../../domain/repositories/IZoneRepository';
+import type { ILogger } from '../../interfaces/ILogger';
+
 /**
  * Input for finding a path
  */
 export interface FindPathInput {
   tenantId: string;
-  from: {
-    x: number;
-    y: number;
-  } | {
-    zoneId: string;
-  };
-  to: {
-    x: number;
-    y: number;
-  } | {
-    zoneId: string;
-  };
+  from:
+    | {
+        x: number;
+        y: number;
+      }
+    | {
+        zoneId: string;
+      };
+  to:
+    | {
+        x: number;
+        y: number;
+      }
+    | {
+        zoneId: string;
+      };
   avoidZones?: string[];
 }
 
@@ -199,9 +205,7 @@ export class FindPathUseCase {
           return {
             id: zone.getId(),
             name: zone.getName(),
-            center: coords
-              ? { x: coords.x, y: coords.y }
-              : defaultZone?.center || { x: 50, y: 50 },
+            center: coords ? { x: coords.x, y: coords.y } : defaultZone?.center || { x: 50, y: 50 },
             bounds: defaultZone?.bounds || {
               minX: 0,
               maxX: 30,
@@ -382,7 +386,7 @@ export class FindPathUseCase {
 
           const distance = Math.sqrt(
             Math.pow(zone.center.x - connectedZone.center.x, 2) +
-            Math.pow(zone.center.y - connectedZone.center.y, 2)
+              Math.pow(zone.center.y - connectedZone.center.y, 2)
           );
 
           edges.push({

@@ -1,9 +1,12 @@
-import { Result, err } from 'neverthrow';
+import { err } from 'neverthrow';
+
 import { Item, type ItemCategory } from '../../domain/entities/Item';
 import { ItemNumber } from '../../domain/value-objects/ItemNumber';
-import { RfidEpc } from '../../domain/value-objects/RfidEpc';
 import { ReferenceId } from '../../domain/value-objects/ReferenceId';
+import { RfidEpc } from '../../domain/value-objects/RfidEpc';
+
 import type { ItemDTO, CreateItemDTO } from '../dto/ItemDTO';
+import type { Result } from 'neverthrow';
 
 /**
  * Item Mapper
@@ -34,10 +37,7 @@ export class ItemMapper {
    * // dto can be safely serialized to JSON
    * ```
    */
-  static toDTO(
-    item: Item,
-    zoneInfo?: { id: string; name: string; code: string } | null
-  ): ItemDTO {
+  static toDTO(item: Item, zoneInfo?: { id: string; name: string; code: string } | null): ItemDTO {
     return {
       id: item.getId(),
       itemNumber: item.getItemNumber().getValue(),
@@ -93,10 +93,7 @@ export class ItemMapper {
    * }
    * ```
    */
-  static fromCreateDTO(
-    dto: CreateItemDTO,
-    generatedId: string
-  ): Result<Item, Error> {
+  static fromCreateDTO(dto: CreateItemDTO, generatedId: string): Result<Item, Error> {
     // Create value objects (validates format)
     const itemNumberResult = ItemNumber.create(dto.itemNumber);
     if (itemNumberResult.isErr()) {

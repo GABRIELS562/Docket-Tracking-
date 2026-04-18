@@ -67,7 +67,13 @@ export interface ItemDTO {
    * Current status
    * @example "REGISTERED"
    */
-  readonly status: 'registered' | 'in_transit' | 'in_processing' | 'archived' | 'disposed' | 'missing';
+  readonly status:
+    | 'registered'
+    | 'in_transit'
+    | 'in_processing'
+    | 'archived'
+    | 'disposed'
+    | 'missing';
 
   /**
    * Last reader that detected this item
@@ -152,7 +158,17 @@ export interface CreateItemDTO {
    * Item category
    * @example "ELECTRONIC"
    */
-  readonly category: 'equipment' | 'consumable' | 'electronic' | 'document' | 'material' | 'tool' | 'apparel' | 'container' | 'sample' | 'other';
+  readonly category:
+    | 'equipment'
+    | 'consumable'
+    | 'electronic'
+    | 'document'
+    | 'material'
+    | 'tool'
+    | 'apparel'
+    | 'container'
+    | 'sample'
+    | 'other';
 
   /**
    * RFID EPC tag value (24 hex characters)
@@ -219,7 +235,13 @@ export interface SearchItemsDTO {
    * Filter by status
    * @example "registered"
    */
-  readonly status?: 'registered' | 'in_transit' | 'in_processing' | 'archived' | 'disposed' | 'missing';
+  readonly status?:
+    | 'registered'
+    | 'in_transit'
+    | 'in_processing'
+    | 'archived'
+    | 'disposed'
+    | 'missing';
 
   /**
    * Filter by zone ID

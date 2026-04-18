@@ -1,0 +1,97 @@
+version: 2
+
+updates:
+  # Frontend dependencies (npm)
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'Africa/Johannesburg'
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: 'chore(deps)'
+    labels:
+      - 'dependencies'
+      - 'frontend'
+    groups:
+      react:
+        patterns:
+          - 'react*'
+          - '@types/react*'
+      three:
+        patterns:
+          - 'three*'
+          - '@react-three/*'
+          - '@types/three*'
+      dev-dependencies:
+        dependency-type: 'development'
+        exclude-patterns:
+          - 'react*'
+          - 'three*'
+
+  # Backend dependencies (pnpm)
+  - package-ecosystem: 'npm'
+    directory: '/saps-rfid-platform'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'Africa/Johannesburg'
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: 'chore(deps)'
+    labels:
+      - 'dependencies'
+      - 'backend'
+    groups:
+      express:
+        patterns:
+          - 'express*'
+          - '@types/express*'
+      testing:
+        patterns:
+          - 'jest*'
+          - '@types/jest*'
+          - 'ts-jest'
+      dev-dependencies:
+        dependency-type: 'development'
+        exclude-patterns:
+          - 'jest*'
+          - 'express*'
+
+  # GitHub Actions
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+    commit-message:
+      prefix: 'ci(deps)'
+    labels:
+      - 'dependencies'
+      - 'ci'
+
+  # Docker
+  - package-ecosystem: 'docker'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+    commit-message:
+      prefix: 'chore(deps)'
+    labels:
+      - 'dependencies'
+      - 'docker'
+
+  - package-ecosystem: 'docker'
+    directory: '/saps-rfid-platform'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+    commit-message:
+      prefix: 'chore(deps)'
+    labels:
+      - 'dependencies'
+      - 'docker'

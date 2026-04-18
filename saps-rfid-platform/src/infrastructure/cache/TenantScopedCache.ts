@@ -1,8 +1,9 @@
 import { injectable, inject } from 'tsyringe';
-import type { Redis } from 'ioredis';
+
+import { TenantContext } from '../../application/context/TenantContext';
 
 import type { ILogger } from '../../application/interfaces/ILogger';
-import { TenantContext } from '../../application/context/TenantContext';
+import type { Redis } from 'ioredis';
 
 /**
  * Cache options
@@ -60,12 +61,7 @@ export class TenantScopedCache {
   /**
    * Sets a value in cache
    */
-  async set<T>(
-    category: string,
-    key: string,
-    value: T,
-    options: CacheOptions = {}
-  ): Promise<void> {
+  async set<T>(category: string, key: string, value: T, options: CacheOptions = {}): Promise<void> {
     const fullKey = this.buildKey(category, key, options.tenantScoped ?? true);
     const ttl = options.ttl ?? this.DEFAULT_TTL;
 
@@ -252,7 +248,11 @@ export class TenantScopedCache {
   /**
    * Gets all members of a set
    */
-  async getSetMembers(category: string, key: string, options: CacheOptions = {}): Promise<string[]> {
+  async getSetMembers(
+    category: string,
+    key: string,
+    options: CacheOptions = {}
+  ): Promise<string[]> {
     const fullKey = this.buildKey(category, key, options.tenantScoped ?? true);
 
     try {

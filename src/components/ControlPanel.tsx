@@ -14,7 +14,7 @@ export default function ControlPanel() {
     isPlaybackMode,
     setPlaybackMode,
     floorPlanMode,
-    setFloorPlanMode
+    setFloorPlanMode,
   } = useStore();
 
   return (
@@ -120,9 +120,7 @@ function ViewButton({ icon, label, active, onClick }: ViewButtonProps) {
     <button
       onClick={onClick}
       className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${
-        active
-          ? 'bg-blue-500 text-white'
-          : 'text-gray-400 hover:text-white hover:bg-gray-800'
+        active ? 'bg-blue-500 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'
       }`}
     >
       {icon}

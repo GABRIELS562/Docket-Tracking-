@@ -132,9 +132,7 @@ function DocketCard({ docket, onClick }: DocketCardProps) {
     >
       {/* Lab Number */}
       <div className="flex items-center justify-between mb-2">
-        <span className="font-mono font-bold text-white text-sm">
-          {docket.labNumber}
-        </span>
+        <span className="font-mono font-bold text-white text-sm">{docket.labNumber}</span>
         <span
           className={`px-2 py-0.5 rounded-full text-xs font-medium border ${
             statusColors[docket.status]
@@ -145,9 +143,7 @@ function DocketCard({ docket, onClick }: DocketCardProps) {
       </div>
 
       {/* Case Reference */}
-      <div className="text-xs text-gray-400 mb-2">
-        Case: {docket.caseReference}
-      </div>
+      <div className="text-xs text-gray-400 mb-2">Case: {docket.caseReference}</div>
 
       {/* Current Zone */}
       <div className="flex items-center gap-2 mb-2">
@@ -161,17 +157,13 @@ function DocketCard({ docket, onClick }: DocketCardProps) {
       {docket.lastSeenAt && (
         <div className="flex items-center gap-2">
           <Clock className="w-3 h-3 text-gray-500" />
-          <span className="text-xs text-gray-500">
-            {formatRelativeTime(docket.lastSeenAt)}
-          </span>
+          <span className="text-xs text-gray-500">{formatRelativeTime(docket.lastSeenAt)}</span>
         </div>
       )}
 
       {/* RFID EPC */}
       <div className="mt-2 pt-2 border-t border-gray-700">
-        <span className="text-xs font-mono text-gray-600">
-          {docket.rfidEpc}
-        </span>
+        <span className="text-xs font-mono text-gray-600">{docket.rfidEpc}</span>
       </div>
     </motion.button>
   );

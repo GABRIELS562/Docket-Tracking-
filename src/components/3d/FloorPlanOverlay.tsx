@@ -1,14 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useTexture } from '@react-three/drei';
-import { Zone } from '@/lib/api';
 import * as THREE from 'three';
 
 interface FloorPlanOverlayProps {
-  zones: Zone[];
   opacity?: number;
 }
 
-export default function FloorPlanOverlay({ zones, opacity = 0.7 }: FloorPlanOverlayProps) {
+export default function FloorPlanOverlay({ opacity = 0.7 }: FloorPlanOverlayProps) {
   const [texture, setTexture] = useState<THREE.Texture | null>(null);
 
   useEffect(() => {
@@ -22,7 +19,7 @@ export default function FloorPlanOverlay({ zones, opacity = 0.7 }: FloorPlanOver
         setTexture(loadedTexture);
       },
       undefined,
-      (error) => {
+      (_error) => {
         console.warn('Floor plan image not found at /floorplan.png. Using placeholder grid.');
         // Create a procedural grid texture as fallback
         const canvas = document.createElement('canvas');

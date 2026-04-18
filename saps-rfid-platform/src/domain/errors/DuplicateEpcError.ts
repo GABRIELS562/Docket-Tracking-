@@ -5,10 +5,6 @@ import { DomainError } from './DomainError';
  */
 export class DuplicateEpcError extends DomainError {
   constructor(epc: string) {
-    super(
-      `The RFID EPC "${epc}" is already assigned to another item`,
-      'DUPLICATE_EPC',
-      { epc }
-    );
+    super(`The RFID EPC "${epc}" is already assigned to another item`, 'DUPLICATE_EPC', { epc });
   }
 }

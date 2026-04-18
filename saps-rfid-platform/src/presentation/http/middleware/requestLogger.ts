@@ -1,5 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
-import { ILogger } from '../../../application/interfaces/ILogger';
+import type { ILogger } from '../../../application/interfaces/ILogger';
+import type { Request, Response, NextFunction } from 'express';
 
 /**
  * Request Logger middleware

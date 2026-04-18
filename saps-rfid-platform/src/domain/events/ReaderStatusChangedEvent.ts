@@ -102,14 +102,18 @@ export class ReaderStatusChangedEvent extends DomainEvent {
    * Checks if the reader went offline
    */
   wentOffline(): boolean {
-    return this.previousStatus !== ReaderStatus.OFFLINE && this.currentStatus === ReaderStatus.OFFLINE;
+    return (
+      this.previousStatus !== ReaderStatus.OFFLINE && this.currentStatus === ReaderStatus.OFFLINE
+    );
   }
 
   /**
    * Checks if the reader came online
    */
   cameOnline(): boolean {
-    return this.previousStatus !== ReaderStatus.ONLINE && this.currentStatus === ReaderStatus.ONLINE;
+    return (
+      this.previousStatus !== ReaderStatus.ONLINE && this.currentStatus === ReaderStatus.ONLINE
+    );
   }
 
   /**

@@ -1,7 +1,8 @@
-import type { Result } from 'neverthrow';
 import { ok, err } from 'neverthrow';
 
 import { InvalidIpAddressError } from '../errors/InvalidIpAddressError';
+
+import type { Result } from 'neverthrow';
 
 /**
  * Value Object for IPv4 addresses

@@ -78,9 +78,7 @@ export class ItemMarkedMissingEvent extends DomainEvent {
       lastSeenZoneId: this.lastSeenZoneId,
       lastSeenAt: this.lastSeenAt?.toISOString() ?? null,
       hoursSinceLastSeen: this.hoursSinceLastSeen,
-      daysSinceLastSeen: this.hoursSinceLastSeen
-        ? Math.floor(this.hoursSinceLastSeen / 24)
-        : null,
+      daysSinceLastSeen: this.hoursSinceLastSeen ? Math.floor(this.hoursSinceLastSeen / 24) : null,
     };
   }
 

@@ -10,10 +10,11 @@ export class TenantLimitExceededError extends DomainError {
     limit: number,
     current: number
   ) {
-    super(
-      `Tenant limit exceeded: ${resource} (${current}/${limit})`,
-      'TENANT_LIMIT_EXCEEDED',
-      { tenantId, resource, limit, current }
-    );
+    super(`Tenant limit exceeded: ${resource} (${current}/${limit})`, 'TENANT_LIMIT_EXCEEDED', {
+      tenantId,
+      resource,
+      limit,
+      current,
+    });
   }
 }

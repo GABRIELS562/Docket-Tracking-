@@ -1,5 +1,5 @@
-import { injectable } from 'tsyringe';
 import { Registry, Counter, Gauge, Histogram } from 'prom-client';
+import { injectable } from 'tsyringe';
 
 /**
  * Prometheus Metrics Collector
@@ -216,7 +216,7 @@ export class PrometheusMetrics {
    * Get metrics in Prometheus format
    */
   async getMetrics(): Promise<string> {
-    return this.registry.metrics();
+    return await this.registry.metrics();
   }
 
   /**

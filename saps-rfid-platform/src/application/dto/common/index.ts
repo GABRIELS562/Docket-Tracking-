@@ -6,11 +6,7 @@
  */
 
 // Pagination
-export type {
-  PaginationParams,
-  PaginationMeta,
-  PaginatedResponse,
-} from './PaginationDTO';
+export type { PaginationParams, PaginationMeta, PaginatedResponse } from './PaginationDTO';
 export { createPaginationMeta, createPaginatedResponse } from './PaginationDTO';
 
 // API Responses

@@ -243,9 +243,7 @@ export function BulkDocketImport() {
                 type="text"
                 placeholder="Lab Number (e.g., 12345/25)"
                 value={currentEntry?.labNumber || ''}
-                onChange={(e) =>
-                  setCurrentEntry({ ...currentEntry, labNumber: e.target.value })
-                }
+                onChange={(e) => setCurrentEntry({ ...currentEntry, labNumber: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
               />
 
@@ -253,9 +251,7 @@ export function BulkDocketImport() {
                 type="text"
                 placeholder="CAS Number (e.g., 25/34/25)"
                 value={currentEntry?.caseNumber || ''}
-                onChange={(e) =>
-                  setCurrentEntry({ ...currentEntry, caseNumber: e.target.value })
-                }
+                onChange={(e) => setCurrentEntry({ ...currentEntry, caseNumber: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
               />
 
@@ -263,9 +259,7 @@ export function BulkDocketImport() {
                 type="text"
                 placeholder="RFID Tag EPC (24 hex characters)"
                 value={currentEntry?.rfidEpc || ''}
-                onChange={(e) =>
-                  setCurrentEntry({ ...currentEntry, rfidEpc: e.target.value })
-                }
+                onChange={(e) => setCurrentEntry({ ...currentEntry, rfidEpc: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 maxLength={24}
               />
@@ -273,18 +267,14 @@ export function BulkDocketImport() {
               <textarea
                 placeholder="Description"
                 value={currentEntry?.description || ''}
-                onChange={(e) =>
-                  setCurrentEntry({ ...currentEntry, description: e.target.value })
-                }
+                onChange={(e) => setCurrentEntry({ ...currentEntry, description: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 rows={2}
               />
 
               <select
                 value={currentEntry?.category || 'other'}
-                onChange={(e) =>
-                  setCurrentEntry({ ...currentEntry, category: e.target.value })
-                }
+                onChange={(e) => setCurrentEntry({ ...currentEntry, category: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
               >
                 <option value="firearm">Firearm</option>
@@ -367,12 +357,8 @@ export function BulkDocketImport() {
                       <div className="font-medium text-sm">
                         {docket.labNumber} | {docket.caseNumber}
                       </div>
-                      <div className="text-xs text-gray-600 mt-1">
-                        RFID: {docket.rfidEpc}
-                      </div>
-                      <div className="text-xs text-gray-600">
-                        {docket.description}
-                      </div>
+                      <div className="text-xs text-gray-600 mt-1">RFID: {docket.rfidEpc}</div>
+                      <div className="text-xs text-gray-600">{docket.description}</div>
                       {docket.status === 'error' && docket.errorMessage && (
                         <div className="text-xs text-red-600 mt-1">
                           Error: {docket.errorMessage}

@@ -1,5 +1,5 @@
-import type { ILogger } from '../../application/interfaces/ILogger';
 import type { ParsedTagRead } from './TagProcessor';
+import type { ILogger } from '../../application/interfaces/ILogger';
 
 /**
  * Tag Deduplicator Statistics

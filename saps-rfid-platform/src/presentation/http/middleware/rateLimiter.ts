@@ -1,6 +1,7 @@
 import rateLimit from 'express-rate-limit';
-import type { Request, Response } from 'express';
+
 import type { AuthenticatedRequest } from './authMiddleware';
+import type { Request, Response } from 'express';
 
 /**
  * Subscription tier rate limit configuration
@@ -116,11 +117,14 @@ function getSubscriptionTier(req: Request): string {
  * @returns TierRateLimits for the specified tier
  */
 function getLimitsForTier(tier: string): TierRateLimits {
-  return TIER_RATE_LIMITS[tier] ?? TIER_RATE_LIMITS[DEFAULT_TIER] ?? {
-    requestsPerMinute: 30,
-    requestsPerHour: 1000,
-    burstLimit: 10,
-  };
+  return (
+    TIER_RATE_LIMITS[tier] ??
+    TIER_RATE_LIMITS[DEFAULT_TIER] ?? {
+      requestsPerMinute: 30,
+      requestsPerHour: 1000,
+      burstLimit: 10,
+    }
+  );
 }
 
 /**

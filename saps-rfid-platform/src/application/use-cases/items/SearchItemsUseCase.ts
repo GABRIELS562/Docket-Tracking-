@@ -1,12 +1,16 @@
-import { injectable, inject } from 'tsyringe';
 import { Result, ok, err } from 'neverthrow';
+import { injectable, inject } from 'tsyringe';
 
-import type { IItemRepository, ItemSearchCriteria } from '../../../domain/repositories/IItemRepository';
-import type { IZoneRepository } from '../../../domain/repositories/IZoneRepository';
-import type { ILogger } from '../../interfaces/ILogger';
-import type { ItemDTO, SearchItemsResponseDTO } from '../../dto/ItemDTO';
-import { ItemMapper } from '../../mappers/ItemMapper';
 import { ItemStatus } from '../../../domain/entities/Item';
+import { ItemMapper } from '../../mappers/ItemMapper';
+
+import type {
+  IItemRepository,
+  ItemSearchCriteria,
+} from '../../../domain/repositories/IItemRepository';
+import type { IZoneRepository } from '../../../domain/repositories/IZoneRepository';
+import type { ItemDTO, SearchItemsResponseDTO } from '../../dto/ItemDTO';
+import type { ILogger } from '../../interfaces/ILogger';
 
 /**
  * Input for searching items
@@ -26,7 +30,13 @@ export interface SearchItemsInput {
   /**
    * Filter by status
    */
-  readonly status?: 'registered' | 'in_transit' | 'in_processing' | 'archived' | 'disposed' | 'missing';
+  readonly status?:
+    | 'registered'
+    | 'in_transit'
+    | 'in_processing'
+    | 'archived'
+    | 'disposed'
+    | 'missing';
 
   /**
    * Filter by zone ID
@@ -162,10 +172,11 @@ export class SearchItemsUseCase {
       const { items, total, hasMore } = searchResult.value;
 
       // Step 4: Enrich with zone information
-      const zoneIds = [...new Set(items
-        .map(item => item.getCurrentZoneId())
-        .filter((id): id is string => id !== null)
-      )];
+      const zoneIds = [
+        ...new Set(
+          items.map((item) => item.getCurrentZoneId()).filter((id): id is string => id !== null)
+        ),
+      ];
 
       const zoneMap = new Map<string, { id: string; name: string; code: string }>();
 

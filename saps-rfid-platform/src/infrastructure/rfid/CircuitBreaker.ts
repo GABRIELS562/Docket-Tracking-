@@ -1,5 +1,7 @@
-import { Result, err } from 'neverthrow';
+import { err } from 'neverthrow';
+
 import type { ILogger } from '../../application/interfaces/ILogger';
+import type { Result } from 'neverthrow';
 
 /**
  * Circuit Breaker States
@@ -191,8 +193,7 @@ export class CircuitBreaker {
 
         return err(
           new Error(
-            `Circuit breaker open for ${this.name}. ` +
-              `Retry in ${Math.round(waitTimeMs / 1000)}s`
+            `Circuit breaker open for ${this.name}. ` + `Retry in ${Math.round(waitTimeMs / 1000)}s`
           )
         );
       }
@@ -382,8 +383,7 @@ export class CircuitBreaker {
       totalSuccesses: this.totalSuccesses,
       lastFailureTime: this.lastFailureTime || null,
       lastSuccessTime: this.lastSuccessTime || null,
-      nextAttemptTime:
-        this.state === CircuitState.OPEN ? this.nextAttemptTime : null,
+      nextAttemptTime: this.state === CircuitState.OPEN ? this.nextAttemptTime : null,
       openCount: this.openCount,
     };
   }

@@ -1,22 +1,13 @@
 import 'reflect-metadata';
 import { container } from 'tsyringe';
-import { config } from './config';
 
 // Interfaces
-import { ILogger } from './application/interfaces/ILogger';
-import { IEventBus } from './application/interfaces/IEventBus';
-import { IItemRepository } from './domain/repositories/IItemRepository';
-import { IZoneRepository } from './domain/repositories/IZoneRepository';
-import { IReaderRepository } from './domain/repositories/IReaderRepository';
-import { ILocationHistoryRepository } from './domain/repositories/ILocationHistoryRepository';
-import { ITenantRepository } from './domain/repositories/ITenantRepository';
-import { ITenantUserRepository } from './domain/repositories/ITenantUserRepository';
 
 // Infrastructure - Logging
+import { EventEmitterBus } from './infrastructure/events/EventEmitterBus';
 import { WinstonLogger } from './infrastructure/logging/WinstonLogger';
 
 // Infrastructure - Events
-import { EventEmitterBus } from './infrastructure/events/EventEmitterBus';
 
 // Infrastructure - Metrics
 import { PrometheusMetrics } from './infrastructure/metrics/PrometheusMetrics';
@@ -29,8 +20,8 @@ import { RedisClientFactory, getRedisConfig } from './infrastructure/redis/Redis
 
 // Infrastructure - RFID
 import { LLRPGateway } from './infrastructure/rfid/LLRPGateway';
-import { RFIDSimulator } from './infrastructure/rfid/RFIDSimulator';
 import { OptimizedEventPipeline } from './infrastructure/rfid/OptimizedEventPipeline';
+import { RFIDSimulator } from './infrastructure/rfid/RFIDSimulator';
 
 // Infrastructure - Analytics (Phase 5: Open3D)
 import { AnalyticsClient } from './infrastructure/analytics';
@@ -78,21 +69,31 @@ import {
 
 // Application Services - Tenants
 import { TenantProvisioningService } from './application/services/TenantProvisioningService';
+import { config } from './config';
+import type { IReaderRepository } from './domain/repositories/IReaderRepository';
+import type { IZoneRepository } from './domain/repositories/IZoneRepository';
 
 // Presentation - Middleware
-import { AuthMiddlewareFactory } from './presentation/http/middleware/authMiddleware';
 
 // Presentation - Controllers
-import { TenantController } from './presentation/http/controllers/TenantController';
-import { AuthController } from './presentation/http/controllers/AuthController';
 import { AnalyticsController } from './presentation/http/controllers/AnalyticsController';
+import { AuthController } from './presentation/http/controllers/AuthController';
 import { FlowAnalyticsController } from './presentation/http/controllers/FlowAnalyticsController';
 import { SpatialAnalyticsController } from './presentation/http/controllers/SpatialAnalyticsController';
+import { TenantController } from './presentation/http/controllers/TenantController';
+import { AuthMiddlewareFactory } from './presentation/http/middleware/authMiddleware';
 
 // Presentation
 import { Server } from './presentation/http/Server';
-import { SocketServer } from './presentation/websocket/SocketServer';
 import { ClusteredSocketServer } from './presentation/websocket/ClusteredSocketServer';
+import { SocketServer } from './presentation/websocket/SocketServer';
+
+import type { IEventBus } from './application/interfaces/IEventBus';
+import type { ILogger } from './application/interfaces/ILogger';
+import type { IItemRepository } from './domain/repositories/IItemRepository';
+import type { ILocationHistoryRepository } from './domain/repositories/ILocationHistoryRepository';
+import type { ITenantRepository } from './domain/repositories/ITenantRepository';
+import type { ITenantUserRepository } from './domain/repositories/ITenantUserRepository';
 
 /**
  * Dependency Injection Container Configuration
@@ -141,20 +142,11 @@ function registerInfrastructure(): void {
  */
 function registerRepositories(): void {
   // Item Repository
-  container.registerSingleton<IItemRepository>(
-    'IItemRepository',
-    PostgresItemRepository
-  );
+  container.registerSingleton<IItemRepository>('IItemRepository', PostgresItemRepository);
 
-  container.registerSingleton<IZoneRepository>(
-    'IZoneRepository',
-    PostgresZoneRepository
-  );
+  container.registerSingleton<IZoneRepository>('IZoneRepository', PostgresZoneRepository);
 
-  container.registerSingleton<IReaderRepository>(
-    'IReaderRepository',
-    PostgresReaderRepository
-  );
+  container.registerSingleton<IReaderRepository>('IReaderRepository', PostgresReaderRepository);
 
   container.registerSingleton<ILocationHistoryRepository>(
     'ILocationHistoryRepository',
@@ -162,10 +154,7 @@ function registerRepositories(): void {
   );
 
   // Tenant Repositories
-  container.registerSingleton<ITenantRepository>(
-    'ITenantRepository',
-    PostgresTenantRepository
-  );
+  container.registerSingleton<ITenantRepository>('ITenantRepository', PostgresTenantRepository);
 
   container.registerSingleton<ITenantUserRepository>(
     'ITenantUserRepository',
@@ -209,7 +198,8 @@ function registerUseCases(): void {
  */
 function registerTenantServices(): void {
   // JWT Configuration
-  const jwtSecret = config.jwt?.secret || process.env.JWT_SECRET || 'dev-jwt-secret-change-in-production';
+  const jwtSecret =
+    config.jwt?.secret || process.env.JWT_SECRET || 'dev-jwt-secret-change-in-production';
   container.register('JwtConfig', {
     useValue: {
       secret: jwtSecret,

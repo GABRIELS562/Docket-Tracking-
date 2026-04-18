@@ -1,10 +1,7 @@
-import { injectable, inject } from 'tsyringe';
 import { Result, ok, err } from 'neverthrow';
+import { injectable, inject } from 'tsyringe';
 import { v4 as uuidv4 } from 'uuid';
-import type { ILocationHistoryRepository } from '../../../domain/repositories/ILocationHistoryRepository';
-import type { IZoneRepository } from '../../../domain/repositories/IZoneRepository';
-import type { IItemRepository } from '../../../domain/repositories/IItemRepository';
-import type { ILogger } from '../../interfaces/ILogger';
+
 import {
   GetFlowAnomaliesInput,
   FlowAnomaliesDTO,
@@ -13,6 +10,11 @@ import {
   FlowAnomalyTrendDTO,
   FlowAnomalyType,
 } from '../../dto/AnalyticsDTO';
+
+import type { IItemRepository } from '../../../domain/repositories/IItemRepository';
+import type { ILocationHistoryRepository } from '../../../domain/repositories/ILocationHistoryRepository';
+import type { IZoneRepository } from '../../../domain/repositories/IZoneRepository';
+import type { ILogger } from '../../interfaces/ILogger';
 
 /**
  * Get Flow Anomalies Use Case
@@ -202,9 +204,7 @@ export class GetFlowAnomaliesUseCase {
     // Analyze each item's transitions
     for (const [itemId, itemTrans] of itemTransitions) {
       // Sort by timestamp
-      const sorted = [...itemTrans].sort(
-        (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
-      );
+      const sorted = [...itemTrans].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
       const itemNumber = itemNumbers.get(itemId) || itemId;
 
@@ -221,7 +221,8 @@ export class GetFlowAnomaliesUseCase {
               {
                 expectedBehavior: 'Normal transition time > 10 seconds',
                 actualBehavior: `Transition completed in ${t.transitionTimeSeconds} seconds`,
-                deviation: (this.RAPID_TRANSITION_THRESHOLD_SECONDS - t.transitionTimeSeconds) /
+                deviation:
+                  (this.RAPID_TRANSITION_THRESHOLD_SECONDS - t.transitionTimeSeconds) /
                   this.RAPID_TRANSITION_THRESHOLD_SECONDS,
               },
               t.toZoneId,
@@ -471,7 +472,7 @@ export class GetFlowAnomaliesUseCase {
       typeCounts.set(a.type, (typeCounts.get(a.type) || 0) + 1);
     }
 
-    const total = anomalies.length || 1;
+    const total = anomalies.length > 0 ? anomalies.length : 1;
     const result: FlowAnomalyByTypeDTO[] = [];
 
     for (const [type, count] of typeCounts) {
@@ -557,8 +558,6 @@ export class GetFlowAnomaliesUseCase {
       });
     }
 
-    return trends.sort(
-      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    );
+    return trends.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   }
 }

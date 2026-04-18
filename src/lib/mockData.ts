@@ -129,31 +129,158 @@ export const mockZones: Zone[] = [
 
 // Mock Readers - FSL-PAROW First Floor
 export const mockReaders: Reader[] = [
-  { readerId: 'READER-001', readerName: 'Office Accommodation - North', ipAddress: '192.168.1.101', zoneId: 1, status: 'online', lastSeenAt: new Date().toISOString() },
-  { readerId: 'READER-002', readerName: 'Office Accommodation - South', ipAddress: '192.168.1.102', zoneId: 1, status: 'online', lastSeenAt: new Date().toISOString() },
-  { readerId: 'READER-003', readerName: 'Exam Room 1 - Main', ipAddress: '192.168.1.103', zoneId: 2, status: 'online', lastSeenAt: new Date().toISOString() },
-  { readerId: 'READER-004', readerName: 'Exam Room 2 - Main', ipAddress: '192.168.1.104', zoneId: 3, status: 'online', lastSeenAt: new Date().toISOString() },
-  { readerId: 'READER-005', readerName: 'Exam Room 3 - Main', ipAddress: '192.168.1.105', zoneId: 4, status: 'online', lastSeenAt: new Date().toISOString() },
-  { readerId: 'READER-006', readerName: 'Exam Room 4 - Main', ipAddress: '192.168.1.106', zoneId: 5, status: 'offline', lastSeenAt: new Date(Date.now() - 300000).toISOString() },
-  { readerId: 'READER-007', readerName: 'E.I.M.S Center - West', ipAddress: '192.168.1.107', zoneId: 6, status: 'online', lastSeenAt: new Date().toISOString() },
-  { readerId: 'READER-008', readerName: 'E.I.M.S Center - Central', ipAddress: '192.168.1.108', zoneId: 6, status: 'online', lastSeenAt: new Date().toISOString() },
-  { readerId: 'READER-009', readerName: 'E.I.M.S Center - East', ipAddress: '192.168.1.109', zoneId: 6, status: 'online', lastSeenAt: new Date().toISOString() },
-  { readerId: 'READER-010', readerName: 'Admin Offices - Main', ipAddress: '192.168.1.110', zoneId: 7, status: 'online', lastSeenAt: new Date().toISOString() },
-  { readerId: 'READER-011', readerName: 'Support Services - Main', ipAddress: '192.168.1.111', zoneId: 8, status: 'online', lastSeenAt: new Date().toISOString() },
-  { readerId: 'READER-012', readerName: 'Main Stairwell', ipAddress: '192.168.1.112', zoneId: 9, status: 'online', lastSeenAt: new Date().toISOString() },
-  { readerId: 'READER-013', readerName: 'Auditorium - North', ipAddress: '192.168.1.113', zoneId: 10, status: 'online', lastSeenAt: new Date().toISOString() },
-  { readerId: 'READER-014', readerName: 'Auditorium - South', ipAddress: '192.168.1.114', zoneId: 10, status: 'online', lastSeenAt: new Date().toISOString() },
-  { readerId: 'READER-015', readerName: 'Main Entrance - Entry', ipAddress: '192.168.1.115', zoneId: 11, status: 'online', lastSeenAt: new Date().toISOString() },
-  { readerId: 'READER-016', readerName: 'Main Entrance - Exit', ipAddress: '192.168.1.116', zoneId: 11, status: 'online', lastSeenAt: new Date().toISOString() },
-  { readerId: 'READER-017', readerName: 'Evidence Storage - Main', ipAddress: '192.168.1.117', zoneId: 12, status: 'error', lastSeenAt: new Date().toISOString() },
+  {
+    readerId: 'READER-001',
+    readerName: 'Office Accommodation - North',
+    ipAddress: '192.168.1.101',
+    zoneId: 1,
+    status: 'online',
+    lastSeenAt: new Date().toISOString(),
+  },
+  {
+    readerId: 'READER-002',
+    readerName: 'Office Accommodation - South',
+    ipAddress: '192.168.1.102',
+    zoneId: 1,
+    status: 'online',
+    lastSeenAt: new Date().toISOString(),
+  },
+  {
+    readerId: 'READER-003',
+    readerName: 'Exam Room 1 - Main',
+    ipAddress: '192.168.1.103',
+    zoneId: 2,
+    status: 'online',
+    lastSeenAt: new Date().toISOString(),
+  },
+  {
+    readerId: 'READER-004',
+    readerName: 'Exam Room 2 - Main',
+    ipAddress: '192.168.1.104',
+    zoneId: 3,
+    status: 'online',
+    lastSeenAt: new Date().toISOString(),
+  },
+  {
+    readerId: 'READER-005',
+    readerName: 'Exam Room 3 - Main',
+    ipAddress: '192.168.1.105',
+    zoneId: 4,
+    status: 'online',
+    lastSeenAt: new Date().toISOString(),
+  },
+  {
+    readerId: 'READER-006',
+    readerName: 'Exam Room 4 - Main',
+    ipAddress: '192.168.1.106',
+    zoneId: 5,
+    status: 'offline',
+    lastSeenAt: new Date(Date.now() - 300000).toISOString(),
+  },
+  {
+    readerId: 'READER-007',
+    readerName: 'E.I.M.S Center - West',
+    ipAddress: '192.168.1.107',
+    zoneId: 6,
+    status: 'online',
+    lastSeenAt: new Date().toISOString(),
+  },
+  {
+    readerId: 'READER-008',
+    readerName: 'E.I.M.S Center - Central',
+    ipAddress: '192.168.1.108',
+    zoneId: 6,
+    status: 'online',
+    lastSeenAt: new Date().toISOString(),
+  },
+  {
+    readerId: 'READER-009',
+    readerName: 'E.I.M.S Center - East',
+    ipAddress: '192.168.1.109',
+    zoneId: 6,
+    status: 'online',
+    lastSeenAt: new Date().toISOString(),
+  },
+  {
+    readerId: 'READER-010',
+    readerName: 'Admin Offices - Main',
+    ipAddress: '192.168.1.110',
+    zoneId: 7,
+    status: 'online',
+    lastSeenAt: new Date().toISOString(),
+  },
+  {
+    readerId: 'READER-011',
+    readerName: 'Support Services - Main',
+    ipAddress: '192.168.1.111',
+    zoneId: 8,
+    status: 'online',
+    lastSeenAt: new Date().toISOString(),
+  },
+  {
+    readerId: 'READER-012',
+    readerName: 'Main Stairwell',
+    ipAddress: '192.168.1.112',
+    zoneId: 9,
+    status: 'online',
+    lastSeenAt: new Date().toISOString(),
+  },
+  {
+    readerId: 'READER-013',
+    readerName: 'Auditorium - North',
+    ipAddress: '192.168.1.113',
+    zoneId: 10,
+    status: 'online',
+    lastSeenAt: new Date().toISOString(),
+  },
+  {
+    readerId: 'READER-014',
+    readerName: 'Auditorium - South',
+    ipAddress: '192.168.1.114',
+    zoneId: 10,
+    status: 'online',
+    lastSeenAt: new Date().toISOString(),
+  },
+  {
+    readerId: 'READER-015',
+    readerName: 'Main Entrance - Entry',
+    ipAddress: '192.168.1.115',
+    zoneId: 11,
+    status: 'online',
+    lastSeenAt: new Date().toISOString(),
+  },
+  {
+    readerId: 'READER-016',
+    readerName: 'Main Entrance - Exit',
+    ipAddress: '192.168.1.116',
+    zoneId: 11,
+    status: 'online',
+    lastSeenAt: new Date().toISOString(),
+  },
+  {
+    readerId: 'READER-017',
+    readerName: 'Evidence Storage - Main',
+    ipAddress: '192.168.1.117',
+    zoneId: 12,
+    status: 'error',
+    lastSeenAt: new Date().toISOString(),
+  },
 ];
 
 // Generate Mock Dockets
 function generateMockDockets(count: number): Docket[] {
   const caseTypes = ['Murder', 'Robbery', 'Fraud', 'Assault', 'Theft', 'Arson'];
-  const statuses: ('active' | 'archived' | 'missing')[] = ['active', 'active', 'active', 'archived', 'missing'];
+  const statuses: ('active' | 'archived' | 'missing')[] = [
+    'active',
+    'active',
+    'active',
+    'archived',
+    'missing',
+  ];
   // Use labs, storage, and exam rooms for docket storage
-  const zones = mockZones.filter(z => z.zoneType === 'lab' || z.zoneType === 'storage' || z.zoneName.includes('Exam'));
+  const zones = mockZones.filter(
+    (z) => z.zoneType === 'lab' || z.zoneType === 'storage' || z.zoneName.includes('Exam')
+  );
 
   const dockets: Docket[] = [];
 
@@ -172,9 +299,10 @@ function generateMockDockets(count: number): Docket[] {
       rfidEpc,
       currentZone: status === 'active' ? { id: zone.zoneId, name: zone.zoneName } : null,
       status,
-      lastSeenAt: status === 'missing'
-        ? new Date(Date.now() - 2000000).toISOString()
-        : new Date(Date.now() - Math.random() * 3600000).toISOString(),
+      lastSeenAt:
+        status === 'missing'
+          ? new Date(Date.now() - 2000000).toISOString()
+          : new Date(Date.now() - Math.random() * 3600000).toISOString(),
       createdAt: new Date(Date.now() - Math.random() * 86400000 * 30).toISOString(),
     });
   }
@@ -199,7 +327,7 @@ export const mockOccupancyData: OccupancyData[] = Array.from({ length: 24 }, (_,
       'Exam Room 3': Math.floor(40 + Math.random() * 40),
       'Exam Room 4': Math.floor(40 + Math.random() * 40),
       'Evidence Storage': Math.floor(150 + Math.random() * 100),
-      'Auditorium': Math.floor(50 + Math.random() * 100),
+      Auditorium: Math.floor(50 + Math.random() * 100),
     },
   };
 });
@@ -234,8 +362,16 @@ export const mockReaderActivity: ReaderActivity[] = mockReaders.map((reader) => 
 // Simulated WebSocket Events
 export function simulateRealtimeUpdates(callbacks: {
   onZoneOccupancy?: (data: { zoneId: number; occupancy: number }) => void;
-  onReaderStatus?: (data: { readerId: string; status: 'online' | 'offline' | 'error' | 'connecting' }) => void;
-  onOverCapacity?: (data: { zoneId: number; zoneName: string; occupancy: number; capacity: number }) => void;
+  onReaderStatus?: (data: {
+    readerId: string;
+    status: 'online' | 'offline' | 'error' | 'connecting';
+  }) => void;
+  onOverCapacity?: (data: {
+    zoneId: number;
+    zoneName: string;
+    occupancy: number;
+    capacity: number;
+  }) => void;
 }) {
   // Simulate zone occupancy changes every 10 seconds
   const occupancyInterval = setInterval(() => {
@@ -259,7 +395,13 @@ export function simulateRealtimeUpdates(callbacks: {
   // Simulate reader status changes every 30 seconds
   const statusInterval = setInterval(() => {
     const reader = mockReaders[Math.floor(Math.random() * mockReaders.length)];
-    const statuses: ('online' | 'offline' | 'error')[] = ['online', 'online', 'online', 'offline', 'error'];
+    const statuses: ('online' | 'offline' | 'error')[] = [
+      'online',
+      'online',
+      'online',
+      'offline',
+      'error',
+    ];
     const newStatus = statuses[Math.floor(Math.random() * statuses.length)];
 
     callbacks.onReaderStatus?.({ readerId: reader.readerId, status: newStatus });

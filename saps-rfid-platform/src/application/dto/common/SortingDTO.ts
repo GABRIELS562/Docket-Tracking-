@@ -29,12 +29,7 @@ export interface SortParams<TField extends string = string> {
 /**
  * Common sortable fields for Item
  */
-export type ItemSortField =
-  | 'itemNumber'
-  | 'createdAt'
-  | 'lastSeenAt'
-  | 'referenceId'
-  | 'status';
+export type ItemSortField = 'itemNumber' | 'createdAt' | 'lastSeenAt' | 'referenceId' | 'status';
 
 /**
  * Common sortable fields for Zone
@@ -50,12 +45,7 @@ export type ZoneSortField =
 /**
  * Common sortable fields for Reader
  */
-export type ReaderSortField =
-  | 'name'
-  | 'status'
-  | 'lastConnectedAt'
-  | 'successRate'
-  | 'createdAt';
+export type ReaderSortField = 'name' | 'status' | 'lastConnectedAt' | 'successRate' | 'createdAt';
 
 /**
  * Validates sort field against allowed fields
@@ -64,10 +54,7 @@ export type ReaderSortField =
  * @param allowedFields - Array of allowed fields
  * @returns Whether field is allowed
  */
-export function isValidSortField(
-  field: string | undefined,
-  allowedFields: string[]
-): boolean {
+export function isValidSortField(field: string | undefined, allowedFields: string[]): boolean {
   return !field || allowedFields.includes(field);
 }
 

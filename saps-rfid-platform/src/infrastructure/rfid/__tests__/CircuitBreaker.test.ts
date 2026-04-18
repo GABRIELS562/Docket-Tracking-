@@ -1,4 +1,3 @@
-
 import { CircuitBreaker, CircuitState } from '../CircuitBreaker';
 import { ok, err } from 'neverthrow';
 import type { ILogger } from '../../../application/interfaces/ILogger';

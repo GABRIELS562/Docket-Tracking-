@@ -1,5 +1,6 @@
 import Redis from 'ioredis';
 import { injectable, inject } from 'tsyringe';
+
 import type { ILogger } from '../../application/interfaces/ILogger';
 
 /**

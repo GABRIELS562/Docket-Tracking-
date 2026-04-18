@@ -1,4 +1,3 @@
-
 import { LLRPReaderConnection } from '../LLRPReaderConnection';
 import type { Reader } from '../../../domain/entities/Reader';
 import type { IEventBus } from '../../../application/interfaces/IEventBus';
@@ -144,10 +143,7 @@ describe('LLRPReaderConnection', () => {
       const result = await connection.connect();
 
       expect(result.isOk()).toBe(true);
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        'Already connected',
-        expect.any(Object)
-      );
+      expect(mockLogger.debug).toHaveBeenCalledWith('Already connected', expect.any(Object));
     });
 
     it('should disconnect gracefully', async () => {
@@ -253,10 +249,7 @@ describe('LLRPReaderConnection', () => {
       const result = await connection.startReading();
 
       expect(result.isOk()).toBe(true);
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        'Already reading',
-        expect.any(Object)
-      );
+      expect(mockLogger.debug).toHaveBeenCalledWith('Already reading', expect.any(Object));
     });
 
     it('should stop reading successfully', async () => {

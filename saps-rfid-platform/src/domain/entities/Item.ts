@@ -1,9 +1,9 @@
-import type { Result } from 'neverthrow';
 import { ok, err } from 'neverthrow';
 
 import type { ItemNumber } from '../value-objects/ItemNumber';
-import type { RfidEpc } from '../value-objects/RfidEpc';
 import type { ReferenceId } from '../value-objects/ReferenceId';
+import type { RfidEpc } from '../value-objects/RfidEpc';
+import type { Result } from 'neverthrow';
 
 /**
  * Item status enumeration
@@ -128,7 +128,6 @@ export class Item {
     receivedBy?: string;
     metadata?: Record<string, unknown>;
   }): Result<Item, Error> {
-
     // Validate description
     if (params.description.trim().length === 0) {
       return err(new Error('Description cannot be empty'));
@@ -476,8 +475,7 @@ export class Item {
       return false;
     }
 
-    const hoursSinceLastSeen =
-      (Date.now() - this.props.lastSeenAt.getTime()) / (1000 * 60 * 60);
+    const hoursSinceLastSeen = (Date.now() - this.props.lastSeenAt.getTime()) / (1000 * 60 * 60);
 
     return hoursSinceLastSeen > thresholdHours;
   }

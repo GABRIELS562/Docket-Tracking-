@@ -1,15 +1,17 @@
-import { injectable, inject } from 'tsyringe';
 import { Result, ok, err } from 'neverthrow';
+import { injectable, inject } from 'tsyringe';
+
+import { Zone, ZoneType } from '../../../domain/entities/Zone';
+import { ZoneNotFoundError } from '../../../domain/errors/ZoneNotFoundError';
+import { BaseRepository } from '../BaseRepository';
+
+import type { ILogger } from '../../../application/interfaces/ILogger';
 import type {
   IZoneRepository,
   ZoneOccupancyInfo,
   ZoneSearchCriteria,
 } from '../../../domain/repositories/IZoneRepository';
-import { Zone, ZoneType } from '../../../domain/entities/Zone';
-import { ZoneNotFoundError } from '../../../domain/errors/ZoneNotFoundError';
-import { BaseRepository } from '../BaseRepository';
 import type { PostgresConnection } from '../PostgresConnection';
-import type { ILogger } from '../../../application/interfaces/ILogger';
 
 /**
  * Database row interface
@@ -466,7 +468,7 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
       }
 
       // Zone type filter
-      if (criteria.zoneType) {
+      if (criteria.zoneType != null) {
         conditions.push(`z.zone_type = $${paramIndex}`);
         params.push(criteria.zoneType);
         paramIndex++;
@@ -699,8 +701,7 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
 
     const infos: ZoneOccupancyInfo[] = result.value.map((row) => {
       const currentOccupancy = parseInt(row.current_occupancy, 10);
-      const occupancyPercentage =
-        row.capacity > 0 ? (currentOccupancy / row.capacity) * 100 : 0;
+      const occupancyPercentage = row.capacity > 0 ? (currentOccupancy / row.capacity) * 100 : 0;
 
       let occupancyStatus: 'normal' | 'warning' | 'critical' | 'full' = 'normal';
       if (currentOccupancy >= row.capacity) {
@@ -853,7 +854,10 @@ export class PostgresZoneRepository extends BaseRepository implements IZoneRepos
       ) as exists
     `;
 
-    const result = await this.executeQueryOne<{ exists: boolean }>(sql, [code.toUpperCase(), tenantId]);
+    const result = await this.executeQueryOne<{ exists: boolean }>(sql, [
+      code.toUpperCase(),
+      tenantId,
+    ]);
 
     if (result.isErr()) {
       return err(result.error);

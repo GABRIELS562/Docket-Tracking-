@@ -1,17 +1,19 @@
-import { injectable, inject } from 'tsyringe';
 import { Result, ok, err } from 'neverthrow';
-import type { ILocationHistoryRepository } from '../../../domain/repositories/ILocationHistoryRepository';
-import type { IZoneRepository } from '../../../domain/repositories/IZoneRepository';
-import type { IReaderRepository } from '../../../domain/repositories/IReaderRepository';
+import { injectable, inject } from 'tsyringe';
+
+import { ReaderStatus } from '../../../domain/entities/Reader';
+
 import type { IItemRepository } from '../../../domain/repositories/IItemRepository';
-import type { ILogger } from '../../interfaces/ILogger';
+import type { ILocationHistoryRepository } from '../../../domain/repositories/ILocationHistoryRepository';
+import type { IReaderRepository } from '../../../domain/repositories/IReaderRepository';
+import type { IZoneRepository } from '../../../domain/repositories/IZoneRepository';
 import type {
   DashboardMetricsDTO,
   ZoneOccupancyDTO,
   ReaderHealthSummaryDTO,
   ActivityTimelineDTO,
 } from '../../dto/AnalyticsDTO';
-import { ReaderStatus } from '../../../domain/entities/Reader';
+import type { ILogger } from '../../interfaces/ILogger';
 
 /**
  * Input for dashboard analytics
@@ -46,9 +48,7 @@ export class GetDashboardAnalyticsUseCase {
     private logger: ILogger
   ) {}
 
-  async execute(
-    input: GetDashboardInput
-  ): Promise<Result<DashboardMetricsDTO, Error>> {
+  async execute(input: GetDashboardInput): Promise<Result<DashboardMetricsDTO, Error>> {
     const { tenantId, hours = 24 } = input;
 
     this.logger.info('Getting dashboard analytics', { tenantId, hours });
@@ -116,9 +116,7 @@ export class GetDashboardAnalyticsUseCase {
         tenantId,
         error: error instanceof Error ? error.message : String(error),
       });
-      return err(
-        error instanceof Error ? error : new Error('Failed to get dashboard analytics')
-      );
+      return err(error instanceof Error ? error : new Error('Failed to get dashboard analytics'));
     }
   }
 
@@ -179,7 +177,7 @@ export class GetDashboardAnalyticsUseCase {
     startDate: Date,
     endDate: Date
   ): Promise<Result<PeriodStats, Error>> {
-    return this.getCurrentPeriodStats(tenantId, startDate, endDate);
+    return await this.getCurrentPeriodStats(tenantId, startDate, endDate);
   }
 
   private calculateComparison(
@@ -208,9 +206,7 @@ export class GetDashboardAnalyticsUseCase {
     };
   }
 
-  private async getZoneOccupancy(
-    tenantId: string
-  ): Promise<Result<ZoneOccupancyDTO[], Error>> {
+  private async getZoneOccupancy(tenantId: string): Promise<Result<ZoneOccupancyDTO[], Error>> {
     const zonesResult = await this.zoneRepo.getAllOccupancyInfo(tenantId);
 
     if (zonesResult.isErr()) {
@@ -230,9 +226,7 @@ export class GetDashboardAnalyticsUseCase {
     return ok(occupancy);
   }
 
-  private async getReaderHealth(
-    tenantId: string
-  ): Promise<Result<ReaderHealthSummaryDTO, Error>> {
+  private async getReaderHealth(tenantId: string): Promise<Result<ReaderHealthSummaryDTO, Error>> {
     const readersResult = await this.readerRepo.findAll(tenantId);
 
     if (readersResult.isErr()) {
@@ -307,7 +301,7 @@ export class GetDashboardAnalyticsUseCase {
         for (const entry of historyResult.value) {
           activities.push({
             timestamp: entry.time.toISOString(),
-            eventType: entry.eventType as ActivityTimelineDTO['eventType'],
+            eventType: entry.eventType,
             itemNumber: entry.itemNumber,
             zoneName: entry.zoneName || 'Unknown',
             readerName: entry.readerName || 'Unknown',

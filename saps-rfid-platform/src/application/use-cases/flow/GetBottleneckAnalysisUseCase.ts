@@ -1,8 +1,6 @@
-import { injectable, inject } from 'tsyringe';
 import { Result, ok, err } from 'neverthrow';
-import type { ILocationHistoryRepository } from '../../../domain/repositories/ILocationHistoryRepository';
-import type { IZoneRepository } from '../../../domain/repositories/IZoneRepository';
-import type { ILogger } from '../../interfaces/ILogger';
+import { injectable, inject } from 'tsyringe';
+
 import {
   GetBottleneckAnalysisInput,
   BottleneckAnalysisDTO,
@@ -10,6 +8,10 @@ import {
   CongestionTimelineDTO,
   BottleneckRecommendationDTO,
 } from '../../dto/AnalyticsDTO';
+
+import type { ILocationHistoryRepository } from '../../../domain/repositories/ILocationHistoryRepository';
+import type { IZoneRepository } from '../../../domain/repositories/IZoneRepository';
+import type { ILogger } from '../../interfaces/ILogger';
 
 /**
  * Get Bottleneck Analysis Use Case
@@ -167,8 +169,7 @@ export class GetBottleneckAnalysisUseCase {
 
       // Calculate throughput reduction (compared to ideal)
       const idealThroughput = stats.entryCount;
-      const throughputReduction =
-        idealThroughput > 0 ? 1 - stats.exitCount / idealThroughput : 0;
+      const throughputReduction = idealThroughput > 0 ? 1 - stats.exitCount / idealThroughput : 0;
 
       // Determine if this is a bottleneck
       const isHighDwell = stats.avgDwellMinutes > dwellThreshold;

@@ -1,7 +1,10 @@
-import { Result, err } from 'neverthrow';
+import { err } from 'neverthrow';
+
 import { Reader, ReaderStatus } from '../../domain/entities/Reader';
 import { IpAddress } from '../../domain/value-objects/IpAddress';
+
 import type { ReaderDTO, CreateReaderDTO } from '../dto/ReaderDTO';
+import type { Result } from 'neverthrow';
 
 /**
  * Reader Mapper

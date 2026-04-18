@@ -316,9 +316,7 @@ export function DocketRegistration() {
               type="submit"
               disabled={isSubmitting}
               className={`w-full px-4 py-3 rounded-lg text-white font-semibold ${
-                isSubmitting
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-green-600 hover:bg-green-700'
+                isSubmitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
               }`}
             >
               {isSubmitting ? 'Registering...' : 'Register Docket'}

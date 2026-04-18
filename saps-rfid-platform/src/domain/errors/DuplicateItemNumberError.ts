@@ -5,10 +5,6 @@ import { DomainError } from './DomainError';
  */
 export class DuplicateItemNumberError extends DomainError {
   constructor(itemNumber: string) {
-    super(
-      `Item number "${itemNumber}" is already in use`,
-      'DUPLICATE_ITEM_NUMBER',
-      { itemNumber }
-    );
+    super(`Item number "${itemNumber}" is already in use`, 'DUPLICATE_ITEM_NUMBER', { itemNumber });
   }
 }

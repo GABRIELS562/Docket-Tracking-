@@ -1,5 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
 import { randomUUID } from 'crypto';
+
+import type { Request, Response, NextFunction } from 'express';
 
 /**
  * Correlation ID middleware
@@ -11,11 +12,7 @@ import { randomUUID } from 'crypto';
  * - Generates UUID if not provided
  * - Sets response header for client tracking
  */
-export const correlationId = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
+export const correlationId = (req: Request, res: Response, next: NextFunction): void => {
   const requestId = (req.headers['x-request-id'] as string) || randomUUID();
   req.headers['x-request-id'] = requestId;
   res.setHeader('X-Request-ID', requestId);

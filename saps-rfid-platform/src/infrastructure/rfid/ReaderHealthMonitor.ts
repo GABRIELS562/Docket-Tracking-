@@ -1,7 +1,8 @@
+import { ReaderStatus } from '../../domain/entities/Reader';
+
+import type { ReaderConnectionPool } from './ReaderConnectionPool';
 import type { ILogger } from '../../application/interfaces/ILogger';
 import type { IReaderRepository } from '../../domain/repositories/IReaderRepository';
-import type { ReaderConnectionPool } from './ReaderConnectionPool';
-import { ReaderStatus } from '../../domain/entities/Reader';
 
 /**
  * Health Monitor Configuration
@@ -409,7 +410,7 @@ export class ReaderHealthMonitor {
    */
   async forceCheck(): Promise<HealthCheckResult> {
     this.logger.info('Forcing immediate health check');
-    return this.performHealthCheck();
+    return await this.performHealthCheck();
   }
 
   /**

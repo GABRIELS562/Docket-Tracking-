@@ -37,12 +37,9 @@ export { GetItemHistoryUseCase } from './GetItemHistoryUseCase';
 export type {
   GetItemHistoryInput,
   GetItemHistoryOutput,
-  ItemHistoryEntryDTO
+  ItemHistoryEntryDTO,
 } from './GetItemHistoryUseCase';
 
 // Zone Items
 export { GetZoneItemsUseCase } from './GetZoneItemsUseCase';
-export type {
-  GetZoneItemsInput,
-  GetZoneItemsOutput
-} from './GetZoneItemsUseCase';
+export type { GetZoneItemsInput, GetZoneItemsOutput } from './GetZoneItemsUseCase';

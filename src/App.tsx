@@ -41,7 +41,7 @@ export default function App() {
     isNotificationHistoryOpen,
     setNotificationHistoryOpen,
     isDemoMode,
-    docketLimit
+    docketLimit,
   } = useStore();
 
   const {
@@ -80,7 +80,7 @@ export default function App() {
   // Select data source based on mode
   const zones = isDemoMode ? mockZones : apiZones;
   const readers = isDemoMode ? mockReaders : apiReaders;
-  const allDockets = isDemoMode ? mockDockets : (apiDocketsData?.data || []);
+  const allDockets = isDemoMode ? mockDockets : apiDocketsData?.data || [];
 
   // Apply docket limit for 3D view performance
   const dockets = allDockets.slice(0, docketLimit);
@@ -140,7 +140,10 @@ export default function App() {
 
     // Subscribe to zones
     if (zones.length > 0) {
-      socket.emit('subscribe:zones', zones.map(z => z.zoneId));
+      socket.emit(
+        'subscribe:zones',
+        zones.map((z) => z.zoneId)
+      );
     }
 
     // Subscribe to readers
@@ -152,60 +155,76 @@ export default function App() {
     });
 
     // Listen for reader status updates
-    socket.on('reader:status', (data: { readerId: string; status: 'online' | 'offline' | 'error' | 'connecting' }) => {
-      console.log('Reader status update:', data);
-      updateReaderStatus(data.readerId, data.status);
-    });
+    socket.on(
+      'reader:status',
+      (data: { readerId: string; status: 'online' | 'offline' | 'error' | 'connecting' }) => {
+        console.log('Reader status update:', data);
+        updateReaderStatus(data.readerId, data.status);
+      }
+    );
 
     // Listen for zone overcapacity alerts
-    socket.on('zone:overcapacity', (data: { zoneId: number; zoneName: string; occupancy: number; capacity: number }) => {
-      error(
-        'Zone Over Capacity',
-        `${data.zoneName} has exceeded capacity (${data.occupancy}/${data.capacity})`,
-        {
-          zoneId: data.zoneId,
-          occupancy: data.occupancy,
-          capacity: data.capacity,
-        }
-      );
-    });
+    socket.on(
+      'zone:overcapacity',
+      (data: { zoneId: number; zoneName: string; occupancy: number; capacity: number }) => {
+        error(
+          'Zone Over Capacity',
+          `${data.zoneName} has exceeded capacity (${data.occupancy}/${data.capacity})`,
+          {
+            zoneId: data.zoneId,
+            occupancy: data.occupancy,
+            capacity: data.capacity,
+          }
+        );
+      }
+    );
 
     // Listen for reader offline alerts
-    socket.on('reader:offline', (data: { readerId: string; readerName: string; lastSeen: string }) => {
-      warning(
-        'Reader Offline',
-        `${data.readerName} (${data.readerId}) has gone offline`,
-        {
+    socket.on(
+      'reader:offline',
+      (data: { readerId: string; readerName: string; lastSeen: string }) => {
+        warning('Reader Offline', `${data.readerName} (${data.readerId}) has gone offline`, {
           readerId: data.readerId,
           lastSeen: data.lastSeen,
-        }
-      );
-    });
+        });
+      }
+    );
 
     // Listen for missing docket alerts
-    socket.on('docket:missing', (data: { labNumber: string; caseReference: string; lastSeenAt: string; lastZone: string }) => {
-      warning(
-        'Docket Missing',
-        `${data.labNumber} (${data.caseReference}) not seen in 30 minutes`,
-        {
-          labNumber: data.labNumber,
-          lastZone: data.lastZone,
-          lastSeenAt: data.lastSeenAt,
-        }
-      );
-    });
+    socket.on(
+      'docket:missing',
+      (data: {
+        labNumber: string;
+        caseReference: string;
+        lastSeenAt: string;
+        lastZone: string;
+      }) => {
+        warning(
+          'Docket Missing',
+          `${data.labNumber} (${data.caseReference}) not seen in 30 minutes`,
+          {
+            labNumber: data.labNumber,
+            lastZone: data.lastZone,
+            lastSeenAt: data.lastSeenAt,
+          }
+        );
+      }
+    );
 
     // Listen for new docket registration
-    socket.on('docket:registered', (data: { labNumber: string; caseReference: string; rfidEpc: string }) => {
-      success(
-        'New Docket Registered',
-        `${data.labNumber} (${data.caseReference}) has been registered`,
-        {
-          labNumber: data.labNumber,
-          rfidEpc: data.rfidEpc,
-        }
-      );
-    });
+    socket.on(
+      'docket:registered',
+      (data: { labNumber: string; caseReference: string; rfidEpc: string }) => {
+        success(
+          'New Docket Registered',
+          `${data.labNumber} (${data.caseReference}) has been registered`,
+          {
+            labNumber: data.labNumber,
+            rfidEpc: data.rfidEpc,
+          }
+        );
+      }
+    );
 
     return () => {
       socket.off('connect');
@@ -217,7 +236,17 @@ export default function App() {
       socket.off('docket:missing');
       socket.off('docket:registered');
     };
-  }, [zones, setIsConnected, updateZoneOccupancy, updateReaderStatus, success, error, warning, info, isDemoMode]);
+  }, [
+    zones,
+    setIsConnected,
+    updateZoneOccupancy,
+    updateReaderStatus,
+    success,
+    error,
+    warning,
+    info,
+    isDemoMode,
+  ]);
 
   return (
     <BrowserRouter>

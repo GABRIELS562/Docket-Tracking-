@@ -1,11 +1,13 @@
 import { Response } from 'express';
 import { injectable, inject } from 'tsyringe';
-import type { ILogger } from '../../../application/interfaces/ILogger';
-import type { AuthenticatedRequest } from '../middleware/authMiddleware';
+
 import { GetDashboardAnalyticsUseCase } from '../../../application/use-cases/analytics/GetDashboardAnalyticsUseCase';
-import { GetZoneAnalyticsUseCase } from '../../../application/use-cases/analytics/GetZoneAnalyticsUseCase';
 import { GetReaderAnalyticsUseCase } from '../../../application/use-cases/analytics/GetReaderAnalyticsUseCase';
 import { GetSystemMetricsUseCase } from '../../../application/use-cases/analytics/GetSystemMetricsUseCase';
+import { GetZoneAnalyticsUseCase } from '../../../application/use-cases/analytics/GetZoneAnalyticsUseCase';
+
+import type { ILogger } from '../../../application/interfaces/ILogger';
+import type { AuthenticatedRequest } from '../middleware/authMiddleware';
 
 /**
  * Analytics Controller
@@ -111,9 +113,7 @@ export class AnalyticsController {
     const startDate = req.query.startDate
       ? new Date(req.query.startDate as string)
       : new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const endDate = req.query.endDate
-      ? new Date(req.query.endDate as string)
-      : new Date();
+    const endDate = req.query.endDate ? new Date(req.query.endDate as string) : new Date();
     const granularity = (req.query.granularity as 'hour' | 'day' | 'week') || 'hour';
 
     this.logger.debug('Zone analytics request', {
@@ -181,9 +181,7 @@ export class AnalyticsController {
     const startDate = req.query.startDate
       ? new Date(req.query.startDate as string)
       : new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const endDate = req.query.endDate
-      ? new Date(req.query.endDate as string)
-      : new Date();
+    const endDate = req.query.endDate ? new Date(req.query.endDate as string) : new Date();
     const granularity = (req.query.granularity as 'hour' | 'day') || 'hour';
 
     this.logger.debug('Reader analytics request', {
@@ -310,9 +308,7 @@ export class AnalyticsController {
     const startDate = req.query.startDate
       ? new Date(req.query.startDate as string)
       : new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const endDate = req.query.endDate
-      ? new Date(req.query.endDate as string)
-      : new Date();
+    const endDate = req.query.endDate ? new Date(req.query.endDate as string) : new Date();
 
     if (!type || !['dashboard', 'zones', 'readers', 'system'].includes(type)) {
       res.status(400).json({
@@ -426,9 +422,7 @@ export class AnalyticsController {
     if (Array.isArray(data)) {
       if (data.length === 0) return '';
       const headers = Object.keys(data[0]);
-      const rows = data.map((item) =>
-        headers.map((h) => this.escapeCSV(item[h])).join(',')
-      );
+      const rows = data.map((item) => headers.map((h) => this.escapeCSV(item[h])).join(','));
       return [headers.join(','), ...rows].join('\n');
     }
 
@@ -439,10 +433,7 @@ export class AnalyticsController {
     return [headers.join(','), values.join(',')].join('\n');
   }
 
-  private flattenObject(
-    obj: Record<string, unknown>,
-    prefix = ''
-  ): Record<string, unknown> {
+  private flattenObject(obj: Record<string, unknown>, prefix = ''): Record<string, unknown> {
     const result: Record<string, unknown> = {};
 
     for (const [key, value] of Object.entries(obj)) {

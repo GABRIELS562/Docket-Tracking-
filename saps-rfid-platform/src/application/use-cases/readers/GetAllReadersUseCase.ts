@@ -1,8 +1,9 @@
-import { injectable, inject } from 'tsyringe';
 import { Result, ok, err } from 'neverthrow';
+import { injectable, inject } from 'tsyringe';
+
+import type { Reader } from '../../../domain/entities/Reader';
 import type { IReaderRepository } from '../../../domain/repositories/IReaderRepository';
 import type { ILogger } from '../../interfaces/ILogger';
-import type { Reader } from '../../../domain/entities/Reader';
 
 /**
  * Input for getting all readers

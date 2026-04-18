@@ -1,9 +1,18 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+} from 'recharts';
 
 interface ReaderActivity {
   readerId: string;
   reads: number;
-  status: 'online' | 'offline' | 'error';
+  status: 'online' | 'offline' | 'error' | 'connecting';
 }
 
 interface Props {
@@ -13,9 +22,7 @@ interface Props {
 export default function ReaderActivityChart({ data }: Props) {
   if (!data || data.length === 0) {
     return (
-      <div className="h-80 flex items-center justify-center text-gray-500">
-        No data available
-      </div>
+      <div className="h-80 flex items-center justify-center text-gray-500">No data available</div>
     );
   }
 
@@ -27,6 +34,8 @@ export default function ReaderActivityChart({ data }: Props) {
         return '#6b7280'; // Gray
       case 'error':
         return '#ef4444'; // Red
+      case 'connecting':
+        return '#f59e0b'; // Amber
       default:
         return '#3b82f6'; // Blue
     }

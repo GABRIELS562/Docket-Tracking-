@@ -1,7 +1,6 @@
-import type { Result } from 'neverthrow';
-
 import type { Zone, ZoneType } from '../entities/Zone';
 import type { ZoneNotFoundError } from '../errors/ZoneNotFoundError';
+import type { Result } from 'neverthrow';
 
 /**
  * Zone occupancy information

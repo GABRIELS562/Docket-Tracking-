@@ -1,6 +1,9 @@
-import { Request, Response, NextFunction } from 'express';
-import { ZodSchema, ZodError } from 'zod';
+import { ZodError } from 'zod';
+
 import { ValidationError } from '../../../shared/errors/ValidationError';
+
+import type { Request, Response, NextFunction } from 'express';
+import type { ZodSchema } from 'zod';
 
 /**
  * Request Validation middleware

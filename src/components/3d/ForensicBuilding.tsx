@@ -8,32 +8,32 @@ import { getZoneColor } from '@/lib/utils';
 // FSL-PAROW First Floor Layout - Based on ACTUAL architectural drawing
 const ZONE_POSITIONS: Record<number, [number, number, number]> = {
   // FAR LEFT - Large Office Accommodation
-  1: [-32, 0.5, 0],     // Office Accommodation (large space)
+  1: [-32, 0.5, 0], // Office Accommodation (large space)
 
   // TOP CURVED SECTION - 4 Small Exam Rooms along the curve
-  2: [-16, 0.5, 24],    // Exam Room 1 (left side of curve)
-  3: [-6, 0.5, 26],     // Exam Room 2 (left-center of curve)
-  4: [6, 0.5, 26],      // Exam Room 3 (right-center of curve)
-  5: [16, 0.5, 24],     // Exam Room 4 (right side of curve)
+  2: [-16, 0.5, 24], // Exam Room 1 (left side of curve)
+  3: [-6, 0.5, 26], // Exam Room 2 (left-center of curve)
+  4: [6, 0.5, 26], // Exam Room 3 (right-center of curve)
+  5: [16, 0.5, 24], // Exam Room 4 (right side of curve)
 
   // CENTER - Large E.I.M.S Area (Evidence Information Management System)
-  6: [0, 0.5, 3],       // E.I.M.S Center (large central space)
+  6: [0, 0.5, 3], // E.I.M.S Center (large central space)
 
   // RIGHT SIDE - Offices and Support
-  7: [30, 0.5, 12],     // Admin Offices
-  8: [30, 0.5, 3],      // Support Services
+  7: [30, 0.5, 12], // Admin Offices
+  8: [30, 0.5, 3], // Support Services
 
   // STAIRWELL - Central Left
-  9: [-10, 0.5, 0],     // Main Stairwell
+  9: [-10, 0.5, 0], // Main Stairwell
 
   // BOTTOM CURVED SECTION - Auditorium
-  10: [0, 0.5, -20],    // Auditorium (bottom curved area)
+  10: [0, 0.5, -20], // Auditorium (bottom curved area)
 
   // BOTTOM CENTER - Entrance
-  11: [0, 0.5, -26],    // Main Entrance
+  11: [0, 0.5, -26], // Main Entrance
 
   // STORAGE - Right Side
-  12: [28, 0.5, -8],    // Evidence Storage
+  12: [28, 0.5, -8], // Evidence Storage
 };
 
 interface Props {
@@ -115,18 +115,9 @@ function CurvedWall() {
         const z = Math.cos(angle) * radius;
 
         return (
-          <mesh
-            key={i}
-            position={[x, 0, z - radius]}
-            rotation={[0, -angle, 0]}
-            castShadow
-          >
+          <mesh key={i} position={[x, 0, z - radius]} rotation={[0, -angle, 0]} castShadow>
             <boxGeometry args={[2, 3, 0.3]} />
-            <meshStandardMaterial
-              color="#1e293b"
-              emissive="#3b82f6"
-              emissiveIntensity={0.05}
-            />
+            <meshStandardMaterial color="#1e293b" emissive="#3b82f6" emissiveIntensity={0.05} />
           </mesh>
         );
       })}
@@ -159,13 +150,13 @@ function LabBlock({ zone, position, color, isSelected, onClick }: LabBlockProps)
       case 'storage':
         return [10, height, 8]; // Larger for storage
       case 'office':
-        return [6, height, 6];  // Smaller for offices
+        return [6, height, 6]; // Smaller for offices
       case 'corridor':
-        return [8, 0.8, 8];     // Flat for corridors
+        return [8, 0.8, 8]; // Flat for corridors
       case 'entrance':
         return [7, height, 7];
       default:
-        return [8, height, 8];  // Labs
+        return [8, height, 8]; // Labs
     }
   };
 
@@ -222,11 +213,7 @@ function LabBlock({ zone, position, color, isSelected, onClick }: LabBlockProps)
       {zone.currentOccupancy / zone.capacity > 0.9 && (
         <mesh position={[0, boxHeight / 2 + 2.5, 0]}>
           <sphereGeometry args={[0.3, 16, 16]} />
-          <meshStandardMaterial
-            color="#ef4444"
-            emissive="#ef4444"
-            emissiveIntensity={0.8}
-          />
+          <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={0.8} />
         </mesh>
       )}
     </group>

@@ -5,10 +5,8 @@ import { DomainError } from './DomainError';
  */
 export class TenantSuspendedError extends DomainError {
   constructor(tenantId: string) {
-    super(
-      `Tenant "${tenantId}" is suspended and cannot be accessed`,
-      'TENANT_SUSPENDED',
-      { tenantId }
-    );
+    super(`Tenant "${tenantId}" is suspended and cannot be accessed`, 'TENANT_SUSPENDED', {
+      tenantId,
+    });
   }
 }

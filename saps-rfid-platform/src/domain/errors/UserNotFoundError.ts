@@ -5,10 +5,8 @@ import { DomainError } from './DomainError';
  */
 export class UserNotFoundError extends DomainError {
   constructor(identifier: string, identifierType: 'id' | 'email' = 'id') {
-    super(
-      `User with ${identifierType} "${identifier}" was not found`,
-      'USER_NOT_FOUND',
-      { [identifierType]: identifier }
-    );
+    super(`User with ${identifierType} "${identifier}" was not found`, 'USER_NOT_FOUND', {
+      [identifierType]: identifier,
+    });
   }
 }

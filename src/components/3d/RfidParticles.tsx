@@ -1,6 +1,5 @@
 import { useRef, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { Docket } from '@/lib/api';
 import { useStore } from '@/store/useStore';
@@ -81,8 +80,8 @@ export default function RfidParticles({ dockets, selectedZoneId }: Props) {
     <points
       ref={pointsRef}
       onClick={handleClick}
-      onPointerOver={() => document.body.style.cursor = 'pointer'}
-      onPointerOut={() => document.body.style.cursor = 'default'}
+      onPointerOver={() => (document.body.style.cursor = 'pointer')}
+      onPointerOut={() => (document.body.style.cursor = 'default')}
     >
       <bufferGeometry>
         <bufferAttribute
@@ -97,12 +96,7 @@ export default function RfidParticles({ dockets, selectedZoneId }: Props) {
           array={colors}
           itemSize={3}
         />
-        <bufferAttribute
-          attach="attributes-size"
-          count={sizes.length}
-          array={sizes}
-          itemSize={1}
-        />
+        <bufferAttribute attach="attributes-size" count={sizes.length} array={sizes} itemSize={1} />
       </bufferGeometry>
       <pointsMaterial
         size={0.4}

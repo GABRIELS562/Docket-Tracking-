@@ -9,11 +9,9 @@ interface Props {
 }
 
 export default function Dashboard({ zones, dockets, readers }: Props) {
-  const { isConnected, isDemoMode, docketLimit } = useStore();
+  const { isConnected, isDemoMode } = useStore();
 
-  const totalOccupancy = zones.reduce((sum, z) => sum + z.currentOccupancy, 0);
-  const totalCapacity = zones.reduce((sum, z) => sum + z.capacity, 0);
-  const onlineReaders = readers.filter(r => r.status === 'online').length;
+  const onlineReaders = readers.filter((r) => r.status === 'online').length;
   const totalDockets = isDemoMode ? 670 : dockets.length;
 
   return (
@@ -31,9 +29,11 @@ export default function Dashboard({ zones, dockets, readers }: Props) {
                 🎮 Demo Mode
               </div>
             )}
-            <div className={`px-4 py-2 rounded-full text-sm font-medium pointer-events-auto ${
-              isConnected ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-            }`}>
+            <div
+              className={`px-4 py-2 rounded-full text-sm font-medium pointer-events-auto ${
+                isConnected ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+              }`}
+            >
               {isConnected ? '● Connected' : '○ Disconnected'}
             </div>
           </div>
@@ -51,7 +51,7 @@ export default function Dashboard({ zones, dockets, readers }: Props) {
             icon={<MapPin className="w-6 h-6" />}
             title="Active Zones"
             value={zones.length.toString()}
-            subtitle={`${zones.filter(z => z.currentOccupancy > 0).length} zones with evidence`}
+            subtitle={`${zones.filter((z) => z.currentOccupancy > 0).length} zones with evidence`}
             color="purple"
           />
           <StatCard

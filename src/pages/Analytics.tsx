@@ -88,16 +88,12 @@ export default function Analytics() {
                 <h2 className="text-lg font-bold text-gray-900 dark:text-white">
                   Occupancy Trends
                 </h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  24-hour zone occupancy
-                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">24-hour zone occupancy</p>
               </div>
               <TrendingUp className="w-5 h-5 text-blue-500" />
             </div>
             {occupancyLoading ? (
-              <div className="h-80 flex items-center justify-center text-gray-500">
-                Loading...
-              </div>
+              <div className="h-80 flex items-center justify-center text-gray-500">Loading...</div>
             ) : (
               <OccupancyChart data={occupancyData || []} />
             )}
@@ -117,9 +113,7 @@ export default function Analytics() {
               <PieChart className="w-5 h-5 text-purple-500" />
             </div>
             {distributionLoading ? (
-              <div className="h-80 flex items-center justify-center text-gray-500">
-                Loading...
-              </div>
+              <div className="h-80 flex items-center justify-center text-gray-500">Loading...</div>
             ) : (
               <DistributionChart data={distributionData?.zones || []} />
             )}
@@ -130,9 +124,7 @@ export default function Analytics() {
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                Reader Activity
-              </h2>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">Reader Activity</h2>
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 Tag reads per reader (last hour)
               </p>
@@ -140,9 +132,7 @@ export default function Analytics() {
             <BarChart3 className="w-5 h-5 text-green-500" />
           </div>
           {readerActivityLoading ? (
-            <div className="h-80 flex items-center justify-center text-gray-500">
-              Loading...
-            </div>
+            <div className="h-80 flex items-center justify-center text-gray-500">Loading...</div>
           ) : (
             <ReaderActivityChart data={readerActivityData || []} />
           )}

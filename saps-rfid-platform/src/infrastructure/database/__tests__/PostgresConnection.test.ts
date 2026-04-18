@@ -1,4 +1,3 @@
-
 import { PostgresConnection } from '../PostgresConnection';
 import type { ILogger } from '../../../application/interfaces/ILogger';
 import { Pool, PoolClient } from 'pg';
@@ -235,10 +234,7 @@ describe('PostgresConnection', () => {
 
       expect(result.isErr()).toBe(true);
       expect(result._unsafeUnwrapErr()).toBe(queryError);
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        'Query execution failed',
-        expect.any(Object)
-      );
+      expect(mockLogger.error).toHaveBeenCalledWith('Query execution failed', expect.any(Object));
     });
 
     it('should execute queryOne and return single row', async () => {
@@ -339,10 +335,7 @@ describe('PostgresConnection', () => {
 
       expect(result.isErr()).toBe(true);
       expect(mockClient.release).toHaveBeenCalled();
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        'Rollback failed',
-        expect.any(Object)
-      );
+      expect(mockLogger.error).toHaveBeenCalledWith('Rollback failed', expect.any(Object));
     });
   });
 
@@ -422,10 +415,7 @@ describe('PostgresConnection', () => {
       const result = await connection.healthCheck();
 
       expect(result.isErr()).toBe(true);
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        'Health check failed',
-        expect.any(Object)
-      );
+      expect(mockLogger.error).toHaveBeenCalledWith('Health check failed', expect.any(Object));
     });
   });
 
@@ -468,9 +458,7 @@ describe('PostgresConnection', () => {
     it('should handle close when not initialized', async () => {
       await connection.close();
 
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        'Database not initialized, nothing to close'
-      );
+      expect(mockLogger.warn).toHaveBeenCalledWith('Database not initialized, nothing to close');
     });
   });
 

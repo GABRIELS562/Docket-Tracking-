@@ -47,7 +47,10 @@ interface AppState {
   setIsPlaying: (playing: boolean) => void;
 
   updateZoneOccupancy: (zoneId: number, occupancy: number) => void;
-  updateReaderStatus: (readerId: string, status: 'online' | 'offline' | 'error' | 'connecting') => void;
+  updateReaderStatus: (
+    readerId: string,
+    status: 'online' | 'offline' | 'error' | 'connecting'
+  ) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -76,10 +79,11 @@ export const useStore = create<AppState>((set) => ({
   setZones: (zones) => set({ zones }),
   setReaders: (readers) => set({ readers }),
   setSelectedZone: (zoneId) => set({ selectedZoneId: zoneId }),
-  setSelectedDocket: (docket) => set({
-    selectedDocket: docket,
-    isDocketModalOpen: !!docket
-  }),
+  setSelectedDocket: (docket) =>
+    set({
+      selectedDocket: docket,
+      isDocketModalOpen: !!docket,
+    }),
   setIsConnected: (connected) => set({ isConnected: connected }),
   setViewMode: (mode) => set({ viewMode: mode }),
   setZonePanelOpen: (open) => set({ isZonePanelOpen: open }),
@@ -93,11 +97,12 @@ export const useStore = create<AppState>((set) => ({
   setDocketLimit: (limit) => set({ docketLimit: limit }),
 
   // Timeline playback actions
-  setPlaybackMode: (enabled) => set({
-    isPlaybackMode: enabled,
-    isPlaying: enabled ? false : false,
-    playbackTime: enabled ? Date.now() : Date.now()
-  }),
+  setPlaybackMode: (enabled) =>
+    set({
+      isPlaybackMode: enabled,
+      isPlaying: enabled ? false : false,
+      playbackTime: enabled ? Date.now() : Date.now(),
+    }),
   setPlaybackTime: (time) => set({ playbackTime: time }),
   setPlaybackSpeed: (speed) => set({ playbackSpeed: speed }),
   setIsPlaying: (playing) => set({ isPlaying: playing }),
@@ -105,9 +110,7 @@ export const useStore = create<AppState>((set) => ({
   updateZoneOccupancy: (zoneId, occupancy) =>
     set((state) => ({
       zones: state.zones.map((zone) =>
-        zone.zoneId === zoneId
-          ? { ...zone, currentOccupancy: occupancy }
-          : zone
+        zone.zoneId === zoneId ? { ...zone, currentOccupancy: occupancy } : zone
       ),
     })),
 

@@ -1,8 +1,9 @@
-import type { Result } from 'neverthrow';
 import { ok, err } from 'neverthrow';
 
 import { InvalidZoneError } from '../errors/InvalidZoneError';
 import { ZoneCapacityExceededError } from '../errors/ZoneCapacityExceededError';
+
+import type { Result } from 'neverthrow';
 
 /**
  * Zone type enumeration
@@ -133,7 +134,9 @@ export class Zone {
     // Validate code format (alphanumeric with hyphens/underscores)
     if (!/^[A-Z0-9_-]+$/i.test(params.code)) {
       return err(
-        new InvalidZoneError('Zone code must contain only alphanumeric characters, hyphens, or underscores')
+        new InvalidZoneError(
+          'Zone code must contain only alphanumeric characters, hyphens, or underscores'
+        )
       );
     }
 
@@ -264,7 +267,11 @@ export class Zone {
   addItem(): Result<void, ZoneCapacityExceededError> {
     if (this.isAtCapacity()) {
       return err(
-        new ZoneCapacityExceededError(this.props.id, this.props.currentOccupancy, this.props.capacity)
+        new ZoneCapacityExceededError(
+          this.props.id,
+          this.props.currentOccupancy,
+          this.props.capacity
+        )
       );
     }
 

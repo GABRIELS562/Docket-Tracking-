@@ -71,15 +71,9 @@ export const createItemSchema = z.object({
     }),
   }),
 
-  serialNumber: z
-    .string()
-    .max(100, 'Serial number must be less than 100 characters')
-    .optional(),
+  serialNumber: z.string().max(100, 'Serial number must be less than 100 characters').optional(),
 
-  receivedBy: z
-    .string()
-    .max(100, 'Received by must be less than 100 characters')
-    .optional(),
+  receivedBy: z.string().max(100, 'Received by must be less than 100 characters').optional(),
 
   metadata: z.record(z.unknown()).optional().default({}),
 });
@@ -88,10 +82,7 @@ export const createItemSchema = z.object({
  * Validation schema for item search query parameters
  */
 export const searchItemsQuerySchema = z.object({
-  q: z
-    .string()
-    .max(200, 'Search query must be less than 200 characters')
-    .optional(),
+  q: z.string().max(200, 'Search query must be less than 200 characters').optional(),
 
   status: z.enum(itemStatuses).optional(),
 
@@ -126,49 +117,52 @@ export const searchItemsQuerySchema = z.object({
 /**
  * Validation schema for item history query parameters
  */
-export const itemHistoryQuerySchema = z.object({
-  hours: z
-    .string()
-    .regex(/^\d+$/, 'Hours must be a number')
-    .transform(Number)
-    .refine((n) => n >= 1 && n <= 168, 'Hours must be between 1 and 168 (7 days)')
-    .optional(),
+export const itemHistoryQuerySchema = z
+  .object({
+    hours: z
+      .string()
+      .regex(/^\d+$/, 'Hours must be a number')
+      .transform(Number)
+      .refine((n) => n >= 1 && n <= 168, 'Hours must be between 1 and 168 (7 days)')
+      .optional(),
 
-  limit: z
-    .string()
-    .regex(/^\d+$/, 'Limit must be a number')
-    .transform(Number)
-    .refine((n) => n >= 1 && n <= 1000, 'Limit must be between 1 and 1000')
-    .optional(),
+    limit: z
+      .string()
+      .regex(/^\d+$/, 'Limit must be a number')
+      .transform(Number)
+      .refine((n) => n >= 1 && n <= 1000, 'Limit must be between 1 and 1000')
+      .optional(),
 
-  startTime: z
-    .string()
-    .datetime({ message: 'Start time must be a valid ISO 8601 datetime' })
-    .optional(),
+    startTime: z
+      .string()
+      .datetime({ message: 'Start time must be a valid ISO 8601 datetime' })
+      .optional(),
 
-  endTime: z
-    .string()
-    .datetime({ message: 'End time must be a valid ISO 8601 datetime' })
-    .optional(),
-}).refine(
-  (data) => {
-    // If one of startTime/endTime is provided, both must be provided
-    if ((data.startTime && !data.endTime) || (!data.startTime && data.endTime)) {
-      return false;
-    }
-    return true;
-  },
-  { message: 'Both startTime and endTime must be provided together' }
-).refine(
-  (data) => {
-    // If both provided, startTime must be before endTime
-    if (data.startTime && data.endTime) {
-      return new Date(data.startTime) < new Date(data.endTime);
-    }
-    return true;
-  },
-  { message: 'startTime must be before endTime' }
-);
+    endTime: z
+      .string()
+      .datetime({ message: 'End time must be a valid ISO 8601 datetime' })
+      .optional(),
+  })
+  .refine(
+    (data) => {
+      // If one of startTime/endTime is provided, both must be provided
+      if ((data.startTime && !data.endTime) || (!data.startTime && data.endTime)) {
+        return false;
+      }
+      return true;
+    },
+    { message: 'Both startTime and endTime must be provided together' }
+  )
+  .refine(
+    (data) => {
+      // If both provided, startTime must be before endTime
+      if (data.startTime && data.endTime) {
+        return new Date(data.startTime) < new Date(data.endTime);
+      }
+      return true;
+    },
+    { message: 'startTime must be before endTime' }
+  );
 
 /**
  * Validation schema for item number URL parameter
@@ -184,10 +178,7 @@ export const itemNumberParamSchema = z.object({
     .string()
     .min(1, 'Item number is required')
     .max(50, 'Item number must be less than 50 characters')
-    .regex(
-      /^[A-Za-z0-9][A-Za-z0-9\-\/_]{0,49}$/,
-      'Invalid item number format'
-    ),
+    .regex(/^[A-Za-z0-9][A-Za-z0-9\-\/_]{0,49}$/, 'Invalid item number format'),
 });
 
 /**

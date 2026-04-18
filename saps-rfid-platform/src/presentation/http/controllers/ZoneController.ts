@@ -1,7 +1,9 @@
 import { Response, NextFunction } from 'express';
 import { injectable, inject } from 'tsyringe';
-import { GetAllZonesUseCase } from '../../../application/use-cases/zones/GetAllZonesUseCase';
+
 import { GetZoneItemsUseCase } from '../../../application/use-cases/items/GetZoneItemsUseCase';
+import { GetAllZonesUseCase } from '../../../application/use-cases/zones/GetAllZonesUseCase';
+
 import type { AuthenticatedRequest } from '../middleware/authMiddleware';
 
 /**

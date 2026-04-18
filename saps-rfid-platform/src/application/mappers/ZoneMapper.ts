@@ -1,6 +1,7 @@
-import { Result } from 'neverthrow';
 import { Zone, ZoneType } from '../../domain/entities/Zone';
+
 import type { ZoneDTO, CreateZoneDTO } from '../dto/ZoneDTO';
+import type { Result } from 'neverthrow';
 
 /**
  * Zone Mapper

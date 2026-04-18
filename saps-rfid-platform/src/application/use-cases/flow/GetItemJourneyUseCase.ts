@@ -1,9 +1,6 @@
-import { injectable, inject } from 'tsyringe';
 import { Result, ok, err } from 'neverthrow';
-import type { IItemRepository } from '../../../domain/repositories/IItemRepository';
-import type { ILocationHistoryRepository } from '../../../domain/repositories/ILocationHistoryRepository';
-import type { IZoneRepository } from '../../../domain/repositories/IZoneRepository';
-import type { ILogger } from '../../interfaces/ILogger';
+import { injectable, inject } from 'tsyringe';
+
 import { ItemNumber } from '../../../domain/value-objects/ItemNumber';
 import {
   GetItemJourneyInput,
@@ -12,6 +9,11 @@ import {
   JourneyTransitionDTO,
   JourneyAnomalyDTO,
 } from '../../dto/AnalyticsDTO';
+
+import type { IItemRepository } from '../../../domain/repositories/IItemRepository';
+import type { ILocationHistoryRepository } from '../../../domain/repositories/ILocationHistoryRepository';
+import type { IZoneRepository } from '../../../domain/repositories/IZoneRepository';
+import type { ILogger } from '../../interfaces/ILogger';
 
 /**
  * Get Item Journey Use Case
@@ -199,9 +201,7 @@ export class GetItemJourneyUseCase {
     zonesMap: Map<string, { name: string; type: string }>
   ): JourneyStopDTO[] {
     // Sort by entry time
-    const sorted = [...zoneVisits].sort(
-      (a, b) => a.entryTime.getTime() - b.entryTime.getTime()
-    );
+    const sorted = [...zoneVisits].sort((a, b) => a.entryTime.getTime() - b.entryTime.getTime());
 
     return sorted.map((visit, index) => {
       const zoneInfo = zonesMap.get(visit.zoneId);
@@ -299,7 +299,8 @@ export class GetItemJourneyUseCase {
       if (stop.dwellTimeMinutes > this.LONG_DWELL_THRESHOLD_MINUTES) {
         anomalies.push({
           type: 'long_dwell',
-          severity: stop.dwellTimeMinutes > this.LONG_DWELL_THRESHOLD_MINUTES * 2 ? 'high' : 'medium',
+          severity:
+            stop.dwellTimeMinutes > this.LONG_DWELL_THRESHOLD_MINUTES * 2 ? 'high' : 'medium',
           timestamp: stop.entryTime,
           description: `Item stayed in ${stop.zoneName} for ${stop.dwellTimeMinutes} minutes (threshold: ${this.LONG_DWELL_THRESHOLD_MINUTES} min)`,
           zoneId: stop.zoneId,

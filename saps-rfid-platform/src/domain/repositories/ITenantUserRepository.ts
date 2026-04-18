@@ -1,6 +1,5 @@
-import type { Result } from 'neverthrow';
-
 import type { TenantUser, UserRole } from '../entities/TenantUser';
+import type { Result } from 'neverthrow';
 
 /**
  * User search criteria
@@ -86,7 +85,9 @@ export interface ITenantUserRepository {
   /**
    * Searches users by criteria
    */
-  search(criteria: TenantUserSearchCriteria): Promise<Result<{ users: TenantUser[]; total: number }, Error>>;
+  search(
+    criteria: TenantUserSearchCriteria
+  ): Promise<Result<{ users: TenantUser[]; total: number }, Error>>;
 
   /**
    * Finds users by role within a tenant
@@ -126,7 +127,10 @@ export interface ITenantUserRepository {
   /**
    * Finds users who haven't logged in for a specified period
    */
-  findInactiveUsers(tenantId: string, daysSinceLastLogin: number): Promise<Result<TenantUser[], Error>>;
+  findInactiveUsers(
+    tenantId: string,
+    daysSinceLastLogin: number
+  ): Promise<Result<TenantUser[], Error>>;
 
   /**
    * Finds locked out users

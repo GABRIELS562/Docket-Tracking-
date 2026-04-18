@@ -1,18 +1,20 @@
 import { Server as HttpServer } from 'http';
-import { Server as SocketIOServer, Socket } from 'socket.io';
+
 import { createAdapter } from '@socket.io/redis-adapter';
-import { injectable, inject } from 'tsyringe';
 import jwt from 'jsonwebtoken';
+import { Server as SocketIOServer, Socket } from 'socket.io';
+import { injectable, inject } from 'tsyringe';
 // Redis type used by factory
+
+import { ItemMovedEvent } from '../../domain/events/ItemMovedEvent';
+import { TagDetectedEvent } from '../../domain/events/TagDetectedEvent';
+import { ZoneOccupancyChangedEvent } from '../../domain/events/ZoneOccupancyChangedEvent';
+import { RedisClientFactory } from '../../infrastructure/redis/RedisClient';
 
 import type { IEventBus } from '../../application/interfaces/IEventBus';
 import type { ILogger } from '../../application/interfaces/ILogger';
 import type { DomainEvent } from '../../domain/events/DomainEvent';
-import { TagDetectedEvent } from '../../domain/events/TagDetectedEvent';
-import { ItemMovedEvent } from '../../domain/events/ItemMovedEvent';
-import { ZoneOccupancyChangedEvent } from '../../domain/events/ZoneOccupancyChangedEvent';
 import type { JwtConfig } from '../http/middleware/authMiddleware';
-import { RedisClientFactory } from '../../infrastructure/redis/RedisClient';
 
 /**
  * Extended Socket with tenant context and metadata
@@ -238,10 +240,7 @@ export class ClusteredSocketServer {
           this.tenantConnections.set(tenantId, new Set());
         }
         this.tenantConnections.get(tenantId)!.add(socketId);
-        this.metrics.connectionsByTenant.set(
-          tenantId,
-          this.tenantConnections.get(tenantId)!.size
-        );
+        this.metrics.connectionsByTenant.set(tenantId, this.tenantConnections.get(tenantId)!.size);
 
         socket.join(`tenant:${tenantId}`);
       }
@@ -282,13 +281,12 @@ export class ClusteredSocketServer {
       });
 
       // Bulk subscribe for efficiency
-      socket.on('subscribe:bulk', (subscriptions: {
-        zones?: number[];
-        items?: string[];
-        readers?: boolean;
-      }) => {
-        this.handleBulkSubscription(socket, subscriptions);
-      });
+      socket.on(
+        'subscribe:bulk',
+        (subscriptions: { zones?: number[]; items?: string[]; readers?: boolean }) => {
+          this.handleBulkSubscription(socket, subscriptions);
+        }
+      );
 
       // Unsubscribe handlers
       socket.on('unsubscribe:zones', (zoneIds: number[]) => {
@@ -416,10 +414,10 @@ export class ClusteredSocketServer {
             occupancyPercent >= 100
               ? 'full'
               : occupancyPercent >= 90
-              ? 'critical'
-              : occupancyPercent >= 70
-              ? 'warning'
-              : 'normal',
+                ? 'critical'
+                : occupancyPercent >= 70
+                  ? 'warning'
+                  : 'normal',
           timestamp: occupancyEvent.occurredAt.toISOString(),
         },
         priority,
@@ -493,10 +491,13 @@ export class ClusteredSocketServer {
         this.io!.to(room).emit(firstEvent.event, firstEvent.payload);
       } else if (events.length > 0) {
         // Send as batch for efficiency
-        this.io!.to(room).emit('events:batch', events.map((e) => ({
-          event: e.event,
-          payload: e.payload,
-        })));
+        this.io!.to(room).emit(
+          'events:batch',
+          events.map((e) => ({
+            event: e.event,
+            payload: e.payload,
+          }))
+        );
       }
     }
 
@@ -658,10 +659,7 @@ export class ClusteredSocketServer {
         this.tenantConnections.delete(tenantId);
         this.metrics.connectionsByTenant.delete(tenantId);
       } else {
-        this.metrics.connectionsByTenant.set(
-          tenantId,
-          this.tenantConnections.get(tenantId)!.size
-        );
+        this.metrics.connectionsByTenant.set(tenantId, this.tenantConnections.get(tenantId)!.size);
       }
     }
 

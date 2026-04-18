@@ -1,5 +1,5 @@
-import type { ILogger } from '../../application/interfaces/ILogger';
 import type { IReaderConnection } from './ReaderConnection';
+import type { ILogger } from '../../application/interfaces/ILogger';
 
 /**
  * Connection Statistics

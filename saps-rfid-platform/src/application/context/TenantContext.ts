@@ -152,7 +152,9 @@ export class TenantContext {
    * @returns The result of the callback
    */
   static extend<T>(
-    additionalData: Partial<Omit<TenantContextData, 'tenantId' | 'tenantSlug' | 'requestId' | 'createdAt'>>,
+    additionalData: Partial<
+      Omit<TenantContextData, 'tenantId' | 'tenantSlug' | 'requestId' | 'createdAt'>
+    >,
     callback: () => T
   ): T {
     const current = this.require();

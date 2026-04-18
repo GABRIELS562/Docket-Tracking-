@@ -1,11 +1,16 @@
-import type { Request, Response, NextFunction } from 'express';
-import { injectable, inject } from 'tsyringe';
 import bcrypt from 'bcrypt';
+import { injectable, inject } from 'tsyringe';
+
+import {
+  generateToken,
+  type AuthenticatedRequest,
+  type JwtConfig,
+} from '../middleware/authMiddleware';
 
 import type { ILogger } from '../../../application/interfaces/ILogger';
 import type { ITenantRepository } from '../../../domain/repositories/ITenantRepository';
 import type { ITenantUserRepository } from '../../../domain/repositories/ITenantUserRepository';
-import { generateToken, type AuthenticatedRequest, type JwtConfig } from '../middleware/authMiddleware';
+import type { Request, Response, NextFunction } from 'express';
 
 /**
  * Authentication Controller
@@ -158,7 +163,12 @@ export class AuthController {
 
       // Generate tokens
       const accessToken = generateToken(user, tenant, this.jwtConfig);
-      const refreshToken = generateToken(user, tenant, this.jwtConfig, this.jwtConfig.refreshExpiresIn);
+      const refreshToken = generateToken(
+        user,
+        tenant,
+        this.jwtConfig,
+        this.jwtConfig.refreshExpiresIn
+      );
 
       this.logger.info('User logged in', {
         userId: user.id,
@@ -272,7 +282,12 @@ export class AuthController {
 
       // Generate new tokens
       const accessToken = generateToken(user, tenant, this.jwtConfig);
-      const refreshToken = generateToken(user, tenant, this.jwtConfig, this.jwtConfig.refreshExpiresIn);
+      const refreshToken = generateToken(
+        user,
+        tenant,
+        this.jwtConfig,
+        this.jwtConfig.refreshExpiresIn
+      );
 
       res.json({
         success: true,
@@ -400,7 +415,11 @@ export class AuthController {
    * POST /api/auth/change-password
    * Changes the authenticated user's password
    */
-  async changePassword(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+  async changePassword(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
       const userId = req.user?.id;
       const { currentPassword, newPassword } = req.body;

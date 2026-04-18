@@ -1,15 +1,17 @@
-import { injectable, inject } from 'tsyringe';
 import { Result, ok, err } from 'neverthrow';
-import type { IReaderRepository } from '../../domain/repositories/IReaderRepository';
-import type { IEventBus } from '../../application/interfaces/IEventBus';
-import type { ILogger } from '../../application/interfaces/ILogger';
-import type { Reader } from '../../domain/entities/Reader';
+import { injectable, inject } from 'tsyringe';
+
+import { CircuitBreaker } from './CircuitBreaker';
 import { LLRPReaderConnection } from './LLRPReaderConnection';
 import { ReaderConnectionPool } from './ReaderConnectionPool';
 import { ReaderHealthMonitor } from './ReaderHealthMonitor';
-import { TagProcessor } from './TagProcessor';
 import { TagDeduplicator } from './TagDeduplicator';
-import { CircuitBreaker } from './CircuitBreaker';
+import { TagProcessor } from './TagProcessor';
+
+import type { IEventBus } from '../../application/interfaces/IEventBus';
+import type { ILogger } from '../../application/interfaces/ILogger';
+import type { Reader } from '../../domain/entities/Reader';
+import type { IReaderRepository } from '../../domain/repositories/IReaderRepository';
 
 /**
  * Metrics Collector Interface
@@ -229,16 +231,11 @@ export class LLRPGateway {
       this.config.deduplicationWindowSeconds,
       this.config.maxCacheSize
     );
-    this.healthMonitor = new ReaderHealthMonitor(
-      this.connectionPool,
-      readerRepo,
-      logger,
-      {
-        checkIntervalMs: this.config.healthCheckIntervalMs,
-        staleThresholdSeconds: 60,
-        autoStart: false,
-      }
-    );
+    this.healthMonitor = new ReaderHealthMonitor(this.connectionPool, readerRepo, logger, {
+      checkIntervalMs: this.config.healthCheckIntervalMs,
+      staleThresholdSeconds: 60,
+      autoStart: false,
+    });
     this.circuitBreakers = new Map();
 
     this.logger.info('LLRP Gateway constructed', {
@@ -487,7 +484,7 @@ export class LLRPGateway {
       // Check circuit breaker
       if (this.config.useCircuitBreaker) {
         const breaker = this.circuitBreakers.get(readerId);
-        if (breaker && breaker.isOpen()) {
+        if (breaker?.isOpen()) {
           this.logger.debug('Circuit breaker open, skipping tag read', {
             readerId,
             status: breaker.getStatusSummary(),
@@ -633,10 +630,7 @@ export class LLRPGateway {
    * 5. If successful: Start reading
    * 6. If failed: Will trigger another attempt via 'disconnected' event
    */
-  private scheduleReconnection(
-    reader: Reader,
-    connection: LLRPReaderConnection
-  ): void {
+  private scheduleReconnection(reader: Reader, connection: LLRPReaderConnection): void {
     const attemptNumber = connection.getReconnectionAttempts();
     const readerId = reader.getId();
 
@@ -762,10 +756,7 @@ export class LLRPGateway {
         const connectionStats = this.connectionPool.getStats();
         this.metricsCollector.gauge('rfid.readers.total', connectionStats.total);
         this.metricsCollector.gauge('rfid.readers.connected', connectionStats.connected);
-        this.metricsCollector.gauge(
-          'rfid.readers.disconnected',
-          connectionStats.disconnected
-        );
+        this.metricsCollector.gauge('rfid.readers.disconnected', connectionStats.disconnected);
         this.metricsCollector.gauge('rfid.readers.error', connectionStats.error);
         this.metricsCollector.gauge('rfid.readers.reading', connectionStats.reading);
 
@@ -787,10 +778,7 @@ export class LLRPGateway {
         // Health monitor status
         const healthStatus = this.healthMonitor.getStatus();
         this.metricsCollector.gauge('rfid.health.check_count', healthStatus.checkCount);
-        this.metricsCollector.gauge(
-          'rfid.health.status_changes',
-          healthStatus.totalStatusChanges
-        );
+        this.metricsCollector.gauge('rfid.health.status_changes', healthStatus.totalStatusChanges);
 
         // Gateway uptime
         const uptime = Date.now() - this.startTime;
@@ -911,7 +899,7 @@ export class LLRPGateway {
   async shutdown(): Promise<void> {
     if (this.shutdownPromise) {
       // Shutdown already in progress
-      return this.shutdownPromise;
+      return await this.shutdownPromise;
     }
 
     this.logger.info('Initiating RFID Gateway shutdown');
@@ -962,7 +950,7 @@ export class LLRPGateway {
       }
     })();
 
-    return this.shutdownPromise;
+    return await this.shutdownPromise;
   }
 
   /**
