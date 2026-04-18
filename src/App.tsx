@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { initializeSocket, subscribeToReaders } from './lib/socket';
 import { zoneApi, readerApi, docketApi } from './lib/api';
 import { useStore } from './store/useStore';
+import { useZoneStore } from './store/useZoneStore';
 import { useNotifications } from './hooks/useNotifications';
 import { mockZones, mockReaders, mockDockets, simulateRealtimeUpdates } from './lib/mockData';
 import Navigation from './components/Navigation';
@@ -18,10 +19,34 @@ import ReaderMonitorPanel from './components/ReaderMonitorPanel';
 import TimelinePlayback from './components/TimelinePlayback';
 import NotificationSystem from './components/NotificationSystem';
 import NotificationHistory from './components/NotificationHistory';
+import { ZoneDetailView } from './components/detail';
+import { GlobalSearch } from './components/shared';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
+import type { Zone } from './lib/types';
+import { useUIStore } from './store/useUIStore';
 
 export default function App() {
+  // Zone detail view state
+  const [detailZone, setDetailZone] = useState<Zone | null>(null);
+
+  // Global search state
+  const isSearchOpen = useUIStore((state) => state.isSearchOpen);
+  const setSearchOpen = useUIStore((state) => state.setSearchOpen);
+
+  // Keyboard shortcut for global search (Cmd+K or Ctrl+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen(!isSearchOpen);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isSearchOpen, setSearchOpen]);
+
   const {
     setZones,
     setReaders,
@@ -42,7 +67,11 @@ export default function App() {
     setNotificationHistoryOpen,
     isDemoMode,
     docketLimit,
+    setSelectedZone,
   } = useStore();
+
+  // New zone store for syncing zone data
+  const setZonesToStore = useZoneStore((state) => state.setZones);
 
   const {
     notifications,
@@ -85,9 +114,29 @@ export default function App() {
   // Apply docket limit for 3D view performance
   const dockets = allDockets.slice(0, docketLimit);
 
+  // Handler to open zone detail view
+  const handleZoneClick = useCallback(
+    (zoneId: number) => {
+      const zone = zones.find((z) => z.zoneId === zoneId);
+      if (zone) {
+        setDetailZone(zone);
+      }
+      setSelectedZone(zoneId);
+    },
+    [zones, setSelectedZone]
+  );
+
+  // Handler to close zone detail view
+  const handleCloseDetailView = useCallback(() => {
+    setDetailZone(null);
+  }, []);
+
   useEffect(() => {
-    if (zones.length > 0) setZones(zones);
-  }, [zones, setZones]);
+    if (zones.length > 0) {
+      setZones(zones);
+      setZonesToStore(zones); // Sync to new zone store
+    }
+  }, [zones, setZones, setZonesToStore]);
 
   useEffect(() => {
     if (readers.length > 0) setReaders(readers);
@@ -256,16 +305,24 @@ export default function App() {
           path="/"
           element={
             <div className="w-full h-screen overflow-hidden bg-gray-900">
+              {/* Zone Detail View (overlay) */}
+              {detailZone && <ZoneDetailView zone={detailZone} onBack={handleCloseDetailView} />}
+
               {/* 3D Only Mode */}
-              {floorPlanMode === '3d' && (
+              {!detailZone && floorPlanMode === '3d' && (
                 <>
-                  <Scene3D zones={zones} dockets={dockets} />
+                  <Scene3D
+                    zones={zones}
+                    dockets={dockets}
+                    useZoneCentricView={true}
+                    onZoneClick={handleZoneClick}
+                  />
                   <Dashboard zones={zones} dockets={dockets} readers={readers} />
                 </>
               )}
 
               {/* 2D Only Mode */}
-              {floorPlanMode === '2d' && (
+              {!detailZone && floorPlanMode === '2d' && (
                 <>
                   <FloorPlan2D zones={zones} dockets={dockets} />
                   <Dashboard zones={zones} dockets={dockets} readers={readers} />
@@ -273,12 +330,17 @@ export default function App() {
               )}
 
               {/* Split Screen Mode */}
-              {floorPlanMode === 'split' && (
+              {!detailZone && floorPlanMode === 'split' && (
                 <>
                   <div className="absolute inset-0 flex">
                     {/* Left: 3D View */}
                     <div className="w-1/2 h-full relative">
-                      <Scene3D zones={zones} dockets={dockets} />
+                      <Scene3D
+                        zones={zones}
+                        dockets={dockets}
+                        useZoneCentricView={true}
+                        onZoneClick={handleZoneClick}
+                      />
                     </div>
                     {/* Right: 2D View */}
                     <div className="w-1/2 h-full relative border-l-2 border-blue-500/30">
@@ -341,6 +403,19 @@ export default function App() {
                 onClose={() => setNotificationHistoryOpen(false)}
                 onClearHistory={clearHistory}
                 onMarkAsRead={markAsRead}
+              />
+
+              {/* Global Search */}
+              <GlobalSearch
+                isOpen={isSearchOpen}
+                onClose={() => setSearchOpen(false)}
+                onZoneNavigate={(zoneName) => {
+                  // Find zone by name and open detail view
+                  const zone = zones.find((z) => z.zoneName === zoneName);
+                  if (zone) {
+                    setDetailZone(zone);
+                  }
+                }}
               />
             </div>
           }

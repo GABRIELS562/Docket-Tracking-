@@ -1,6 +1,17 @@
 import { create } from 'zustand';
 import { Zone, Reader, Docket } from '@/lib/api';
 
+/**
+ * @deprecated This store is being migrated to split stores for better separation of concerns.
+ * Please use the following stores for new code:
+ * - useZoneStore: Zone-related state
+ * - useItemStore: Item/docket pagination and search
+ * - useUIStore: UI state (panels, modals, search)
+ * - useReaderStore: Reader status and data
+ *
+ * This store will be removed in a future version once all components are migrated.
+ */
+
 interface AppState {
   zones: Zone[];
   readers: Reader[];

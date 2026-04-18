@@ -8,12 +8,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
-
-interface ReaderActivity {
-  readerId: string;
-  reads: number;
-  status: 'online' | 'offline' | 'error' | 'connecting';
-}
+import type { ReaderActivity } from '@/lib/types';
 
 interface Props {
   data: ReaderActivity[];
@@ -36,6 +31,8 @@ export default function ReaderActivityChart({ data }: Props) {
         return '#ef4444'; // Red
       case 'connecting':
         return '#f59e0b'; // Amber
+      case 'maintenance':
+        return '#f97316'; // Orange
       default:
         return '#3b82f6'; // Blue
     }

@@ -134,9 +134,16 @@ function ReaderCard({ reader, onClick }: ReaderCardProps) {
       border: 'border-yellow-500/30',
       glow: 'shadow-yellow-500/20',
     },
+    maintenance: {
+      icon: Radio,
+      color: 'text-orange-400',
+      bg: 'bg-orange-500/10',
+      border: 'border-orange-500/30',
+      glow: 'shadow-orange-500/20',
+    },
   };
 
-  const config = statusConfig[reader.status];
+  const config = statusConfig[reader.status] || statusConfig.offline;
   const StatusIcon = config.icon;
 
   // Calculate signal strength from RSSI (-30 to -90 dBm typical range)
