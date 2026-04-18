@@ -120,21 +120,21 @@
 
 Update this section as tasks complete:
 
-| ID  | Status  | Completed | Notes |
-| --- | ------- | --------- | ----- |
-| T1  | Pending | —         |       |
-| T2  | Pending | —         |       |
-| T3  | Pending | —         |       |
-| T4  | Pending | —         |       |
-| T5  | Pending | —         |       |
-| T6  | Pending | —         |       |
-| T7  | Pending | —         |       |
-| T8  | Pending | —         |       |
-| T9  | Pending | —         |       |
-| T10 | Pending | —         |       |
-| T11 | Pending | —         |       |
-| T12 | Pending | —         |       |
-| T13 | Pending | —         |       |
-| T14 | Pending | —         |       |
-| T15 | Pending | —         |       |
-| T16 | Pending | —         |       |
+| ID  | Status   | Completed  | Notes                                       |
+| --- | -------- | ---------- | ------------------------------------------- |
+| T1  | Complete | 2026-04-18 | All 1361 tests pass                         |
+| T2  | Complete | 2026-04-18 | Tests already fixed in prior session        |
+| T3  | Complete | 2026-04-18 | CI already enabled, no `if: false` found    |
+| T4  | Complete | 2026-04-18 | ~55% coverage, domain layer at 100%         |
+| T5  | Complete | 2026-04-18 | No console.log in backend, using Winston    |
+| T6  | Complete | 2026-04-18 | Trivy scan added to docker job              |
+| T7  | Complete | 2026-04-18 | docs/adr/ created with ADR-001              |
+| T8  | Complete | 2026-04-18 | specs/rfid/llrp-protocol.md created         |
+| T9  | Complete | 2026-04-18 | docs/hardware-setup.md created              |
+| T10 | Complete | 2026-04-18 | 401→61 lines (src/components/import/)       |
+| T11 | Complete | 2026-04-18 | 332→121 lines (src/components/floorplan/)   |
+| T12 | Complete | 2026-04-18 | 329→98 lines (src/components/registration/) |
+| T13 | Complete | 2026-04-18 | 321→129 lines (src/components/timeline/)    |
+| T14 | Pending  | —          |                                             |
+| T15 | Pending  | —          |                                             |
+| T16 | Pending  | —          |                                             |

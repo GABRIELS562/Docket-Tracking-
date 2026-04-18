@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
-import { ArrowLeft, Maximize2, Minimize2 } from 'lucide-react';
+import { useState, useCallback, useEffect } from 'react';
+import { ArrowLeft, Maximize2, Minimize2, X } from 'lucide-react';
 import ZoneFloorPlan from './ZoneFloorPlan';
 import ItemList from './ItemList';
 import type { Zone, Item, Reader } from '@/lib/types';
@@ -56,6 +56,17 @@ export default function ZoneDetailView({ zone, onBack, onItemSelect }: ZoneDetai
     [onItemSelect]
   );
 
+  // ESC key to go back
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onBack();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onBack]);
+
   // Null safety check - must come AFTER all hooks
   if (!zone) {
     return (
@@ -97,8 +108,16 @@ export default function ZoneDetailView({ zone, onBack, onItemSelect }: ZoneDetai
           <button
             onClick={() => setIsExpanded(!isExpanded)}
             className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+            title={isExpanded ? 'Show floor plan' : 'Expand item list'}
           >
             {isExpanded ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+          </button>
+          <button
+            onClick={onBack}
+            className="p-2 rounded-lg bg-gray-800 hover:bg-red-600 text-gray-400 hover:text-white transition-colors"
+            title="Close (ESC)"
+          >
+            <X className="w-5 h-5" />
           </button>
         </div>
       </header>

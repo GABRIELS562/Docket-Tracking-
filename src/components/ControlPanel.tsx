@@ -119,12 +119,19 @@ function ViewButton({ icon, label, active, onClick }: ViewButtonProps) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${
-        active ? 'bg-blue-500 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'
+      title={active ? `${label} (active - click to close)` : label}
+      className={`relative flex items-center gap-2 px-4 py-2 rounded-full transition-all ${
+        active
+          ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
+          : 'text-gray-400 hover:text-white hover:bg-gray-800'
       }`}
     >
       {icon}
       <span className="text-sm font-medium">{label}</span>
+      {/* Active indicator dot */}
+      {active && (
+        <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+      )}
     </button>
   );
 }
