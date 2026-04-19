@@ -159,16 +159,17 @@ Full details in `.specify/plans/constitution-check.md` and `.specify/tasks/retro
 
 Record any deviations from the master prompt, trade-offs made, or choices that need revisiting.
 
-| Date       | Decision                                                    | Rationale                                                                                                                                               |
-| ---------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-04-17 | Flattened repo structure before SDLC retrofit               | Original repo had files nested in Docket-Tracking-/ subfolder, causing git tracking issues. Flattened to have files at repo root for cleaner structure. |
-| 2026-04-17 | Merged flatten branch to main before creating sdlc-retrofit | Ensures sdlc-retrofit branch starts from a clean, properly-structured main branch.                                                                      |
-| 2026-04-17 | Keep Winston instead of Pino for logging                    | Prompt specified Pino, but Winston already implemented with proper JSON formatting. Migration cost not justified.                                       |
-| 2026-04-17 | Deleted PostgresDocketRepository.ts                         | File referenced non-existent Docket domain entities. PostgresItemRepository.ts already exists with correct Item-based implementation.                   |
-| 2026-04-17 | Added 'connecting' status to Reader types                   | Frontend and backend types now include 'connecting' as valid reader status for consistency.                                                             |
-| 2026-04-18 | Cleaned codebase: deleted 75 files                          | Removed \_legacy/, archive_docs/, duplicate root docs, completion summaries. Keeps only essential documentation.                                        |
-| 2026-04-18 | Skipped 10 test files with structural mismatches            | Tests had API signature mismatches (missing tenantId, wrong method names). Skip now, fix incrementally.                                                 |
-| 2026-04-18 | Lowered coverage thresholds to 9%                           | Current baseline ~10%. Will increase thresholds as coverage improves. Documented in jest.config.js.                                                     |
+| Date       | Decision                                                                                                                                                                                              | Rationale                                                                                                                                                                                                      |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-04-17 | Flattened repo structure before SDLC retrofit                                                                                                                                                         | Original repo had files nested in Docket-Tracking-/ subfolder, causing git tracking issues. Flattened to have files at repo root for cleaner structure.                                                        |
+| 2026-04-17 | Merged flatten branch to main before creating sdlc-retrofit                                                                                                                                           | Ensures sdlc-retrofit branch starts from a clean, properly-structured main branch.                                                                                                                             |
+| 2026-04-17 | Keep Winston instead of Pino for logging                                                                                                                                                              | Prompt specified Pino, but Winston already implemented with proper JSON formatting. Migration cost not justified.                                                                                              |
+| 2026-04-17 | Deleted PostgresDocketRepository.ts                                                                                                                                                                   | File referenced non-existent Docket domain entities. PostgresItemRepository.ts already exists with correct Item-based implementation.                                                                          |
+| 2026-04-17 | Added 'connecting' status to Reader types                                                                                                                                                             | Frontend and backend types now include 'connecting' as valid reader status for consistency.                                                                                                                    |
+| 2026-04-18 | Cleaned codebase: deleted 75 files                                                                                                                                                                    | Removed \_legacy/, archive_docs/, duplicate root docs, completion summaries. Keeps only essential documentation.                                                                                               |
+| 2026-04-18 | Skipped 10 test files with structural mismatches                                                                                                                                                      | Tests had API signature mismatches (missing tenantId, wrong method names). Skip now, fix incrementally.                                                                                                        |
+| 2026-04-18 | Lowered coverage thresholds to 9%                                                                                                                                                                     | Current baseline ~10%. Will increase thresholds as coverage improves. Documented in jest.config.js.                                                                                                            |
+| 2026-04-19 | Spec work (specify, clarify, scope correction) committed directly to main rather than feature branch. PR #1 already merged. Future feature work (plan/tasks/implement) will resume branch discipline. | Spec commits accidentally landed on main during session handoffs. Rewriting history on a solo retrofit project was not worth the risk. Clarify-induced scope creep was also caught and corrected in spec v1.4. |
 
 ---
 
@@ -187,16 +188,17 @@ Things flagged during retrofit that we're consciously deferring, not forgetting.
 - [ ] Create `specs/` directory structure (referenced in constitution but doesn't exist yet)
 - [ ] Create `specs/rfid/` with LLRP protocol documentation
 - [ ] Create `docs/adr/` for Architecture Decision Records
+- [x] ~~Branch discipline broken during spec phase~~ — Restored via fresh feature branch `feature/002-core-tracking-plan` for plan/tasks/implement
 
 ---
 
 ## Commands Cheat Sheet
 
-- Resume on the retrofit branch: `git checkout chore/sdlc-retrofit && git pull`
+- Resume plan/tasks work: `git checkout feature/002-core-tracking-plan && git pull`
 - Start Claude Code in the project: `claude`
 - Inside Claude Code, continue Spec Kit workflow: `/speckit.specify`, `/speckit.clarify`, `/speckit.plan`, `/speckit.tasks`, `/speckit.analyze`, `/speckit.implement`
 - Run CI checks locally before pushing: `npm run lint`, `npx prettier --check .`, `npm test`, `docker build -t rfid-tracker:local .`
-- Check branch status: `git log --oneline chore/sdlc-retrofit ^main`
+- Check branch status: `git log --oneline feature/002-core-tracking-plan ^main`
 
 ---
 
