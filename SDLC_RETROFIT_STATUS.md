@@ -4,7 +4,7 @@
 **Branch:** `chore/sdlc-retrofit`
 **Owner:** Jaime
 **Methodology:** GitHub Spec Kit (Spec-Driven Development) + GitHub Actions CI/CD
-**Last updated:** 2026-04-18 (T1-T4 complete, codebase cleaned, PR ready)
+**Last updated:** 2026-04-19 (mid-Phase 8: core docket tracking feature spec in progress)
 
 ---
 
@@ -88,7 +88,7 @@ Mark each phase as ⬜ Not started, 🟡 In progress, or ✅ Done. Add notes on 
 - [x] First CI run green ✅
 - **Notes:** Backend tests temporarily disabled (160/643 failing) - tracked in Known Issues. CI passes with frontend-quality, backend-quality, security, and docker jobs.
 
-### ✅ Phase 8 — Retroactive Spec
+### ✅ Phase 8a — Retroactive Spec (System)
 
 - [x] `/speckit.specify` — existing system documented
 - [x] `/speckit.clarify` — ambiguities resolved
@@ -100,6 +100,21 @@ Mark each phase as ⬜ Not started, 🟡 In progress, or ✅ Done. Add notes on 
   - `.specify/plans/constitution-check.md` — violations and remediation plan
   - `.specify/tasks/retrofit-tasks.md` — 16 ordered tasks across 5 sprints
   - `.specify/analysis/phase8-cross-check.md` — quality gate PASS
+
+### 🟡 Phase 8b — Feature Spec: Core Docket Tracking
+
+- [x] `/speckit.specify` — core docket tracking feature specified
+- [ ] `/speckit.clarify` — resolve remaining open questions
+- [ ] `/speckit.plan` — create implementation plan
+- [ ] `/speckit.tasks` — generate ordered task list
+- [ ] `/speckit.analyze` — cross-check and validate
+- **Notes:** Feature specification created at `specs/core-docket-tracking.md`. Covers:
+  - Workflow A: Tag-binding at fixed workstation (ZD621R + DS2208)
+  - Workflow B: Search-and-find on MC3330xR handheld
+  - Hardware stack: FX9600 readers, ZD621R printer/encoder, DS2208 scanner, MC3330xR handheld
+  - 2D floor-plan mandatory, 3D visualization auxiliary
+  - MQTT reader protocol via Eclipse Mosquitto broker
+  - Retrofit tasks organized into 8 priority groups
 
 ### 🟡 Phase 9 — Final Review & Merge
 
