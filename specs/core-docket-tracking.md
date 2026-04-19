@@ -1,7 +1,7 @@
 # Core Docket Tracking Feature Specification
 
-**Version**: 1.3
-**Status**: Draft (Clarified)
+**Version**: 1.4
+**Status**: Draft (Scope Corrected)
 **Last Updated**: 2026-04-19
 
 ---
@@ -399,7 +399,7 @@ Update current_zone on docket
 - `TAG_DEDUP_WINDOW_MS`: 3000 (suppress identical reads within 3s)
 - `ZONE_DEBOUNCE_WINDOW_MS`: 5000 (suppress zone flapping within 5s)
 - `CONFIDENCE_THRESHOLD`: 0.6 (minimum confidence for zone assignment)
-- `STALE_THRESHOLD_HOURS`: **24** (docket marked stale after this) — **CONFIRMED**
+- `STALE_THRESHOLD_DAYS`: **7** (docket marked stale after this) — **CORRECTED** (24h causes false positives for dockets that legitimately sit overnight/weekends; 7 days is the sensible default, configurable per zone)
 
 **Current Implementation Status**: TagProcessor, TagDeduplicator, and OptimizedEventPipeline exist. Verify debounce parameters are configurable.
 
@@ -585,40 +585,28 @@ When docket next seen by ANY internal reader:
 
 ```
 When docket enters RESTRICTED zone:
-  Check if authorized_user_present (via HID/iClass access card integration)
-  If not authorized OR no recent access event:
-    Generate RESTRICTED_ZONE_ALERT
-    Notify supervisor for human triage
+  Generate RESTRICTED_ZONE_ALERT
+  Notify supervisor for human triage
 ```
 
-**Clarified**: HID/iClass access card system is available for integration.
+**V1 Scope**: Every restricted zone entry triggers an alert. Human supervisor triages (legitimate access vs. unauthorized).
 
-**Integration Approach**:
+**Phase 2 Enhancement**: HID/iClass access card integration available at customer site. Phase 2 can correlate docket entry with access card swipe within ±30 second window to auto-dismiss authorized entries.
 
-- Query access control system for recent entry events at restricted zone doors
-- Correlate docket entry time with access card swipe within ±30 second window
-- If no correlated swipe: generate alert
-- If correlated swipe: log authorized access, no alert
-
-**[RETROFIT REQUIRED]**: HID/iClass API integration (protocol TBD during planning)
+**V1 Rationale**: Simpler implementation, no external integration dependency, acceptable for pilot scale. False positive rate manageable with small restricted zone count.
 
 ### 7.4 Notification Channels
 
-**Clarified**: Push notifications required for v1.
+**V1 Scope**: Dashboard and email notifications only. Push notifications deferred to Phase 2.
 
-| Channel                | Priority | Implementation                                 |
-| ---------------------- | -------- | ---------------------------------------------- |
-| Dashboard              | HIGH     | Real-time via WebSocket (existing)             |
-| **Push Notifications** | **HIGH** | **PWA push via service worker + Web Push API** |
-| Email                  | MEDIUM   | SMTP integration (optional for v1)             |
-| SMS                    | LOW      | Defer to Phase 2                               |
+| Channel            | V1 Status    | Implementation                       |
+| ------------------ | ------------ | ------------------------------------ |
+| Dashboard          | **REQUIRED** | Real-time via WebSocket (existing)   |
+| Email              | **REQUIRED** | SMTP integration for critical alerts |
+| Push Notifications | Phase 2      | PWA push via service worker deferred |
+| SMS                | Phase 2      | Defer to Phase 2                     |
 
-**Push Notification Flow**:
-
-1. User grants notification permission on first visit
-2. Service worker registers for push subscription
-3. Backend sends push via Web Push API when alert triggers
-4. Works even when app is not open (if browser is running)
+**V1 Email Alerts**: Exit alerts, restricted zone alerts, reader-offline alerts, and stale-docket alerts (not seen for >7 days) trigger email to configured supervisor addresses.
 
 ### 7.5 Implementation Status
 
@@ -939,27 +927,30 @@ Must handle 5,000+ movements/day without visible queuing delay. At peak:
 
 ### 11.4 Backup and Recovery
 
-**Clarified**: RPO 1 hour, RTO 1 hour (fast recovery requirement).
+**V1 Scope**: Nightly backups with documented restore procedure. Architecture supports tighter RPO/RTO for Phase 2.
 
-| Metric                         | Target | Implementation                              |
-| ------------------------------ | ------ | ------------------------------------------- |
-| RPO (Recovery Point Objective) | 1 hour | Hourly PostgreSQL pg_dump or WAL archiving  |
-| RTO (Recovery Time Objective)  | 1 hour | Standby instance or rapid restore procedure |
+| Metric                         | V1 Target | Phase 2 Target | Implementation                                |
+| ------------------------------ | --------- | -------------- | --------------------------------------------- |
+| RPO (Recovery Point Objective) | 24 hours  | 1 hour         | Nightly pg_dump (v1), WAL archiving (Phase 2) |
+| RTO (Recovery Time Objective)  | 4 hours   | 1 hour         | Manual restore (v1), hot standby (Phase 2)    |
 
-**Backup Strategy**:
+**V1 Backup Strategy**:
 
-- PostgreSQL: WAL archiving to S3-compatible storage (MinIO on-prem)
-- Configuration: Git-versioned, Docker Compose files backed up
+- PostgreSQL: Nightly pg_dump to local backup volume
+- Configuration: Git-versioned, Docker Compose files in repo
 - RFID tag mappings: Included in PostgreSQL backup (items table)
+- Backup retention: 7 days rolling
 
-**Recovery Procedure**:
+**V1 Recovery Procedure**:
 
-1. Restore PostgreSQL from latest WAL archive
-2. Restart Docker containers from backed-up compose files
-3. Readers auto-reconnect to gateway
+1. Restore PostgreSQL from latest nightly dump
+2. Restart Docker containers from git-versioned compose files
+3. Readers auto-reconnect to gateway (buffered reads replay)
 4. Verify via health check endpoints
 
-**[RETROFIT REQUIRED]**: Automated backup scripts and restore runbook.
+**Design Constraint**: Architecture must not preclude Phase 2 WAL archiving and hot standby.
+
+**[RETROFIT REQUIRED]**: Nightly backup cron job and documented restore runbook.
 
 ---
 
@@ -1306,28 +1297,20 @@ reader:status-changed {
 | Floor-plan render      | <1 second       |
 | Proximity mode latency | <100ms per read |
 
-### 17.4 PWA Offline Support
+### 17.4 Offline Resilience
 
-**Clarified**: Full PWA offline mode required.
+**V1 Scope**: Network connectivity required for dashboard and handheld. Offline resilience handled by reader buffering per Constitution Article II.
 
-| Capability            | Offline Behavior                                                         |
-| --------------------- | ------------------------------------------------------------------------ |
-| App shell             | Cached, loads instantly                                                  |
-| Floor-plan SVGs       | Cached, renders offline                                                  |
-| Recent search results | Cached (last 100 items viewed)                                           |
-| Zone occupancy        | Last-known values displayed with "offline" indicator                     |
-| Search                | Local cache search only; "reconnect for live data" message               |
-| Proximity-find        | **Requires network** (RFID is local but EPC→docket lookup needs backend) |
-| Tag-binding           | **Requires network** (must write to database)                            |
+| Component     | V1 Behavior                                                 |
+| ------------- | ----------------------------------------------------------- |
+| RFID Readers  | Buffer reads locally, replay on reconnect (per Article II)  |
+| Dashboard     | Requires network; shows "disconnected" indicator if offline |
+| Handheld find | Requires network (EPC→docket lookup needs backend)          |
+| Tag-binding   | Requires network (must write to database)                   |
 
-**Implementation**:
+**Phase 2 Enhancement**: Full PWA offline mode with IndexedDB cache and service worker. Not required for pilot.
 
-- Service worker with Workbox for caching strategy
-- IndexedDB for offline data store (recent items, zones, floor-plans)
-- Background sync for queued actions when reconnected
-- Clear offline indicator in UI header
-
-**[RETROFIT REQUIRED]**: PWA service worker, IndexedDB cache, offline UI states.
+**Design Constraint**: Reader buffering ensures no tag reads are lost during network outages. This is the v1 offline story.
 
 ---
 
@@ -1347,13 +1330,15 @@ The following features exist in the codebase but were not mentioned in the brief
 
 ### 18.2 Analytics Engine (Python/Open3D)
 
-**Current**: Separate Python service for spatial analytics.
+**Current**: Separate Python FastAPI service for spatial analytics (`analytics-engine/`).
 
-**Decision**: **REQUIRED for v1.** ✅ CLARIFIED
+**Decision**: **PHASE 2.** ✅ SCOPE CORRECTED
 
-- Spatial analytics needed for pilot success criteria
-- Ensure Python service is included in Docker Compose
-- Document API contract between Node.js and Python services
+- No frontend code currently consumes this service
+- Backend client exists but is unused
+- Basic stats (zone counts, movement counts) available via SQL aggregates
+- Advanced spatial analytics (clustering, heatmaps, optimization) deferred to Phase 2
+- Remove from Docker Compose for v1 to reduce operational complexity
 
 ### 18.3 Multi-Tenant Architecture
 
@@ -1369,11 +1354,13 @@ The following features exist in the codebase but were not mentioned in the brief
 
 **Current**: `PathfindingController`, `SpatialAnalyticsController` exist.
 
-**Decision**: **REQUIRED for v1.** ✅ CLARIFIED
+**Decision**: **DOWNSCOPED for v1.** ✅ SCOPE CORRECTED
 
-- Turn-by-turn guidance to docket location needed
-- Integrate with 2D floor-plan view
-- Consider simple A\* or graph-based pathfinding on zone adjacency
+- V1: Show target zone highlighted on 2D floor plan with static route line from user's current zone to target zone
+- V1: No real-time turn-by-turn guidance (staff know the building)
+- Phase 2: Full navigation with dynamic routing if needed
+
+**V1 Implementation**: Zone adjacency graph + simple path highlighting. No complex A\* needed.
 
 ### 18.5 Subscription Tiers
 
@@ -1412,27 +1399,27 @@ All questions clarified as of v1.3. Remaining item deferred.
 
 ### Answered
 
-| #   | Question                | Answer                                | Section |
-| --- | ----------------------- | ------------------------------------- | ------- |
-| 1   | Identifier Formats      | Separate barcodes for each identifier | 3.1     |
-| 2   | Active Docket Count     | >200,000 (requires sharding/archival) | 10.1    |
-| 3   | Access Card Integration | Yes, HID/iClass available             | 7.3     |
-| 4   | Site Survey             | **Deferred** — not scoped yet         | 12      |
-| 5   | Raw Read Retention      | 1 year                                | 5.3     |
-| 6   | Stale Threshold         | 24 hours                              | 5.2     |
-| 7   | Notification Channels   | Push notifications (PWA)              | 7.4     |
-| 8   | Offline Operation       | Full PWA offline support              | 17.4    |
-| 9   | Backup/Recovery         | RPO 1h, RTO 1h                        | 11.4    |
-| 10  | ZD621R Integration      | Network via ZPL over TCP 9100         | 3A.2    |
-| 11  | DataWedge RSSI          | Native Android wrapper required       | 8.2     |
-| 12  | MQTT vs LLRP            | MQTT via Mosquitto confirmed          | 5.1     |
-| 13  | 3D Visualization        | Keep as optional toggle               | 18.1    |
-| 14  | Analytics Engine        | Required for v1                       | 18.2    |
-| 15  | Multi-tenant            | Keep for future-proofing              | 18.3    |
-| 16  | Pathfinding             | Required for v1                       | 18.4    |
-| 17  | Subscription Tiers      | Simplify to single tier               | 18.5    |
-| 18  | i18n                    | Both English and Afrikaans required   | 18.6    |
-| 19  | Dark/Light Theme        | Keep both                             | 18.7    |
+| #   | Question                | Answer                                                       | Section | Notes         |
+| --- | ----------------------- | ------------------------------------------------------------ | ------- | ------------- |
+| 1   | Identifier Formats      | Separate barcodes for each identifier                        | 3.1     |               |
+| 2   | Active Docket Count     | >200,000 (requires sharding/archival)                        | 10.1    | **Keep**      |
+| 3   | Access Card Integration | **Phase 2** — HID/iClass available but v1 uses manual triage | 7.3     | **CORRECTED** |
+| 4   | Site Survey             | **Deferred** — not scoped yet                                | 12      |               |
+| 5   | Raw Read Retention      | 12 months rolling                                            | 5.3     |               |
+| 6   | Stale Threshold         | **7 days** (not 24h — avoids weekend false positives)        | 5.2     | **CORRECTED** |
+| 7   | Notification Channels   | **Dashboard + Email** — push is Phase 2                      | 7.4     | **CORRECTED** |
+| 8   | Offline Operation       | **Reader buffering** — PWA offline is Phase 2                | 17.4    | **CORRECTED** |
+| 9   | Backup/Recovery         | **RPO 24h, RTO 4h** — tighter targets Phase 2                | 11.4    | **CORRECTED** |
+| 10  | ZD621R Integration      | Network via ZPL over TCP 9100                                | 3A.2    |               |
+| 11  | DataWedge RSSI          | Native Android wrapper required                              | 8.2     |               |
+| 12  | MQTT vs LLRP            | MQTT via Mosquitto confirmed                                 | 5.1     |               |
+| 13  | 3D Visualization        | Keep as optional toggle                                      | 18.1    |               |
+| 14  | Analytics Engine        | **Phase 2** — no current consumer                            | 18.2    | **CORRECTED** |
+| 15  | Multi-tenant            | Keep for future-proofing                                     | 18.3    |               |
+| 16  | Pathfinding             | **Zone-level route line** — turn-by-turn is Phase 2          | 18.4    | **CORRECTED** |
+| 17  | Subscription Tiers      | Simplify to single tier                                      | 18.5    |               |
+| 18  | i18n                    | Both English and Afrikaans required                          | 18.6    |               |
+| 19  | Dark/Light Theme        | Keep both                                                    | 18.7    |               |
 
 ### Deferred
 
@@ -1455,12 +1442,13 @@ All questions clarified as of v1.3. Remaining item deferred.
 
 ## 21. Document History
 
-| Version | Date       | Author | Changes                                                                                                                                                                                                                                                                                           |
-| ------- | ---------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1.0     | 2026-04-19 | Claude | Initial specification draft                                                                                                                                                                                                                                                                       |
-| 1.1     | 2026-04-19 | Claude | Major revision: Added Workflow A (tag-binding) and Workflow B (search-and-find) as distinct workflows; Added hardware stack (ZD621R, DS2208, MC3330xR); Clarified 2D mandatory, 3D auxiliary; Added device categories; Updated retrofit tasks                                                     |
-| 1.2     | 2026-04-19 | Claude | Resolved Q10-Q12: ZD621R via network (ZPL over TCP 9100); Native Android wrapper required for RFID proximity-find (DataWedge lacks RSSI); MQTT confirmed via Mosquitto (IoT Connector licence as procurement line item). Added R-B0 retrofit task for native wrapper.                             |
-| 1.3     | 2026-04-19 | Claude | `/speckit.clarify` complete: All 19 questions answered. Key decisions: >200k active dockets (sharding needed), HID/iClass integration, 1yr raw read retention, push notifications, full PWA offline, RPO/RTO 1h, pathfinding required, analytics required, i18n both languages, keep both themes. |
+| Version | Date       | Author | Changes                                                                                                                                                                                                                                                                                                                                                       |
+| ------- | ---------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.0     | 2026-04-19 | Claude | Initial specification draft                                                                                                                                                                                                                                                                                                                                   |
+| 1.1     | 2026-04-19 | Claude | Major revision: Added Workflow A (tag-binding) and Workflow B (search-and-find) as distinct workflows; Added hardware stack (ZD621R, DS2208, MC3330xR); Clarified 2D mandatory, 3D auxiliary; Added device categories; Updated retrofit tasks                                                                                                                 |
+| 1.2     | 2026-04-19 | Claude | Resolved Q10-Q12: ZD621R via network (ZPL over TCP 9100); Native Android wrapper required for RFID proximity-find (DataWedge lacks RSSI); MQTT confirmed via Mosquitto (IoT Connector licence as procurement line item). Added R-B0 retrofit task for native wrapper.                                                                                         |
+| 1.3     | 2026-04-19 | Claude | `/speckit.clarify` complete: All 19 questions answered. (Scope creep detected — see v1.4 corrections.)                                                                                                                                                                                                                                                        |
+| 1.4     | 2026-04-19 | Claude | **Scope corrections**: Reverted 6 items that scope-creeped during clarify. Moved to Phase 2: push notifications, PWA offline, HID/iClass, analytics engine, turn-by-turn pathfinding, enterprise backup. Corrected stale threshold to 7 days. V1 uses email + dashboard alerts, reader buffering for offline, nightly backups, zone-level route highlighting. |
 
 ---
 
@@ -1534,32 +1522,34 @@ This is a **non-negotiable architectural constraint**. DataWedge only provides k
 | R-E6 | **Database partitioning for >200k items** | HIGH     | M      | Partition by status/date  |
 | R-E7 | Automated archival pipeline               | MEDIUM   | M      | Move old items to archive |
 
-### A.6 PWA & Offline (from /speckit.clarify)
+### A.6 Notifications & Backup (V1)
 
-| ID   | Task                             | Priority | Effort | Notes                                     |
-| ---- | -------------------------------- | -------- | ------ | ----------------------------------------- |
-| R-F1 | Service worker with Workbox      | HIGH     | M      | App shell + asset caching                 |
-| R-F2 | IndexedDB offline data store     | HIGH     | M      | Recent items, zones, floor-plans          |
-| R-F3 | Offline UI states                | HIGH     | S      | "Offline" indicator, graceful degradation |
-| R-F4 | Background sync for reconnection | MEDIUM   | S      | Queue actions while offline               |
-| R-F5 | Push notification infrastructure | HIGH     | M      | Web Push API + service worker             |
+| ID   | Task                          | Priority | Effort | Notes                                    |
+| ---- | ----------------------------- | -------- | ------ | ---------------------------------------- |
+| R-F1 | Email notification service    | HIGH     | S      | SMTP for critical alerts (exit, offline) |
+| R-F2 | Nightly backup cron job       | HIGH     | S      | pg_dump to backup volume                 |
+| R-F3 | Restore runbook documentation | HIGH     | S      | Documented restore procedure             |
+| R-F4 | "Disconnected" UI indicator   | MEDIUM   | S      | Show when WebSocket disconnects          |
 
-### A.7 Integrations (from /speckit.clarify)
+### A.7 Phase 2 (Deferred from V1)
 
-| ID   | Task                               | Priority | Effort | Notes                             |
-| ---- | ---------------------------------- | -------- | ------ | --------------------------------- |
-| R-G1 | HID/iClass access card integration | MEDIUM   | M      | For restricted zone authorization |
-| R-G2 | Backup automation (WAL archiving)  | HIGH     | M      | RPO 1h requirement                |
-| R-G3 | Restore runbook and testing        | HIGH     | S      | RTO 1h requirement                |
+| ID   | Task                               | Priority | Effort | Notes                                     |
+| ---- | ---------------------------------- | -------- | ------ | ----------------------------------------- |
+| R-G1 | HID/iClass access card integration | Phase 2  | M      | Correlate access swipes with docket entry |
+| R-G2 | Push notification infrastructure   | Phase 2  | M      | Service worker + Web Push API             |
+| R-G3 | Full PWA offline mode              | Phase 2  | L      | IndexedDB cache, background sync          |
+| R-G4 | WAL archiving (RPO 1h)             | Phase 2  | M      | PostgreSQL WAL to MinIO/S3                |
+| R-G5 | Hot standby (RTO 1h)               | Phase 2  | L      | Streaming replication                     |
+| R-G6 | Analytics engine deployment        | Phase 2  | M      | Python/Open3D for advanced analytics      |
+| R-G7 | Turn-by-turn pathfinding           | Phase 2  | M      | Real-time navigation guidance             |
 
-### A.8 Features Confirmed Required (from /speckit.clarify)
+### A.8 V1 Features Confirmed
 
-| ID   | Task                            | Priority | Effort | Notes                           |
-| ---- | ------------------------------- | -------- | ------ | ------------------------------- |
-| R-H1 | Pathfinding service integration | HIGH     | M      | Turn-by-turn guidance to docket |
-| R-H2 | Analytics engine deployment     | HIGH     | M      | Python/Open3D in Docker Compose |
-| R-H3 | i18n completion (Afrikaans)     | MEDIUM   | M      | All UI strings translated       |
-| R-H4 | Remove subscription tier logic  | LOW      | S      | Simplify to single tier         |
+| ID   | Task                           | Priority | Effort | Notes                             |
+| ---- | ------------------------------ | -------- | ------ | --------------------------------- |
+| R-H1 | Zone-level route highlighting  | MEDIUM   | S      | Static path line on 2D floor plan |
+| R-H2 | i18n completion (Afrikaans)    | MEDIUM   | M      | All UI strings translated         |
+| R-H3 | Remove subscription tier logic | LOW      | S      | Simplify to single tier           |
 
 ---
 
@@ -1582,6 +1572,14 @@ This is a **non-negotiable architectural constraint**. DataWedge only provides k
 4. R-D2 (LDAP) — Customer authentication
 5. R-D4, R-D5 (Alerts) — Exit detection is a pilot success criterion
 6. R-E6 (Database partitioning) — >200k active items requires this
-7. R-F1, R-F5 (PWA + Push) — Offline support and notifications confirmed required
-8. R-H1 (Pathfinding) — Confirmed required for v1
-9. R-H2 (Analytics engine) — Confirmed required for v1
+7. R-F1 (Email notifications) — Critical alerts need email delivery
+8. R-F2, R-F3 (Backup + runbook) — Operational requirement for pilot
+
+**Not on Critical Path (Phase 2)**:
+
+- HID/iClass integration
+- Push notifications
+- PWA offline mode
+- Analytics engine
+- Turn-by-turn pathfinding
+- Enterprise backup (WAL/hot standby)
