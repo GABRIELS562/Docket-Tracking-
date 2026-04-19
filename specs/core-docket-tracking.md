@@ -1,6 +1,6 @@
 # Core Docket Tracking Feature Specification
 
-**Version**: 1.1
+**Version**: 1.2
 **Status**: Draft
 **Last Updated**: 2026-04-19
 
@@ -112,12 +112,13 @@ Tag-binding occurs **once per docket** at a fixed intake workstation. This is th
 │  │ Scanner  │        │  Desktop PC │                       │
 │  └──────────┘        │  (Chrome)   │                       │
 │                      │             │◀──── React Web App    │
-│  ┌──────────┐  USB   │             │                       │
-│  │ ZD621R   │◀───────│             │                       │
-│  │ Printer/ │        └─────────────┘                       │
+│  ┌──────────┐ TCP    │             │                       │
+│  │ ZD621R   │◀──────▶│             │                       │
+│  │ Printer/ │ 9100   └─────────────┘                       │
 │  │ Encoder  │                                               │
 │  └──────────┘                                               │
-│       │                                                     │
+│       │    ▲                                                │
+│       │    └───── Ethernet (LAN)                           │
 │       ▼                                                     │
 │  ┌──────────┐                                               │
 │  │  RFID    │ ◀── Blank label in, encoded+printed out      │
@@ -125,6 +126,28 @@ Tag-binding occurs **once per docket** at a fixed intake workstation. This is th
 │  └──────────┘                                               │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+**ZD621R Integration: Network via ZPL over TCP**
+
+The ZD621R connects via **Ethernet (LAN)**, not USB. The React web app sends print+encode jobs directly to the printer's IP address on **TCP port 9100** using ZPL (Zebra Programming Language) commands.
+
+**Rationale**:
+
+- Network integration decouples the printer from any specific workstation
+- Multiple intake workstations can share a single printer if required
+- Uses the standard Zebra integration pattern (ZPL over TCP)
+- Avoids browser-driver complexity (no Browser Print dependency)
+- ZPL commands encode RFID tag AND print label in a single job
+
+**Implementation Approach**:
+
+- Backend exposes a `/api/v1/print/tag-label` endpoint
+- Endpoint accepts: lab_number, case_number, station_charge
+- Endpoint generates ZPL command with RFID encoding instructions
+- Endpoint sends ZPL to printer IP:9100 via TCP socket
+- Printer encodes tag, prints label, returns EPC in response
+- Backend creates item record with bound EPC
+- Frontend receives confirmation with encoded EPC
 
 ### 3A.3 Tag-Binding Workflow Steps
 
@@ -225,12 +248,18 @@ Tag-binding occurs **once per docket** at a fixed intake workstation. This is th
 
 #### Tag-Binding Workstation (Intake)
 
-| Component            | Model                  | Purpose                                     |
-| -------------------- | ---------------------- | ------------------------------------------- |
-| Desktop PC           | Standard Windows 10/11 | Runs React web app in Chrome                |
-| Barcode Scanner      | Zebra DS2208 (USB)     | Scans existing docket barcodes              |
-| RFID Printer/Encoder | Zebra ZD621R           | Prints label + encodes RFID tag in one step |
-| RFID Labels          | UHF RFID on-demand     | Adhesive suitable for paper/card dockets    |
+| Component            | Model                  | Connection              | Purpose                                     |
+| -------------------- | ---------------------- | ----------------------- | ------------------------------------------- |
+| Desktop PC           | Standard Windows 10/11 | —                       | Runs React web app in Chrome                |
+| Barcode Scanner      | Zebra DS2208           | USB (keyboard wedge)    | Scans existing docket barcodes              |
+| RFID Printer/Encoder | Zebra ZD621R           | **Ethernet (TCP 9100)** | Prints label + encodes RFID tag in one step |
+| RFID Labels          | UHF RFID on-demand     | —                       | Adhesive suitable for paper/card dockets    |
+
+**ZD621R Network Configuration**:
+
+- Protocol: ZPL commands over TCP port 9100
+- Connection: Ethernet (same LAN as backend server)
+- Not USB: Network integration allows workstation decoupling and printer sharing
 
 **Deployment**: One workstation per intake point (typically 1-2 for pilot)
 
@@ -249,11 +278,13 @@ Tag-binding occurs **once per docket** at a fixed intake workstation. This is th
 
 **Deployment**: 3-5 units + 1 spare for pilot (shared among staff)
 
-#### Broker
+#### MQTT Broker
 
 | Component   | Model             | Deployment                      |
 | ----------- | ----------------- | ------------------------------- |
 | MQTT Broker | Eclipse Mosquitto | Docker container on site server |
+
+**Reader-to-Broker Protocol**: MQTT published to Eclipse Mosquitto. Zebra IoT Connector licence, if required by the reader firmware revision, is a per-reader procurement line item and does not affect system architecture.
 
 ### 4.3 Zone Model
 
@@ -283,37 +314,61 @@ Zone {
 
 ### 5.1 Reader Communication Protocol
 
-**Brief Preference**: MQTT-based communication via Eclipse Mosquitto broker.
+**Protocol: MQTT via Eclipse Mosquitto**
 
-**Current Implementation**: LLRP (Low-Level Reader Protocol) via `llrp` npm package.
+Reader-to-broker protocol is **MQTT**, published to an **Eclipse Mosquitto** broker running in Docker on the site server.
 
-**Analysis**:
+**Architecture**:
 
-- LLRP is an **EPCglobal open standard**, not a vendor-proprietary SDK
-- LLRP is already implemented and working in `saps-rfid-platform/src/infrastructure/rfid/`
-- The constitution (Article I) documents LLRP as Tier 3 Reader Gateway
-- No Zebra-proprietary SDK calls exist in the codebase
+```
+┌─────────────────┐     MQTT      ┌─────────────────┐     Subscribe    ┌─────────────────┐
+│  Zebra FX9600   │──────────────▶│    Mosquitto    │◀────────────────│  Reader Gateway │
+│  (IoT Connect)  │   publish     │    Broker       │                 │  Service        │
+└─────────────────┘               └─────────────────┘                 └─────────────────┘
+                                        │
+                                        │ Docker container
+                                        │ on site server
+```
 
-**Decision Required**: Keep LLRP or migrate to MQTT?
+**Zebra IoT Connector Licence**:
 
-| Factor         | LLRP (Current)          | MQTT (Brief Preference)        |
-| -------------- | ----------------------- | ------------------------------ |
-| Standards      | EPCglobal open standard | OASIS open standard            |
-| Vendor Lock-in | None                    | None                           |
-| Implementation | Complete, tested        | Requires new work              |
-| Buffering      | Reader-side (limited)   | Broker-side (robust)           |
-| Deployment     | Direct TCP              | Requires Mosquitto broker      |
-| Zebra FX9600   | Native support          | Requires IoT Connector license |
+If the FX9600 firmware revision on the purchased reader units requires a Zebra IoT Connector licence to enable native MQTT publishing, that licence cost is included in the **turnkey hardware budget as a per-reader procurement line item**.
 
-[NEEDS CLARIFICATION: Does customer have Zebra IoT Connector licenses for MQTT? If not, LLRP is the practical choice and meets the "vendor-neutral" requirement.]
+This is a procurement decision, not an architecture decision. The architecture remains unchanged:
 
-**If MQTT Migration Approved**:
+- MQTT is the protocol
+- Mosquitto is the broker
+- The reader gateway service subscribes to Mosquitto topics
 
-1. Configure Zebra FX9600 readers for MQTT publishing (requires IoT Connector)
-2. Deploy Eclipse Mosquitto broker (add to docker-compose)
-3. Create MQTT subscriber service in reader gateway
+**Migration from LLRP**:
+
+The current codebase implements LLRP (Low-Level Reader Protocol). Migration to MQTT involves:
+
+1. Deploy Eclipse Mosquitto broker (add to docker-compose)
+2. Configure Zebra FX9600 readers for MQTT publishing (via IoT Connector)
+3. Create MQTT subscriber service in reader gateway (`MqttReaderGateway`)
 4. Deprecate `LLRPGateway`, `LLRPReaderConnection`
-5. Preserve existing debouncing and event pipeline logic
+5. Preserve existing debouncing and event pipeline logic (unchanged)
+
+**MQTT Topic Structure**:
+
+```
+rfid/readers/{readerId}/tags          # Tag reads
+rfid/readers/{readerId}/status        # Reader health
+rfid/readers/{readerId}/config        # Configuration updates
+```
+
+**Message Format** (tag read):
+
+```json
+{
+  "epc": "E280116060000...",
+  "rssi": -45,
+  "antenna": 1,
+  "timestamp": "2026-04-19T10:30:00.123Z",
+  "readerId": "FX9600-001"
+}
+```
 
 ### 5.2 Tag Read Processing Pipeline
 
@@ -575,27 +630,95 @@ When docket enters RESTRICTED zone:
 
 ### 8.2 Integration Approach
 
-**No native Android app for v1.** The React web app runs as a responsive web app in Chrome on the MC3330xR.
+**Architectural Constraint — Native RFID SDK Bridge Required**
 
-**RFID Integration Options** (in order of preference):
+> **Handheld proximity-find mode requires a native RFID SDK bridge — pure browser RFID access is not available on Android.**
 
-1. **Zebra DataWedge** (Recommended)
-   - DataWedge is pre-installed on MC3330xR
-   - Configure DataWedge to output RFID reads as keyboard input
-   - Web app receives RFID data via standard input events
-   - No native code required
-   - Limitation: May not provide real-time RSSI for proximity mode
+The React app runs inside a **thin native Android wrapper** that exposes the Zebra RFID SDK to the web layer via a JavaScript bridge (e.g., `window.zebraRfid`).
 
-2. **Zebra EMDK for JavaScript**
-   - Zebra provides JavaScript API for RFID access
-   - Can be used from web app via Zebra Enterprise Browser
-   - Provides RSSI values for proximity feedback
-   - Requires Zebra Enterprise Browser (not standard Chrome)
+**Why DataWedge Alone Is Insufficient**:
 
-3. **Progressive Web App + Native Bridge** (Future)
-   - PWA with native Android module for RFID
-   - Most capable but highest development effort
-   - Consider for v2 if DataWedge insufficient
+DataWedge on MC3330xR injects barcode scan data into focused input fields via keyboard wedge. However:
+
+- DataWedge does **NOT** expose the UHF RFID radio for continuous reading
+- DataWedge does **NOT** provide RSSI (signal strength) values needed for proximity-find
+- RFID proximity mode requires access to the Zebra RFID SDK, which a pure Chrome browser cannot access
+
+**Required Architecture**:
+
+```
+┌──────────────────────────────────────────────────────┐
+│  MC3330xR                                            │
+│                                                      │
+│  ┌────────────────────────────────────────────────┐  │
+│  │  Thin Native Android App (WebView Host)        │  │
+│  │                                                │  │
+│  │  ┌──────────────────────────────────────────┐  │  │
+│  │  │  React Web App (loaded in WebView)       │  │  │
+│  │  │                                          │  │  │
+│  │  │  - Search, floor-plan, docket views      │  │  │
+│  │  │  - Proximity-find UI                     │  │  │
+│  │  │  - Calls window.zebraRfid.* methods      │  │  │
+│  │  └──────────────────────────────────────────┘  │  │
+│  │                   ▲                            │  │
+│  │                   │ JavaScript Bridge          │  │
+│  │                   ▼                            │  │
+│  │  ┌──────────────────────────────────────────┐  │  │
+│  │  │  Native RFID Bridge Module               │  │  │
+│  │  │                                          │  │  │
+│  │  │  - Wraps Zebra RFID SDK                  │  │  │
+│  │  │  - Exposes: start/stop read              │  │  │
+│  │  │  - Exposes: tag filter (target EPC)      │  │  │
+│  │  │  - Streams: RSSI values to JS callback   │  │  │
+│  │  └──────────────────────────────────────────┘  │  │
+│  └────────────────────────────────────────────────┘  │
+│                                                      │
+│  ┌────────────────────────────────────────────────┐  │
+│  │  Zebra RFID SDK (Android)                      │  │
+│  └────────────────────────────────────────────────┘  │
+│                         │                            │
+│                         ▼                            │
+│  ┌────────────────────────────────────────────────┐  │
+│  │  MC3330xR Integrated UHF RFID Radio            │  │
+│  └────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────┘
+```
+
+**JavaScript Bridge API** (exposed by native wrapper):
+
+```typescript
+interface ZebraRfid {
+  // Start continuous RFID reading, optionally filtered to target EPC
+  startRead(options?: { targetEpc?: string }): Promise<void>;
+
+  // Stop RFID reading
+  stopRead(): Promise<void>;
+
+  // Register callback for tag reads (includes RSSI)
+  onTagRead(callback: (tag: { epc: string; rssi: number }) => void): void;
+
+  // Check if RFID is available
+  isAvailable(): boolean;
+}
+
+// Usage in React proximity-find component:
+window.zebraRfid.startRead({ targetEpc: 'E280116060000...' });
+window.zebraRfid.onTagRead((tag) => {
+  updateSignalStrength(tag.rssi);
+  playBeep(rssiToBeepRate(tag.rssi));
+});
+```
+
+**Wrapper Implementation Options** (to be decided during `/speckit.plan`):
+
+1. **Capacitor Plugin**: Custom Capacitor plugin wrapping Zebra RFID SDK
+2. **Custom Java Bridge**: Minimal Android app with WebView and @JavascriptInterface
+3. **Third-party Wrapper**: TagMatiks or similar commercial wrapper
+
+**DataWedge Still Used For**:
+
+- 1D/2D barcode scanning (keyboard wedge input)
+- This is separate from UHF RFID and works in pure browser
 
 ### 8.3 Proximity-Find Mode
 
@@ -1177,7 +1300,10 @@ The following features exist in the codebase but were not mentioned in the brief
 
 ### Answered (removed from list)
 
-- ~~Handheld Integration~~: **ANSWERED** — MC3330xR, responsive web app in Chrome, DataWedge integration
+- ~~Handheld Integration~~: **ANSWERED** — MC3330xR, responsive web app in Chrome, native wrapper required for RFID
+- ~~ZD621R Integration (Q10)~~: **ANSWERED** — Network (Ethernet) via ZPL over TCP port 9100. See Section 3A.2.
+- ~~DataWedge RSSI (Q11)~~: **ANSWERED** — DataWedge does NOT expose RSSI. Native Android wrapper with Zebra RFID SDK bridge required. See Section 8.2.
+- ~~MQTT vs LLRP (Q12)~~: **ANSWERED** — MQTT via Mosquitto. IoT Connector licence is per-reader procurement line item. See Section 5.1.
 
 ### Still Open
 
@@ -1199,12 +1325,6 @@ The following features exist in the codebase but were not mentioned in the brief
 
 9. **Backup/Recovery**: What are the backup requirements? RPO/RTO targets?
 
-10. **ZD621R Integration**: What interface does the customer expect for the ZD621R? USB direct? Network print server? Zebra Browser Print?
-
-11. **DataWedge RSSI**: Does Zebra DataWedge on MC3330xR expose RSSI values for proximity mode, or do we need Zebra Enterprise Browser / EMDK?
-
-12. **MQTT vs LLRP**: Does customer have Zebra IoT Connector licenses for MQTT on FX9600 readers? If not, LLRP (already implemented) is the practical choice.
-
 ---
 
 ## 20. Success Criteria (Pilot)
@@ -1222,10 +1342,11 @@ The following features exist in the codebase but were not mentioned in the brief
 
 ## 21. Document History
 
-| Version | Date       | Author | Changes                                                                                                                                                                                                                                       |
-| ------- | ---------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1.0     | 2026-04-19 | Claude | Initial specification draft                                                                                                                                                                                                                   |
-| 1.1     | 2026-04-19 | Claude | Major revision: Added Workflow A (tag-binding) and Workflow B (search-and-find) as distinct workflows; Added hardware stack (ZD621R, DS2208, MC3330xR); Clarified 2D mandatory, 3D auxiliary; Added device categories; Updated retrofit tasks |
+| Version | Date       | Author | Changes                                                                                                                                                                                                                                                               |
+| ------- | ---------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.0     | 2026-04-19 | Claude | Initial specification draft                                                                                                                                                                                                                                           |
+| 1.1     | 2026-04-19 | Claude | Major revision: Added Workflow A (tag-binding) and Workflow B (search-and-find) as distinct workflows; Added hardware stack (ZD621R, DS2208, MC3330xR); Clarified 2D mandatory, 3D auxiliary; Added device categories; Updated retrofit tasks                         |
+| 1.2     | 2026-04-19 | Claude | Resolved Q10-Q12: ZD621R via network (ZPL over TCP 9100); Native Android wrapper required for RFID proximity-find (DataWedge lacks RSSI); MQTT confirmed via Mosquitto (IoT Connector licence as procurement line item). Added R-B0 retrofit task for native wrapper. |
 
 ---
 
@@ -1243,14 +1364,31 @@ The following features exist in the codebase but were not mentioned in the brief
 
 ### A.2 Workflow B: Handheld Find
 
-| ID   | Task                                  | Priority | Effort | Notes                                |
-| ---- | ------------------------------------- | -------- | ------ | ------------------------------------ |
-| R-B1 | Proximity-find UI component           | HIGH     | M      | Full-screen, signal strength display |
-| R-B2 | MC3330xR DataWedge integration        | HIGH     | M      | RFID via keyboard wedge              |
-| R-B3 | Audio feedback (Web Audio API)        | MEDIUM   | S      | Geiger-counter beeps                 |
-| R-B4 | Haptic feedback (Vibration API)       | LOW      | S      | If device supports                   |
-| R-B5 | Responsive UI for handheld breakpoint | HIGH     | M      | <768px optimized layout              |
-| R-B6 | 2D floor-plan as primary view         | HIGH     | S      | Verify/enforce 2D default            |
+| ID   | Task                                  | Priority | Effort | Notes                                                 |
+| ---- | ------------------------------------- | -------- | ------ | ----------------------------------------------------- |
+| R-B0 | **Native Android RFID wrapper**       | **HIGH** | **L**  | **Required for proximity-find; DataWedge lacks RSSI** |
+| R-B1 | Proximity-find UI component           | HIGH     | M      | Full-screen, signal strength display                  |
+| R-B2 | JavaScript bridge to Zebra RFID SDK   | HIGH     | M      | window.zebraRfid.\* interface                         |
+| R-B3 | Audio feedback (Web Audio API)        | MEDIUM   | S      | Geiger-counter beeps                                  |
+| R-B4 | Haptic feedback (Vibration API)       | LOW      | S      | If device supports                                    |
+| R-B5 | Responsive UI for handheld breakpoint | HIGH     | M      | <768px optimized layout                               |
+| R-B6 | 2D floor-plan as primary view         | HIGH     | S      | Verify/enforce 2D default                             |
+
+**R-B0 Detail: Native Android RFID Wrapper**
+
+Handheld proximity-find mode requires a **thin native Android app** that:
+
+- Hosts a WebView for the React app
+- Bridges the Zebra RFID SDK to JavaScript via `window.zebraRfid` interface
+- Enables: RFID start/stop, tag filter (target EPC), RSSI streaming
+
+This is a **non-negotiable architectural constraint**. DataWedge only provides keyboard wedge for barcodes; it does NOT expose the UHF RFID radio or RSSI values needed for proximity-find.
+
+**Wrapper approach** (to be decided during `/speckit.plan`):
+
+- Option 1: Capacitor plugin wrapping Zebra RFID SDK
+- Option 2: Custom Java bridge with WebView + @JavascriptInterface
+- Option 3: TagMatiks or similar commercial wrapper
 
 ### A.3 Device Category Support
 
@@ -1296,6 +1434,7 @@ The following features exist in the codebase but were not mentioned in the brief
 **Critical Path for Pilot**:
 
 1. R-A1 through R-A5 (Tag-binding) — Cannot track dockets without this
-2. R-B1 through R-B2, R-B5, R-B6 (Handheld find) — Hero journey
-3. R-D2 (LDAP) — Customer authentication
-4. R-D4, R-D5 (Alerts) — Exit detection is a pilot success criterion
+2. **R-B0** (Native RFID wrapper) — **Required for handheld proximity-find; cannot be bypassed**
+3. R-B1 through R-B2, R-B5, R-B6 (Handheld find) — Hero journey
+4. R-D2 (LDAP) — Customer authentication
+5. R-D4, R-D5 (Alerts) — Exit detection is a pilot success criterion
