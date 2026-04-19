@@ -4,7 +4,7 @@
 **Branch:** `chore/sdlc-retrofit`
 **Owner:** Jaime
 **Methodology:** GitHub Spec Kit (Spec-Driven Development) + GitHub Actions CI/CD
-**Last updated:** 2026-04-19 (mid-Phase 8: core docket tracking feature spec in progress)
+**Last updated:** 2026-04-19 (Phase 8b: /speckit.clarify complete, 19 questions answered)
 
 ---
 
@@ -104,17 +104,19 @@ Mark each phase as ⬜ Not started, 🟡 In progress, or ✅ Done. Add notes on 
 ### 🟡 Phase 8b — Feature Spec: Core Docket Tracking
 
 - [x] `/speckit.specify` — core docket tracking feature specified
-- [ ] `/speckit.clarify` — resolve remaining open questions
+- [x] `/speckit.clarify` — 19 questions answered
 - [ ] `/speckit.plan` — create implementation plan
 - [ ] `/speckit.tasks` — generate ordered task list
 - [ ] `/speckit.analyze` — cross-check and validate
-- **Notes:** Feature specification created at `specs/core-docket-tracking.md`. Covers:
-  - Workflow A: Tag-binding at fixed workstation (ZD621R + DS2208)
-  - Workflow B: Search-and-find on MC3330xR handheld
-  - Hardware stack: FX9600 readers, ZD621R printer/encoder, DS2208 scanner, MC3330xR handheld
-  - 2D floor-plan mandatory, 3D visualization auxiliary
-  - MQTT reader protocol via Eclipse Mosquitto broker
-  - Retrofit tasks organized into 8 priority groups
+- **Notes:** Feature specification at `specs/core-docket-tracking.md` (v1.3). Key clarifications:
+  - Active dockets: >200,000 (requires database partitioning)
+  - HID/iClass access card integration available
+  - Push notifications via PWA required
+  - Full PWA offline support required
+  - RPO/RTO: 1 hour each
+  - Pathfinding + Analytics engine required for v1
+  - i18n: Both English + Afrikaans required
+  - Retrofit tasks now in 8 appendix sections (A.1-A.8)
 
 ### 🟡 Phase 9 — Final Review & Merge
 
