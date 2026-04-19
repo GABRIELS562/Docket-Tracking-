@@ -862,32 +862,6 @@ F-01 → H-01 → H-02 → H-05 → H-04 → FE-01 → FE-03 → FE-04 → FE-08
 
 ---
 
-## Open Gaps (Require Spec Clarification)
-
-### GAP-01: Docket/Tag Decommissioning Workflow
-
-**Status**: NOT COVERED IN SPEC v1.4
-
-The spec does not define what happens when a case closes and a docket is permanently archived or destroyed:
-
-1. **Tag unbinding**: Can an RFID tag be unbound from a disposed docket and reused on a new docket?
-2. **Tag ID reuse policy**: Are EPC values ever reissued, or is each EPC permanently retired after use?
-3. **Physical destruction**: When evidence is destroyed per retention policy, is the RFID tag also physically destroyed?
-4. **Audit trail**: Must the system retain a record that "EPC X was bound to item Y from date A to date B"?
-5. **Status transition**: What status does a docket transition to when decommissioned? (DISPOSED exists in enum but workflow undefined)
-
-**Impact**: Without this clarification, the system may:
-
-- Run out of tag IDs if reuse is not allowed
-- Create security issues if old tags are reused without proper audit
-- Fail compliance audits if destruction is not logged
-
-**Recommendation**: Resolve with stakeholder before FE-02 (tag-binding) is complete, so the data model supports whichever decision is made.
-
-**Placeholder Task**: If resolved, add FE-13 (Docket Decommissioning Workflow) in Phase 3 with M effort.
-
----
-
 ## Task Summary by Phase
 
 | Phase                  | Tasks  | S      | M      | L     | Est. Days              |
