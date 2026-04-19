@@ -101,24 +101,28 @@ Mark each phase as ⬜ Not started, 🟡 In progress, or ✅ Done. Add notes on 
   - `.specify/tasks/retrofit-tasks.md` — 16 ordered tasks across 5 sprints
   - `.specify/analysis/phase8-cross-check.md` — quality gate PASS
 
-### 🟡 Phase 8b — Feature Spec: Core Docket Tracking
+### ✅ Phase 8b — Feature Spec: Core Docket Tracking
 
 - [x] `/speckit.specify` — core docket tracking feature specified
 - [x] `/speckit.clarify` — 19 questions answered
 - [x] `/speckit.plan` — implementation plan complete with Constitution Check
-- [ ] `/speckit.tasks` — generate ordered task list (awaiting approval)
-- [ ] `/speckit.analyze` — cross-check and validate
-- **Notes:** Feature specification at `specs/core-docket-tracking.md` (v1.4 scope-corrected). Plan artifacts at:
+- [x] `/speckit.tasks` — 55 tasks across 6 phases generated
+- [x] `/speckit.analyze` — cross-check complete, QUALITY GATE PASS
+- **Notes:** Feature specification at `specs/core-docket-tracking.md` (v1.4 scope-corrected). Artifacts:
+  - `.specify/specs/system-spec.md` — system-level specification
   - `.specify/analysis/constitution-check.md` — 41 violations across 12 articles
   - `.specify/plans/implementation-plan.md` — architecture, native wrapper, deployment
+  - `.specify/plans/tasks.md` — 55 tasks, 70-day estimate, critical path defined
   - `.specify/contracts/rest-api.md`, `websocket-events.md`, `mqtt-topics.md`
   - `.specify/data-model/data-model.md` — partitioning strategy for 200k+ items
   - `.specify/plans/quickstart.md` — <10 min setup guide
+  - `.specify/analysis/phase8b-cross-check.md` — quality gate PASS
 
   Key scope corrections in v1.4:
   - HID/iClass, push notifications, PWA offline, analytics engine → Phase 2
   - Native Android wrapper, MQTT via Mosquitto, ZD621R printer → v1 critical path
   - Database partitioning by status (active/archived) for >200k items
+  - GAP-01 (docket decommissioning) → Phase 2 (R-G8)
 
 ### 🟡 Phase 9 — Final Review & Merge
 
