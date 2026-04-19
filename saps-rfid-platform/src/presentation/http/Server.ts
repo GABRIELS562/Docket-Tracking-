@@ -12,6 +12,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { rateLimiter } from './middleware/rateLimiter';
 import { requestLogger } from './middleware/requestLogger';
 import { createRoutes } from './routes';
+import { setupSwagger } from './swagger';
 import { ILogger } from '../../application/interfaces/ILogger';
 
 /**
@@ -140,6 +141,9 @@ export class Server {
         },
       });
     });
+
+    // Setup Swagger/OpenAPI documentation
+    setupSwagger(this.app);
 
     // API routes (all prefixed with /api)
     this.app.use('/api', createRoutes());
