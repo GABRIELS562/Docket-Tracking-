@@ -1,0 +1,407 @@
+# Reader Schemas
+# API schemas for RFID reader management
+
+components:
+  schemas:
+    # Reader Response Schema
+    Reader:
+      type: object
+      description: Represents an RFID reader device
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique reader identifier
+          example: 'reader-storage-001'
+        name:
+          type: string
+          description: Reader display name
+          example: 'Storage Reader A1'
+          maxLength: 100
+        readerModel:
+          type: string
+          nullable: true
+          description: Reader hardware model
+          example: 'Impinj R700'
+        ipAddress:
+          type: string
+          format: ipv4
+          description: Reader IP address
+          example: '192.168.1.100'
+        port:
+          type: integer
+          description: LLRP communication port
+          minimum: 1
+          maximum: 65535
+          example: 5084
+        zoneId:
+          type: string
+          format: uuid
+          description: Zone ID where reader is installed
+        zoneName:
+          type: string
+          nullable: true
+          description: Zone name (denormalized)
+          example: 'Storage Area A'
+        status:
+          type: string
+          description: Current reader status
+          enum:
+            - ONLINE
+            - OFFLINE
+            - ERROR
+            - CONNECTING
+            - MAINTENANCE
+          example: ONLINE
+        antennaCount:
+          type: integer
+          description: Number of antennas
+          minimum: 1
+          maximum: 8
+          example: 4
+        isActive:
+          type: boolean
+          description: Whether reader is active
+          example: true
+        lastConnectedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last successful connection time
+          example: '2025-10-02T14:35:22.000Z'
+        lastReadAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last successful tag read time
+          example: '2025-10-02T14:35:30.000Z'
+        successfulReads:
+          type: integer
+          description: Total successful tag reads
+          minimum: 0
+          example: 15234
+        failedReads:
+          type: integer
+          description: Total failed read attempts
+          minimum: 0
+          example: 42
+        successRate:
+          type: number
+          format: float
+          description: Success rate percentage (0-100)
+          minimum: 0
+          maximum: 100
+          example: 99.72
+        uptimeSeconds:
+          type: integer
+          description: Uptime in seconds
+          minimum: 0
+          example: 345600
+        lastError:
+          type: string
+          nullable: true
+          description: Last error message if any
+          example: null
+        configuration:
+          type: object
+          description: Reader configuration settings
+          properties:
+            transmitPower:
+              type: number
+              format: float
+              description: Transmit power in dBm (15-31.5)
+              minimum: 15
+              maximum: 31.5
+              example: 30.0
+            activeAntennas:
+              type: array
+              description: Active antenna port numbers
+              items:
+                type: integer
+                minimum: 1
+                maximum: 8
+              example: [1, 2, 3, 4]
+            rssiThreshold:
+              type: number
+              description: RSSI threshold in dBm
+              example: -70
+            session:
+              type: integer
+              description: Session number (0-3)
+              minimum: 0
+              maximum: 3
+              example: 2
+            modeIndex:
+              type: integer
+              description: Operating mode index
+              example: 1000
+        createdAt:
+          type: string
+          format: date-time
+          description: When reader was registered
+          example: '2025-01-15T10:00:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: When reader was last updated
+          example: '2025-10-02T14:35:30.000Z'
+
+    # Create Reader Request Schema
+    CreateReaderRequest:
+      type: object
+      description: Request body for registering a new reader
+      required:
+        - name
+        - ipAddress
+        - port
+        - zoneId
+        - antennaCount
+      properties:
+        name:
+          type: string
+          description: Reader display name
+          minLength: 2
+          maxLength: 100
+          example: 'Storage Reader B1'
+        readerModel:
+          type: string
+          description: Reader hardware model
+          maxLength: 100
+          example: 'Impinj R700'
+        ipAddress:
+          type: string
+          format: ipv4
+          description: Reader IP address
+          example: '192.168.1.101'
+        port:
+          type: integer
+          description: LLRP communication port
+          minimum: 1
+          maximum: 65535
+          default: 5084
+          example: 5084
+        zoneId:
+          type: string
+          format: uuid
+          description: Zone ID where reader will be installed
+        antennaCount:
+          type: integer
+          description: Number of antennas
+          minimum: 1
+          maximum: 8
+          example: 4
+        configuration:
+          type: object
+          description: Optional initial configuration
+          properties:
+            transmitPower:
+              type: number
+              format: float
+              minimum: 15
+              maximum: 31.5
+              default: 30.0
+            activeAntennas:
+              type: array
+              items:
+                type: integer
+              example: [1, 2, 3, 4]
+            rssiThreshold:
+              type: number
+              default: -70
+            session:
+              type: integer
+              minimum: 0
+              maximum: 3
+              default: 2
+            modeIndex:
+              type: integer
+              default: 1000
+
+    # Update Reader Request Schema
+    UpdateReaderRequest:
+      type: object
+      description: Request body for updating a reader
+      properties:
+        name:
+          type: string
+          description: Update reader name
+          maxLength: 100
+        readerModel:
+          type: string
+          description: Update reader model
+          maxLength: 100
+        ipAddress:
+          type: string
+          format: ipv4
+          description: Update IP address
+        port:
+          type: integer
+          description: Update port
+          minimum: 1
+          maximum: 65535
+        zoneId:
+          type: string
+          format: uuid
+          description: Move reader to different zone
+        antennaCount:
+          type: integer
+          description: Update antenna count
+          minimum: 1
+          maximum: 8
+        isActive:
+          type: boolean
+          description: Activate or deactivate reader
+
+    # Update Reader Configuration Schema
+    UpdateReaderConfigurationRequest:
+      type: object
+      description: Request body for updating reader configuration
+      properties:
+        transmitPower:
+          type: number
+          format: float
+          description: Transmit power in dBm
+          minimum: 15
+          maximum: 31.5
+        activeAntennas:
+          type: array
+          description: Active antenna ports
+          items:
+            type: integer
+            minimum: 1
+            maximum: 8
+        rssiThreshold:
+          type: number
+          description: RSSI threshold in dBm
+        session:
+          type: integer
+          description: Session number
+          minimum: 0
+          maximum: 3
+        modeIndex:
+          type: integer
+          description: Operating mode index
+
+    # Update Reader Status Schema
+    UpdateReaderStatusRequest:
+      type: object
+      description: Request body for updating reader status
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          description: New reader status
+          enum:
+            - ONLINE
+            - OFFLINE
+            - ERROR
+            - CONNECTING
+            - MAINTENANCE
+        errorMessage:
+          type: string
+          description: Error message (required if status is ERROR)
+          maxLength: 500
+
+    # Reader Health Stats Schema
+    ReaderHealthStats:
+      type: object
+      description: Reader health metrics for monitoring
+      properties:
+        readerId:
+          type: string
+          format: uuid
+          description: Reader ID
+        readerName:
+          type: string
+          description: Reader name
+        status:
+          type: string
+          description: Current status
+        zoneId:
+          type: string
+          format: uuid
+          description: Zone ID
+        isHealthy:
+          type: boolean
+          description: Whether reader is functioning normally
+          example: true
+        totalReads:
+          type: integer
+          description: Total read attempts
+          example: 15276
+        successfulReads:
+          type: integer
+          description: Successful reads
+          example: 15234
+        failedReads:
+          type: integer
+          description: Failed reads
+          example: 42
+        successRate:
+          type: number
+          format: float
+          description: Success rate percentage
+          example: 99.72
+        uptimeSeconds:
+          type: integer
+          description: Uptime in seconds
+          example: 345600
+        secondsSinceLastConnection:
+          type: integer
+          nullable: true
+          description: Seconds since last connection
+          example: 30
+        lastError:
+          type: string
+          nullable: true
+          description: Last error message
+
+    # Readers Status Summary Schema
+    ReadersStatusSummary:
+      type: object
+      description: Summary of all readers for dashboard
+      properties:
+        total:
+          type: integer
+          description: Total number of readers
+          example: 10
+        online:
+          type: integer
+          description: Number of online readers
+          example: 9
+        offline:
+          type: integer
+          description: Number of offline readers
+          example: 0
+        error:
+          type: integer
+          description: Number of readers in error state
+          example: 1
+        maintenance:
+          type: integer
+          description: Number of readers in maintenance
+          example: 0
+        healthPercentage:
+          type: number
+          format: float
+          description: Overall health percentage
+          example: 90.0
+        readers:
+          type: array
+          description: Individual reader statuses
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              status:
+                type: string
+              zoneId:
+                type: string
+              zoneName:
+                type: string
+              isHealthy:
+                type: boolean

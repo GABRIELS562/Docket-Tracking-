@@ -1,0 +1,1003 @@
+# Common Schemas
+# Shared schemas for pagination, errors, analytics, and other common types
+
+components:
+  schemas:
+    # Error Response Schema
+    Error:
+      type: object
+      description: Standard error response format
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code
+              example: 'VALIDATION_ERROR'
+            message:
+              type: string
+              description: Human-readable error message
+              example: 'Invalid request parameters'
+            details:
+              type: array
+              description: Field-level validation errors
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                    description: Field name with error
+                    example: 'itemNumber'
+                  message:
+                    type: string
+                    description: Specific field error
+                    example: 'Item number is required'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+
+    # Response Meta Schema
+    ResponseMeta:
+      type: object
+      description: Response metadata
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: Response timestamp
+          example: '2025-01-01T12:00:00.000Z'
+        requestId:
+          type: string
+          format: uuid
+          description: Request correlation ID for tracing
+          example: '550e8400-e29b-41d4-a716-446655440000'
+        duration:
+          type: number
+          description: Request processing time in milliseconds
+          example: 45
+
+    # Pagination Schema
+    Pagination:
+      type: object
+      description: Pagination metadata
+      properties:
+        total:
+          type: integer
+          description: Total number of items
+          example: 100
+        limit:
+          type: integer
+          description: Items per page
+          example: 10
+        offset:
+          type: integer
+          description: Current offset
+          example: 0
+        hasMore:
+          type: boolean
+          description: Whether more items are available
+          example: true
+        currentPage:
+          type: integer
+          description: Current page number (1-based)
+          example: 1
+        totalPages:
+          type: integer
+          description: Total number of pages
+          example: 10
+
+    # Health Check Schema
+    HealthCheck:
+      type: object
+      description: Simple health check response
+      properties:
+        status:
+          type: string
+          description: Overall health status
+          enum:
+            - healthy
+            - degraded
+            - unhealthy
+          example: healthy
+        timestamp:
+          type: string
+          format: date-time
+          description: Health check timestamp
+          example: '2025-01-01T12:00:00.000Z'
+        version:
+          type: string
+          description: API version
+          example: '1.0.0'
+        uptime:
+          type: number
+          description: Server uptime in seconds
+          example: 86400
+
+    # Detailed Health Check Schema
+    DetailedHealthCheck:
+      allOf:
+        - $ref: '#/components/schemas/HealthCheck'
+        - type: object
+          properties:
+            dependencies:
+              type: object
+              description: Dependency health statuses
+              properties:
+                database:
+                  type: object
+                  properties:
+                    status:
+                      type: string
+                      enum: [healthy, degraded, unhealthy]
+                    latencyMs:
+                      type: number
+                      example: 5.2
+                    message:
+                      type: string
+                redis:
+                  type: object
+                  properties:
+                    status:
+                      type: string
+                      enum: [healthy, degraded, unhealthy]
+                    latencyMs:
+                      type: number
+                      example: 1.5
+                    message:
+                      type: string
+                rfidGateway:
+                  type: object
+                  properties:
+                    status:
+                      type: string
+                      enum: [healthy, degraded, unhealthy]
+                    connectedReaders:
+                      type: integer
+                      example: 10
+                    message:
+                      type: string
+            memory:
+              type: object
+              description: Memory usage statistics
+              properties:
+                heapUsed:
+                  type: number
+                  description: Heap used in MB
+                  example: 256.5
+                heapTotal:
+                  type: number
+                  description: Total heap in MB
+                  example: 512.0
+                external:
+                  type: number
+                  description: External memory in MB
+                  example: 12.3
+                rss:
+                  type: number
+                  description: Resident set size in MB
+                  example: 320.5
+            cpu:
+              type: object
+              description: CPU usage
+              properties:
+                usage:
+                  type: number
+                  description: CPU usage percentage
+                  example: 15.5
+
+    # Dashboard Metrics Schema
+    DashboardMetrics:
+      type: object
+      description: Dashboard overview metrics
+      properties:
+        summary:
+          type: object
+          description: Key statistics
+          properties:
+            totalItems:
+              type: integer
+              description: Total registered items
+              example: 5234
+            activeItems:
+              type: integer
+              description: Items with recent activity
+              example: 4821
+            totalZones:
+              type: integer
+              description: Total zones
+              example: 15
+            activeReaders:
+              type: integer
+              description: Online RFID readers
+              example: 10
+            totalReadsToday:
+              type: integer
+              description: Tag reads in last 24 hours
+              example: 45678
+        comparison:
+          type: object
+          description: Change vs previous period
+          properties:
+            itemsChange:
+              type: number
+              description: Items change percentage
+              example: 5.2
+            readsChange:
+              type: number
+              description: Reads change percentage
+              example: -2.1
+            period:
+              type: string
+              description: Comparison period
+              example: '24h'
+        zoneOccupancy:
+          type: array
+          description: Zone occupancy levels
+          items:
+            type: object
+            properties:
+              zoneId:
+                type: string
+                format: uuid
+              zoneName:
+                type: string
+                example: 'Storage Area A'
+              occupancy:
+                type: integer
+                example: 342
+              capacity:
+                type: integer
+                example: 500
+              percentage:
+                type: number
+                example: 68.4
+        readerHealth:
+          type: object
+          description: Reader status summary
+          properties:
+            online:
+              type: integer
+              example: 9
+            offline:
+              type: integer
+              example: 0
+            error:
+              type: integer
+              example: 1
+        recentActivity:
+          type: array
+          description: Recent activity timeline
+          items:
+            type: object
+            properties:
+              timestamp:
+                type: string
+                format: date-time
+              type:
+                type: string
+                enum: [movement, registration, alert]
+              itemNumber:
+                type: string
+              zoneName:
+                type: string
+              description:
+                type: string
+
+    # Zone Analytics Schema
+    ZoneAnalytics:
+      type: object
+      description: Analytics for a zone
+      properties:
+        zoneId:
+          type: string
+          format: uuid
+        zoneName:
+          type: string
+          example: 'Storage Area A'
+        statistics:
+          type: object
+          properties:
+            totalVisits:
+              type: integer
+              description: Total item visits in period
+              example: 1234
+            uniqueItems:
+              type: integer
+              description: Unique items that visited
+              example: 456
+            averageDwellMinutes:
+              type: number
+              description: Average time spent in zone
+              example: 45.5
+            peakOccupancy:
+              type: integer
+              description: Maximum occupancy reached
+              example: 85
+        timeSeries:
+          type: array
+          description: Time-series data for charts
+          items:
+            type: object
+            properties:
+              timestamp:
+                type: string
+                format: date-time
+              occupancy:
+                type: integer
+              entries:
+                type: integer
+              exits:
+                type: integer
+        topItems:
+          type: array
+          description: Most active items in zone
+          items:
+            type: object
+            properties:
+              itemNumber:
+                type: string
+              visitCount:
+                type: integer
+              totalDwellMinutes:
+                type: number
+        heatMap:
+          type: array
+          description: Activity heat map by day/hour
+          items:
+            type: object
+            properties:
+              day:
+                type: integer
+                description: Day of week (0-6)
+              hour:
+                type: integer
+                description: Hour of day (0-23)
+              activity:
+                type: number
+                description: Activity level (0-1)
+
+    # Reader Analytics Schema
+    ReaderAnalytics:
+      type: object
+      description: Analytics for a reader
+      properties:
+        readerId:
+          type: string
+          format: uuid
+        readerName:
+          type: string
+          example: 'Storage Reader A1'
+        performance:
+          type: object
+          properties:
+            totalReads:
+              type: integer
+              description: Total read operations
+              example: 45678
+            uniqueTags:
+              type: integer
+              description: Unique tags detected
+              example: 234
+            averageReadsPerMinute:
+              type: number
+              description: Average reads per minute
+              example: 31.7
+            errorRate:
+              type: number
+              description: Error rate percentage
+              example: 0.28
+            uptime:
+              type: number
+              description: Uptime percentage
+              example: 99.5
+        antennaStats:
+          type: array
+          description: Per-antenna statistics
+          items:
+            type: object
+            properties:
+              antennaId:
+                type: integer
+              reads:
+                type: integer
+              averageRssi:
+                type: number
+        timeSeries:
+          type: array
+          description: Performance over time
+          items:
+            type: object
+            properties:
+              timestamp:
+                type: string
+                format: date-time
+              readsPerMinute:
+                type: number
+              errorRate:
+                type: number
+        health:
+          type: object
+          description: Health status and issues
+          properties:
+            status:
+              type: string
+              enum: [healthy, warning, critical]
+            issues:
+              type: array
+              items:
+                type: string
+
+    # System Metrics Schema
+    SystemMetrics:
+      type: object
+      description: System-wide performance metrics
+      properties:
+        current:
+          type: object
+          properties:
+            cpuUsage:
+              type: number
+              example: 15.5
+            memoryUsage:
+              type: number
+              example: 65.2
+            activeConnections:
+              type: integer
+              example: 42
+            requestsPerSecond:
+              type: number
+              example: 125.5
+        database:
+          type: object
+          properties:
+            connectionPoolSize:
+              type: integer
+              example: 20
+            activeConnections:
+              type: integer
+              example: 5
+            queryLatencyMs:
+              type: number
+              example: 8.5
+        cache:
+          type: object
+          properties:
+            hitRate:
+              type: number
+              example: 85.2
+            memoryUsedMb:
+              type: number
+              example: 128.5
+        history:
+          type: array
+          description: Historical time series
+          items:
+            type: object
+            properties:
+              timestamp:
+                type: string
+                format: date-time
+              cpuUsage:
+                type: number
+              memoryUsage:
+                type: number
+              requestsPerSecond:
+                type: number
+
+    # Item Journey Schema
+    ItemJourney:
+      type: object
+      description: Complete journey of an item through zones
+      properties:
+        itemNumber:
+          type: string
+          example: 'INV-2025-000001'
+        path:
+          type: array
+          description: Ordered list of zone visits
+          items:
+            type: object
+            properties:
+              zoneId:
+                type: string
+                format: uuid
+              zoneName:
+                type: string
+              enteredAt:
+                type: string
+                format: date-time
+              exitedAt:
+                type: string
+                format: date-time
+                nullable: true
+              dwellMinutes:
+                type: number
+        transitions:
+          type: array
+          description: Zone-to-zone transitions
+          items:
+            type: object
+            properties:
+              fromZone:
+                type: string
+              toZone:
+                type: string
+              transitionTime:
+                type: string
+                format: date-time
+              durationMinutes:
+                type: number
+        anomalies:
+          type: array
+          description: Detected journey anomalies
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              description:
+                type: string
+              timestamp:
+                type: string
+                format: date-time
+        summary:
+          type: object
+          properties:
+            totalZonesVisited:
+              type: integer
+            totalTransitions:
+              type: integer
+            totalDwellMinutes:
+              type: number
+            startTime:
+              type: string
+              format: date-time
+            endTime:
+              type: string
+              format: date-time
+              nullable: true
+        currentStatus:
+          type: object
+          properties:
+            currentZone:
+              type: string
+              nullable: true
+            lastSeenAt:
+              type: string
+              format: date-time
+              nullable: true
+            status:
+              type: string
+
+    # Zone Flow Analytics Schema
+    ZoneFlowAnalytics:
+      type: object
+      description: Zone-to-zone flow analytics
+      properties:
+        flowMatrix:
+          type: array
+          description: Zone-to-zone transition matrix
+          items:
+            type: object
+            properties:
+              fromZoneId:
+                type: string
+              fromZoneName:
+                type: string
+              toZoneId:
+                type: string
+              toZoneName:
+                type: string
+              transitionCount:
+                type: integer
+              averageDurationMinutes:
+                type: number
+        topFlows:
+          type: array
+          description: Most traveled corridors
+          items:
+            type: object
+            properties:
+              corridor:
+                type: string
+                example: 'Receiving Bay -> Storage A'
+              count:
+                type: integer
+        zoneStats:
+          type: array
+          description: Entry/exit statistics per zone
+          items:
+            type: object
+            properties:
+              zoneId:
+                type: string
+              zoneName:
+                type: string
+              totalEntries:
+                type: integer
+              totalExits:
+                type: integer
+              netFlow:
+                type: integer
+        hourlyPatterns:
+          type: array
+          description: Flow patterns by hour
+          items:
+            type: object
+            properties:
+              hour:
+                type: integer
+              avgTransitions:
+                type: number
+
+    # Bottleneck Analysis Schema
+    BottleneckAnalysis:
+      type: object
+      description: Bottleneck analysis results
+      properties:
+        bottlenecks:
+          type: array
+          description: Identified bottleneck zones
+          items:
+            type: object
+            properties:
+              zoneId:
+                type: string
+                format: uuid
+              zoneName:
+                type: string
+              severity:
+                type: string
+                enum: [low, medium, high, critical]
+              averageDwellMinutes:
+                type: number
+              congestionLevel:
+                type: number
+                minimum: 0
+                maximum: 1
+              peakHours:
+                type: array
+                items:
+                  type: integer
+        congestionTimeline:
+          type: array
+          description: Congestion over time
+          items:
+            type: object
+            properties:
+              timestamp:
+                type: string
+                format: date-time
+              level:
+                type: number
+        recommendations:
+          type: array
+          description: Improvement suggestions
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              message:
+                type: string
+              priority:
+                type: string
+                enum: [low, medium, high]
+              affectedZone:
+                type: string
+
+    # Path Patterns Response Schema
+    PathPatternsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            patterns:
+              type: array
+              items:
+                type: object
+                properties:
+                  path:
+                    type: array
+                    items:
+                      type: string
+                    example: ['Receiving Bay', 'Storage A', 'Processing']
+                  occurrences:
+                    type: integer
+                    example: 45
+                  averageDurationMinutes:
+                    type: number
+                    example: 120.5
+            commonSubsequences:
+              type: array
+              items:
+                type: object
+                properties:
+                  sequence:
+                    type: array
+                    items:
+                      type: string
+                  frequency:
+                    type: integer
+            summary:
+              type: object
+              properties:
+                totalPatternsFound:
+                  type: integer
+                averagePathLength:
+                  type: number
+                mostCommonPath:
+                  type: array
+                  items:
+                    type: string
+
+    # Flow Anomalies Schema
+    FlowAnomalies:
+      type: object
+      description: Detected flow anomalies
+      properties:
+        anomalies:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              type:
+                type: string
+                example: 'unusual_route'
+              severity:
+                type: string
+                enum: [low, medium, high, critical]
+              itemNumber:
+                type: string
+              description:
+                type: string
+              detectedAt:
+                type: string
+                format: date-time
+              zoneId:
+                type: string
+                format: uuid
+              zoneName:
+                type: string
+        byType:
+          type: object
+          additionalProperties:
+            type: integer
+          example:
+            unusual_route: 5
+            prolonged_dwell: 3
+            unexpected_zone: 2
+        trends:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              count:
+                type: integer
+
+    # Pathfinding Request Schema
+    PathfindingRequest:
+      type: object
+      description: Request to find path between two locations
+      required:
+        - from
+        - to
+      properties:
+        from:
+          oneOf:
+            - type: object
+              description: Coordinate-based start point
+              required:
+                - x
+                - y
+              properties:
+                x:
+                  type: number
+                y:
+                  type: number
+            - type: object
+              description: Zone-based start point
+              required:
+                - zoneId
+              properties:
+                zoneId:
+                  type: string
+                  format: uuid
+        to:
+          oneOf:
+            - type: object
+              description: Coordinate-based end point
+              required:
+                - x
+                - y
+              properties:
+                x:
+                  type: number
+                y:
+                  type: number
+            - type: object
+              description: Zone-based end point
+              required:
+                - zoneId
+              properties:
+                zoneId:
+                  type: string
+                  format: uuid
+        avoidZones:
+          type: array
+          description: Zone IDs to avoid
+          items:
+            type: string
+            format: uuid
+
+    # Pathfinding Result Schema
+    PathfindingResult:
+      type: object
+      description: Pathfinding result
+      properties:
+        success:
+          type: boolean
+        path:
+          type: array
+          items:
+            type: object
+            properties:
+              x:
+                type: number
+              y:
+                type: number
+              zoneId:
+                type: string
+                format: uuid
+                nullable: true
+              zoneName:
+                type: string
+                nullable: true
+        distance:
+          type: number
+          description: Total path distance in meters
+        estimatedTimeMinutes:
+          type: number
+          description: Estimated travel time in minutes
+        zonesTraversed:
+          type: array
+          items:
+            type: string
+          description: List of zone names traversed
+
+    # Zone Graph Schema
+    ZoneGraph:
+      type: object
+      description: Zone connectivity graph for visualization
+      properties:
+        nodes:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              x:
+                type: number
+              y:
+                type: number
+              type:
+                type: string
+        edges:
+          type: array
+          items:
+            type: object
+            properties:
+              from:
+                type: string
+              to:
+                type: string
+              weight:
+                type: number
+              bidirectional:
+                type: boolean
+
+  # Common Responses
+  responses:
+    Unauthorized:
+      description: Authentication required or token invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error:
+              code: 'UNAUTHORIZED'
+              message: 'Authentication required'
+
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error:
+              code: 'FORBIDDEN'
+              message: 'Insufficient permissions for this operation'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error:
+              code: 'NOT_FOUND'
+              message: 'Resource not found'
+
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error:
+              code: 'VALIDATION_ERROR'
+              message: 'Invalid request parameters'
+              details:
+                - field: 'itemNumber'
+                  message: 'Item number is required'
+
+    TooManyRequests:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error:
+              code: 'RATE_LIMIT_EXCEEDED'
+              message: 'Too many requests, please try again later'
+      headers:
+        RateLimit-Limit:
+          description: Request limit per minute
+          schema:
+            type: integer
+        RateLimit-Remaining:
+          description: Remaining requests in current window
+          schema:
+            type: integer
+        RateLimit-Reset:
+          description: Unix timestamp when rate limit resets
+          schema:
+            type: integer
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error:
+              code: 'INTERNAL_ERROR'
+              message: 'An unexpected error occurred'
