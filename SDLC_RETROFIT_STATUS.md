@@ -4,13 +4,31 @@
 **Branch:** `chore/sdlc-retrofit`
 **Owner:** Jaime
 **Methodology:** GitHub Spec Kit (Spec-Driven Development) + GitHub Actions CI/CD
-**Last updated:** 2026-04-19 (Phase 8b: /speckit.plan complete, Constitution Check with 41 violations)
+**Last updated:** 2026-04-21 (Phase 8b complete, PR #30 and #31 merged, planning phase closed)
 
 ---
 
 ## Purpose of This Document
 
 This file tracks the retrofit of comprehensive SDLC rigor onto the existing codebase. If the Claude Code session is interrupted, restarted, or handed to a different agent, **read this file first** before doing anything. Update it at the end of every phase so the next session can resume cleanly.
+
+---
+
+## Next Session Checklist
+
+Start here when resuming. Do not skip steps.
+
+1. Pull main: `git checkout main && git pull`
+2. Verify clean state: `git status` should be clean except for the stash
+3. Review stash: `git stash list` — confirm `uncommitted-work-pre-rebase-2026-04-21` present
+4. Pop stash: `git stash pop`
+5. Classify each stashed file against `.specify/plans/tasks.md`:
+   - **ALIGNED-COMPLETE** → commit to a new feature branch matching the task
+   - **ALIGNED-PARTIAL** → move to a feature branch, finish per task acceptance criteria
+   - **UNPLANNED** → review each; discard or add to Phase 2 backlog
+   - **SCRATCH** → delete
+6. Do NOT start F-01 (licence validation) or any other critical path task until the file audit is complete. Stashed work may already cover parts of it.
+7. First implementation branch: `feature/f01-licence-validation` (or whichever task survives the audit intact).
 
 ---
 
@@ -124,14 +142,14 @@ Mark each phase as ⬜ Not started, 🟡 In progress, or ✅ Done. Add notes on 
   - Database partitioning by status (active/archived) for >200k items
   - GAP-01 (docket decommissioning) → Phase 2 (R-G8)
 
-### 🟡 Phase 9 — Final Review & Merge
+### ✅ Phase 9 — Final Review & Merge
 
 - [x] Branch pushed
 - [x] PR opened `chore/sdlc-retrofit` → `main` — PR #1
 - [x] CI green (all checks passing)
-- [ ] Self-review against PR template complete
-- [ ] Merged
-- **Notes:** PR ready for review at https://github.com/GABRIELS562/Docket-Tracking-/pull/1
+- [x] Self-review against PR template complete
+- [x] Merged
+- **Notes:** PR #1 (initial SDLC retrofit) merged earlier. Phase 8b work landed via PR #30 (spec/plan/tasks) and PR #31 (swagger fix). Planning phase officially closed 2026-04-21.
 
 ---
 
@@ -211,6 +229,7 @@ Record any deviations from the master prompt, trade-offs made, or choices that n
 | 2026-04-18 | Lowered coverage thresholds to 9%                                                                                                                                                                     | Current baseline ~10%. Will increase thresholds as coverage improves. Documented in jest.config.js.                                                                                                            |
 | 2026-04-19 | Spec work (specify, clarify, scope correction) committed directly to main rather than feature branch. PR #1 already merged. Future feature work (plan/tasks/implement) will resume branch discipline. | Spec commits accidentally landed on main during session handoffs. Rewriting history on a solo retrofit project was not worth the risk. Clarify-induced scope creep was also caught and corrected in spec v1.4. |
 | 2026-04-19 | GAP-01 (docket decommissioning) deferred to Phase 2                                                                                                                                                   | v1 pilot window shorter than typical case lifecycle, so no decommissioning events expected during pilot. Added as R-G8 in spec.                                                                                |
+| 2026-04-21 | PR #31 (swagger fix) and PR #30 (Phase 8b spec/plan/tasks) merged. Branch protection rule bypassed on PR #30 squash merge.                                                                            | Single-use exception on docs-only PR where author is sole contributor. Implementation PRs going forward must use self-approval via Review → Approve instead of bypass.                                         |
 
 ---
 
@@ -230,6 +249,8 @@ Things flagged during retrofit that we're consciously deferring, not forgetting.
 - [ ] Create `specs/rfid/` with LLRP protocol documentation
 - [ ] Create `docs/adr/` for Architecture Decision Records
 - [x] ~~Branch discipline broken during spec phase~~ — Restored via fresh feature branch `feature/002-core-tracking-plan` for plan/tasks/implement
+- [ ] **Backend Tests CI job disabled** — The CI workflow skips backend tests with a "known issues" condition. Contradicts Constitution Article V (test coverage requirements). Investigate during Q-08 through Q-11 test coverage work.
+- [ ] **Stash `uncommitted-work-pre-rebase-2026-04-21`** — Contains ~60 files classified as ALIGNED-PARTIAL (18), UNPLANNED (40), SCRATCH (2). Audit and triage at start of next session before any implementation work begins.
 
 ---
 
