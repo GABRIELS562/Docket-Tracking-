@@ -1,0 +1,390 @@
+# Zone Schemas
+# API schemas for zone management and occupancy
+
+components:
+  schemas:
+    # Zone Response Schema
+    Zone:
+      type: object
+      description: Represents a physical zone/area in the facility
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique zone identifier
+          example: 'zone-storage-001'
+        code:
+          type: string
+          description: Short zone code
+          example: 'STOR-A'
+          maxLength: 20
+        name:
+          type: string
+          description: Zone display name
+          example: 'Storage Area A'
+          maxLength: 100
+        zoneType:
+          type: string
+          description: Zone classification type
+          enum:
+            - STORAGE
+            - EXAMINATION
+            - TRANSIT
+            - ARCHIVE
+            - OFFICE
+            - CORRIDOR
+            - ENTRANCE
+          example: STORAGE
+        capacity:
+          type: integer
+          description: Maximum number of items zone can hold
+          minimum: 1
+          example: 500
+        currentOccupancy:
+          type: integer
+          description: Current number of items in zone
+          minimum: 0
+          example: 342
+        occupancyPercentage:
+          type: number
+          format: float
+          description: Current occupancy as percentage (0-100)
+          minimum: 0
+          maximum: 100
+          example: 68.4
+        occupancyStatus:
+          type: string
+          description: Occupancy status classification
+          enum:
+            - normal
+            - warning
+            - critical
+            - full
+          example: normal
+        building:
+          type: string
+          nullable: true
+          description: Building name
+          example: 'Main Building'
+        floorNumber:
+          type: integer
+          nullable: true
+          description: Floor number
+          example: 2
+        parentZoneId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Parent zone ID for hierarchical zones
+        isActive:
+          type: boolean
+          description: Whether zone is currently active
+          example: true
+        coordinates:
+          type: object
+          nullable: true
+          description: Geographic/physical coordinates
+          properties:
+            latitude:
+              type: number
+              format: double
+              example: 37.7749
+            longitude:
+              type: number
+              format: double
+              example: -122.4194
+            x:
+              type: number
+              description: X coordinate in facility layout
+              example: 100.5
+            y:
+              type: number
+              description: Y coordinate in facility layout
+              example: 200.3
+            z:
+              type: number
+              description: Z coordinate (floor level)
+              example: 2.0
+            width:
+              type: number
+              description: Zone width in meters
+              example: 10.0
+            height:
+              type: number
+              description: Zone height in meters
+              example: 3.0
+            depth:
+              type: number
+              description: Zone depth in meters
+              example: 15.0
+        readerIds:
+          type: array
+          description: IDs of RFID readers assigned to this zone
+          items:
+            type: string
+          example: ['reader-001', 'reader-002']
+        createdAt:
+          type: string
+          format: date-time
+          description: When zone was created
+          example: '2025-01-15T10:00:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: When zone was last updated
+          example: '2025-10-02T14:30:00.000Z'
+
+    # Create Zone Request Schema
+    CreateZoneRequest:
+      type: object
+      description: Request body for creating a new zone
+      required:
+        - code
+        - name
+        - zoneType
+        - capacity
+      properties:
+        code:
+          type: string
+          description: Short zone code (unique within tenant)
+          pattern: '^[A-Z0-9\-]+$'
+          minLength: 2
+          maxLength: 20
+          example: 'STOR-B'
+        name:
+          type: string
+          description: Zone display name
+          minLength: 2
+          maxLength: 100
+          example: 'Storage Area B'
+        zoneType:
+          type: string
+          description: Zone type classification
+          enum:
+            - STORAGE
+            - EXAMINATION
+            - TRANSIT
+            - ARCHIVE
+            - OFFICE
+            - CORRIDOR
+            - ENTRANCE
+          example: STORAGE
+        capacity:
+          type: integer
+          description: Maximum item capacity
+          minimum: 1
+          maximum: 10000
+          example: 500
+        building:
+          type: string
+          description: Building name
+          maxLength: 100
+          example: 'Main Building'
+        floorNumber:
+          type: integer
+          description: Floor number
+          example: 2
+        parentZoneId:
+          type: string
+          format: uuid
+          description: Parent zone ID for nested zones
+        coordinates:
+          type: object
+          description: Physical coordinates
+          properties:
+            latitude:
+              type: number
+              format: double
+            longitude:
+              type: number
+              format: double
+            x:
+              type: number
+            y:
+              type: number
+            z:
+              type: number
+            width:
+              type: number
+            height:
+              type: number
+            depth:
+              type: number
+
+    # Update Zone Request Schema
+    UpdateZoneRequest:
+      type: object
+      description: Request body for updating a zone (partial update)
+      properties:
+        name:
+          type: string
+          description: Update zone name
+          maxLength: 100
+        capacity:
+          type: integer
+          description: Update capacity
+          minimum: 1
+          maximum: 10000
+        building:
+          type: string
+          description: Update building name
+          maxLength: 100
+        floorNumber:
+          type: integer
+          description: Update floor number
+        coordinates:
+          type: object
+          description: Update coordinates
+          properties:
+            latitude:
+              type: number
+            longitude:
+              type: number
+            x:
+              type: number
+            y:
+              type: number
+            z:
+              type: number
+            width:
+              type: number
+            height:
+              type: number
+            depth:
+              type: number
+        isActive:
+          type: boolean
+          description: Activate or deactivate zone
+
+    # Zone Occupancy Schema
+    ZoneOccupancy:
+      type: object
+      description: Zone occupancy summary for dashboard
+      properties:
+        zoneId:
+          type: string
+          format: uuid
+          description: Zone ID
+        zoneName:
+          type: string
+          description: Zone name
+          example: 'Storage Area A'
+        zoneCode:
+          type: string
+          description: Zone code
+          example: 'STOR-A'
+        currentOccupancy:
+          type: integer
+          description: Current item count
+          example: 342
+        capacity:
+          type: integer
+          description: Maximum capacity
+          example: 500
+        availableCapacity:
+          type: integer
+          description: Remaining available space
+          example: 158
+        occupancyPercentage:
+          type: number
+          format: float
+          description: Occupancy percentage
+          example: 68.4
+        occupancyStatus:
+          type: string
+          enum:
+            - normal
+            - warning
+            - critical
+            - full
+          example: normal
+        activeReaders:
+          type: integer
+          description: Number of active readers in zone
+          example: 2
+
+    # Zone Items Response Schema
+    ZoneItemsResponse:
+      type: object
+      description: Items currently in a zone
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            zoneId:
+              type: string
+              format: uuid
+              description: Zone ID
+            zoneName:
+              type: string
+              description: Zone name
+              example: 'Storage Area A'
+            zoneCode:
+              type: string
+              description: Zone code
+              example: 'STOR-A'
+            items:
+              type: array
+              description: Items in the zone
+              items:
+                type: object
+                properties:
+                  itemNumber:
+                    type: string
+                    example: 'INV-2025-000001'
+                  description:
+                    type: string
+                    example: 'Laptop Computer'
+                  category:
+                    type: string
+                    example: 'electronic'
+                  status:
+                    type: string
+                    example: 'registered'
+                  lastSeenAt:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  confidence:
+                    type: number
+                    format: float
+                    example: 0.95
+            totalCount:
+              type: integer
+              description: Total items in zone
+              example: 342
+            returnedCount:
+              type: integer
+              description: Number of items returned in this response
+              example: 50
+
+    # Zone With Full Items Schema
+    ZoneWithItems:
+      type: object
+      description: Zone details with list of items
+      properties:
+        zone:
+          $ref: '#/components/schemas/Zone'
+        totalItems:
+          type: integer
+          description: Total items in zone
+          example: 342
+        recentItems:
+          type: array
+          description: Recently seen items (limited list)
+          items:
+            type: object
+            properties:
+              itemNumber:
+                type: string
+              description:
+                type: string
+              category:
+                type: string
+              lastSeenAt:
+                type: string
+                format: date-time
+                nullable: true

@@ -1,0 +1,371 @@
+# Authentication Schemas
+# API schemas for authentication and user management
+
+components:
+  schemas:
+    # Login Request Schema
+    LoginRequest:
+      type: object
+      description: Request body for user login
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: 'user@example.com'
+          maxLength: 255
+        password:
+          type: string
+          format: password
+          description: User password
+          minLength: 8
+          maxLength: 128
+          example: 'SecureP@ssw0rd!'
+        tenantSlug:
+          type: string
+          description: Optional tenant slug for multi-tenant login
+          pattern: '^[a-z0-9-]+$'
+          example: 'acme-corp'
+
+    # Login Response Schema
+    LoginResponse:
+      type: object
+      description: Response after successful login
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            accessToken:
+              type: string
+              description: JWT access token (expires in 15 minutes)
+              example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+            refreshToken:
+              type: string
+              description: JWT refresh token (expires in 7 days)
+              example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+            expiresIn:
+              type: string
+              description: Access token expiration time
+              example: '15m'
+            user:
+              $ref: '#/components/schemas/User'
+            tenant:
+              type: object
+              description: User's tenant information
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                name:
+                  type: string
+                slug:
+                  type: string
+                plan:
+                  type: string
+
+    # Refresh Response Schema
+    RefreshResponse:
+      type: object
+      description: Response after token refresh
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            accessToken:
+              type: string
+              description: New JWT access token
+            refreshToken:
+              type: string
+              description: New JWT refresh token
+            expiresIn:
+              type: string
+              description: Token expiration time
+              example: '15m'
+
+    # User Schema
+    User:
+      type: object
+      description: User account information
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique user identifier
+          example: '550e8400-e29b-41d4-a716-446655440000'
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: 'user@example.com'
+        firstName:
+          type: string
+          description: User first name
+          example: 'John'
+          maxLength: 50
+        lastName:
+          type: string
+          description: User last name
+          example: 'Doe'
+          maxLength: 50
+        fullName:
+          type: string
+          description: Full name (computed)
+          example: 'John Doe'
+        role:
+          type: string
+          description: User role within tenant
+          enum:
+            - viewer
+            - operator
+            - admin
+            - owner
+          example: operator
+        status:
+          type: string
+          description: Account status
+          enum:
+            - active
+            - inactive
+            - suspended
+          example: active
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: Profile picture URL
+          example: 'https://cdn.example.com/avatars/john.png'
+        lastLoginAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last successful login timestamp
+          example: '2025-10-02T14:30:00.000Z'
+        createdAt:
+          type: string
+          format: date-time
+          description: Account creation timestamp
+          example: '2025-01-15T10:00:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last account update timestamp
+          example: '2025-10-02T14:30:00.000Z'
+
+    # Current User Response Schema
+    CurrentUserResponse:
+      type: object
+      description: Response for current user profile
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            user:
+              $ref: '#/components/schemas/User'
+            tenant:
+              type: object
+              description: User's tenant information
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                name:
+                  type: string
+                  example: 'Acme Corporation'
+                slug:
+                  type: string
+                  example: 'acme-corp'
+                plan:
+                  type: string
+                  example: 'professional'
+                branding:
+                  type: object
+                  properties:
+                    logo:
+                      type: string
+                      format: uri
+                    primaryColor:
+                      type: string
+                    secondaryColor:
+                      type: string
+            permissions:
+              type: array
+              description: User permissions based on role
+              items:
+                type: string
+              example:
+                - 'items:read'
+                - 'items:write'
+                - 'zones:read'
+                - 'analytics:read'
+
+    # Change Password Request Schema
+    ChangePasswordRequest:
+      type: object
+      description: Request body for changing password
+      required:
+        - currentPassword
+        - newPassword
+      properties:
+        currentPassword:
+          type: string
+          format: password
+          description: Current password for verification
+          minLength: 1
+          maxLength: 128
+        newPassword:
+          type: string
+          format: password
+          description: New password (must meet complexity requirements)
+          minLength: 8
+          maxLength: 128
+          example: 'NewSecureP@ssw0rd!'
+
+    # Create User Request Schema (Admin)
+    CreateUserRequest:
+      type: object
+      description: Request body for creating a new user (admin only)
+      required:
+        - email
+        - password
+        - firstName
+        - lastName
+        - role
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email address
+          maxLength: 255
+          example: 'newuser@example.com'
+        password:
+          type: string
+          format: password
+          description: Initial password
+          minLength: 8
+          maxLength: 128
+        firstName:
+          type: string
+          description: First name
+          maxLength: 50
+          example: 'Jane'
+        lastName:
+          type: string
+          description: Last name
+          maxLength: 50
+          example: 'Smith'
+        role:
+          type: string
+          description: User role
+          enum:
+            - viewer
+            - operator
+            - admin
+          example: operator
+
+    # Update User Request Schema
+    UpdateUserRequest:
+      type: object
+      description: Request body for updating a user
+      properties:
+        firstName:
+          type: string
+          description: Update first name
+          maxLength: 50
+        lastName:
+          type: string
+          description: Update last name
+          maxLength: 50
+        role:
+          type: string
+          description: Update role (admin only)
+          enum:
+            - viewer
+            - operator
+            - admin
+        status:
+          type: string
+          description: Update status (admin only)
+          enum:
+            - active
+            - inactive
+            - suspended
+
+    # Password Reset Request Schema
+    PasswordResetRequest:
+      type: object
+      description: Request body for password reset
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email address for password reset
+          example: 'user@example.com'
+
+    # Password Reset Confirm Schema
+    PasswordResetConfirmRequest:
+      type: object
+      description: Request body for confirming password reset
+      required:
+        - token
+        - newPassword
+      properties:
+        token:
+          type: string
+          description: Password reset token from email
+          example: 'abc123def456...'
+        newPassword:
+          type: string
+          format: password
+          description: New password
+          minLength: 8
+          maxLength: 128
+
+    # JWT Token Payload Schema (for documentation)
+    JWTPayload:
+      type: object
+      description: JWT token payload structure (informational)
+      properties:
+        sub:
+          type: string
+          format: uuid
+          description: User ID (subject)
+        email:
+          type: string
+          format: email
+          description: User email
+        role:
+          type: string
+          description: User role
+        tenantId:
+          type: string
+          format: uuid
+          description: Tenant ID
+        tenantSlug:
+          type: string
+          description: Tenant slug
+        iat:
+          type: integer
+          description: Issued at timestamp (Unix)
+        exp:
+          type: integer
+          description: Expiration timestamp (Unix)
+        type:
+          type: string
+          description: Token type
+          enum:
+            - access
+            - refresh

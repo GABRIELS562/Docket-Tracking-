@@ -1,0 +1,347 @@
+# Tenant Schemas
+# API schemas for multi-tenant management
+
+components:
+  schemas:
+    # Tenant Response Schema
+    Tenant:
+      type: object
+      description: Represents a tenant organization in the multi-tenant system
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique tenant identifier
+          example: '550e8400-e29b-41d4-a716-446655440000'
+        name:
+          type: string
+          description: Organization name
+          example: 'Acme Corporation'
+          maxLength: 100
+        slug:
+          type: string
+          description: URL-friendly unique identifier
+          pattern: '^[a-z0-9-]+$'
+          example: 'acme-corp'
+          maxLength: 50
+        plan:
+          type: string
+          description: Subscription plan
+          enum:
+            - free
+            - starter
+            - professional
+            - enterprise
+          example: professional
+        status:
+          type: string
+          description: Tenant account status
+          enum:
+            - active
+            - suspended
+            - cancelled
+          example: active
+        settings:
+          type: object
+          additionalProperties: true
+          description: Tenant-specific settings
+          example:
+            timezone: 'America/New_York'
+            language: 'en'
+            notifications: true
+        branding:
+          type: object
+          description: Custom branding options
+          properties:
+            logo:
+              type: string
+              format: uri
+              description: Logo URL
+              example: 'https://cdn.example.com/logos/acme.png'
+            primaryColor:
+              type: string
+              pattern: '^#[0-9A-Fa-f]{6}$'
+              description: Primary brand color (hex)
+              example: '#1a73e8'
+            secondaryColor:
+              type: string
+              pattern: '^#[0-9A-Fa-f]{6}$'
+              description: Secondary brand color (hex)
+              example: '#34a853'
+            favicon:
+              type: string
+              format: uri
+              description: Favicon URL
+        domain:
+          type: string
+          nullable: true
+          description: Custom domain (enterprise feature)
+          example: 'rfid.acme.com'
+        createdAt:
+          type: string
+          format: date-time
+          description: When tenant was created
+          example: '2025-01-15T10:00:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: When tenant was last updated
+          example: '2025-10-02T14:30:00.000Z'
+
+    # Create Tenant Request Schema
+    CreateTenantRequest:
+      type: object
+      description: Request body for creating a new tenant (signup)
+      required:
+        - name
+        - slug
+        - ownerEmail
+        - ownerPassword
+      properties:
+        name:
+          type: string
+          description: Organization name
+          minLength: 2
+          maxLength: 100
+          example: 'Acme Corporation'
+        slug:
+          type: string
+          description: URL-friendly unique identifier
+          pattern: '^[a-z0-9-]+$'
+          minLength: 3
+          maxLength: 50
+          example: 'acme-corp'
+        ownerEmail:
+          type: string
+          format: email
+          description: Owner account email
+          example: 'admin@acme.com'
+        ownerPassword:
+          type: string
+          format: password
+          description: Owner account password
+          minLength: 8
+          maxLength: 128
+          example: 'SecureP@ssw0rd!'
+        ownerFirstName:
+          type: string
+          description: Owner first name
+          maxLength: 50
+          example: 'John'
+        ownerLastName:
+          type: string
+          description: Owner last name
+          maxLength: 50
+          example: 'Smith'
+        plan:
+          type: string
+          description: Initial subscription plan
+          enum:
+            - free
+            - starter
+            - professional
+            - enterprise
+          default: free
+          example: starter
+
+    # Create Tenant Response Schema
+    CreateTenantResponse:
+      type: object
+      description: Response after successful tenant creation
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            tenant:
+              $ref: '#/components/schemas/Tenant'
+            owner:
+              type: object
+              description: Owner user account
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                email:
+                  type: string
+                  format: email
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                role:
+                  type: string
+                  example: owner
+            accessToken:
+              type: string
+              description: JWT access token
+            refreshToken:
+              type: string
+              description: JWT refresh token
+            expiresIn:
+              type: string
+              description: Token expiration time
+              example: '15m'
+
+    # Update Branding Request Schema
+    UpdateBrandingRequest:
+      type: object
+      description: Request body for updating tenant branding
+      properties:
+        logo:
+          type: string
+          format: uri
+          description: Logo URL
+          example: 'https://cdn.example.com/logos/new-logo.png'
+        primaryColor:
+          type: string
+          pattern: '^#[0-9A-Fa-f]{6}$'
+          description: Primary brand color (hex)
+          example: '#1a73e8'
+        secondaryColor:
+          type: string
+          pattern: '^#[0-9A-Fa-f]{6}$'
+          description: Secondary brand color (hex)
+          example: '#34a853'
+        favicon:
+          type: string
+          format: uri
+          description: Favicon URL
+
+    # Tenant Usage Schema
+    TenantUsage:
+      type: object
+      description: Usage statistics for a tenant
+      properties:
+        itemCount:
+          type: integer
+          description: Number of registered items
+          example: 1234
+        zoneCount:
+          type: integer
+          description: Number of zones
+          example: 15
+        readerCount:
+          type: integer
+          description: Number of RFID readers
+          example: 10
+        userCount:
+          type: integer
+          description: Number of users
+          example: 25
+        apiCallsThisMonth:
+          type: integer
+          description: API calls this billing month
+          example: 45678
+        storageUsedMb:
+          type: number
+          format: float
+          description: Storage used in megabytes
+          example: 256.5
+        lastActivityAt:
+          type: string
+          format: date-time
+          description: Last activity timestamp
+          example: '2025-10-02T14:35:30.000Z'
+        limits:
+          type: object
+          description: Plan limits
+          properties:
+            maxItems:
+              type: integer
+              description: Maximum items allowed
+              example: 10000
+            maxZones:
+              type: integer
+              description: Maximum zones allowed
+              example: 50
+            maxReaders:
+              type: integer
+              description: Maximum readers allowed
+              example: 25
+            maxUsers:
+              type: integer
+              description: Maximum users allowed
+              example: 100
+            maxApiCallsPerMonth:
+              type: integer
+              description: Maximum API calls per month
+              example: 100000
+            maxStorageMb:
+              type: integer
+              description: Maximum storage in MB
+              example: 5120
+        usage:
+          type: object
+          description: Current usage percentages
+          properties:
+            itemsPercentage:
+              type: number
+              format: float
+              example: 12.34
+            zonesPercentage:
+              type: number
+              format: float
+              example: 30.0
+            readersPercentage:
+              type: number
+              format: float
+              example: 40.0
+            usersPercentage:
+              type: number
+              format: float
+              example: 25.0
+            apiCallsPercentage:
+              type: number
+              format: float
+              example: 45.678
+            storagePercentage:
+              type: number
+              format: float
+              example: 5.0
+
+    # Tenant Plan Features Schema
+    TenantPlanFeatures:
+      type: object
+      description: Features available for a subscription plan
+      properties:
+        plan:
+          type: string
+          enum:
+            - free
+            - starter
+            - professional
+            - enterprise
+        features:
+          type: object
+          properties:
+            maxItems:
+              type: integer
+            maxZones:
+              type: integer
+            maxReaders:
+              type: integer
+            maxUsers:
+              type: integer
+            maxApiCallsPerMonth:
+              type: integer
+            maxStorageMb:
+              type: integer
+            customBranding:
+              type: boolean
+            customDomain:
+              type: boolean
+            advancedAnalytics:
+              type: boolean
+            slaSupport:
+              type: boolean
+            apiWebhooks:
+              type: boolean
+            dataExport:
+              type: boolean
+            auditLogs:
+              type: boolean
+            ssoIntegration:
+              type: boolean

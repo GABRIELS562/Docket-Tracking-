@@ -1,0 +1,346 @@
+# Docket/Item Schemas
+# API schemas for item (docket) management
+
+components:
+  schemas:
+    # Item Response Schema
+    Item:
+      type: object
+      description: Represents an RFID-tagged inventory item
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier
+          example: '550e8400-e29b-41d4-a716-446655440000'
+        itemNumber:
+          type: string
+          description: Unique item identifier within the tenant
+          example: 'INV-2025-000001'
+          minLength: 1
+          maxLength: 50
+        referenceId:
+          type: string
+          description: External reference ID (PO number, case number, etc.)
+          example: 'PO-12345'
+          maxLength: 100
+        rfidEpc:
+          type: string
+          pattern: '^[0-9A-Fa-f]{24}$'
+          description: 24-character hexadecimal RFID Electronic Product Code
+          example: 'E28011700000020F4A901234'
+        description:
+          type: string
+          description: Human-readable description of the item
+          example: 'Laptop Computer - Dell XPS 15'
+          maxLength: 500
+        category:
+          type: string
+          description: Item category for classification
+          enum:
+            - equipment
+            - consumable
+            - electronic
+            - document
+            - material
+            - tool
+            - apparel
+            - container
+            - sample
+            - other
+          example: electronic
+        status:
+          type: string
+          description: Current lifecycle status of the item
+          enum:
+            - registered
+            - in_transit
+            - in_processing
+            - archived
+            - disposed
+            - missing
+          example: registered
+        currentZone:
+          type: object
+          nullable: true
+          description: Current zone location (null if not in any zone)
+          properties:
+            id:
+              type: string
+              format: uuid
+              description: Zone ID
+            name:
+              type: string
+              description: Zone name
+              example: 'Receiving Bay'
+            code:
+              type: string
+              description: Zone code
+              example: 'RCV-01'
+        serialNumber:
+          type: string
+          nullable: true
+          description: Manufacturer serial number
+          example: 'SN-ABC123'
+          maxLength: 100
+        receivedBy:
+          type: string
+          nullable: true
+          description: Name of person who received the item
+          example: 'John Doe'
+          maxLength: 100
+        lastSeenAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time item was detected by an RFID reader
+          example: '2025-10-02T14:32:11.000Z'
+        lastSeenReaderId:
+          type: string
+          nullable: true
+          description: ID of the last reader that detected this item
+          example: 'reader-storage-001'
+        locationConfidence:
+          type: number
+          format: float
+          nullable: true
+          description: Confidence score for current location (0.0 to 1.0)
+          minimum: 0
+          maximum: 1
+          example: 0.85
+        receivedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the item was received
+          example: '2025-10-01T09:15:00.000Z'
+        createdAt:
+          type: string
+          format: date-time
+          description: When item was registered in the system
+          example: '2025-10-01T09:15:30.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: When item record was last updated
+          example: '2025-10-02T14:32:11.000Z'
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Additional custom metadata
+          example:
+            purchaseOrderId: 'PO-2025-001234'
+            costCenter: 'IT-DEPT'
+
+    # Create Item Request Schema
+    CreateItemRequest:
+      type: object
+      description: Request body for creating a new item
+      required:
+        - itemNumber
+        - rfidEpc
+        - description
+        - category
+      properties:
+        itemNumber:
+          type: string
+          description: Unique item identifier (alphanumeric with dashes/underscores)
+          pattern: '^[A-Za-z0-9][A-Za-z0-9\-\/_]{0,49}$'
+          minLength: 1
+          maxLength: 50
+          example: 'INV-2025-000001'
+        referenceId:
+          type: string
+          description: External reference ID
+          maxLength: 100
+          example: 'PO-12345'
+        rfidEpc:
+          type: string
+          description: 24-character hexadecimal RFID EPC tag value
+          pattern: '^[0-9A-Fa-f]{24}$'
+          minLength: 24
+          maxLength: 24
+          example: 'E28011700000020F4A901234'
+        description:
+          type: string
+          description: Item description
+          minLength: 1
+          maxLength: 500
+          example: 'Laptop Computer - Dell XPS 15'
+        category:
+          type: string
+          description: Item category
+          enum:
+            - equipment
+            - consumable
+            - electronic
+            - document
+            - material
+            - tool
+            - apparel
+            - container
+            - sample
+            - other
+          example: electronic
+        serialNumber:
+          type: string
+          description: Optional serial number
+          maxLength: 100
+          example: 'SN-ABC123'
+        receivedBy:
+          type: string
+          description: Name of person receiving the item
+          maxLength: 100
+          example: 'John Doe'
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Custom metadata key-value pairs
+          example:
+            department: 'Engineering'
+            warranty_expires: '2027-01-01'
+
+    # Update Item Request Schema
+    UpdateItemRequest:
+      type: object
+      description: Request body for updating an item (partial update supported)
+      properties:
+        referenceId:
+          type: string
+          description: Update reference ID
+          maxLength: 100
+        serialNumber:
+          type: string
+          description: Update serial number
+          maxLength: 100
+        description:
+          type: string
+          description: Update description
+          maxLength: 500
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Metadata to merge with existing
+
+    # Search Items Response Schema
+    SearchItemsResponse:
+      type: object
+      description: Paginated search results for items
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Item'
+              description: Array of matching items
+            pagination:
+              type: object
+              properties:
+                total:
+                  type: integer
+                  description: Total number of matching items
+                  example: 150
+                limit:
+                  type: integer
+                  description: Current page size
+                  example: 10
+                offset:
+                  type: integer
+                  description: Current offset
+                  example: 0
+                hasMore:
+                  type: boolean
+                  description: Whether more results are available
+                  example: true
+
+    # Item History Schema
+    ItemHistory:
+      type: object
+      description: Location history for an item
+      properties:
+        itemNumber:
+          type: string
+          description: Item number
+          example: 'INV-2025-000001'
+        history:
+          type: array
+          items:
+            type: object
+            properties:
+              zoneId:
+                type: string
+                format: uuid
+                description: Zone ID where item was detected
+              zoneName:
+                type: string
+                description: Zone name
+                example: 'Storage Area A'
+              enteredAt:
+                type: string
+                format: date-time
+                description: When item entered the zone
+                example: '2025-10-02T10:15:00.000Z'
+              exitedAt:
+                type: string
+                format: date-time
+                nullable: true
+                description: When item left the zone (null if still present)
+                example: '2025-10-02T14:30:00.000Z'
+              dwellTimeMinutes:
+                type: number
+                description: Time spent in zone in minutes
+                example: 255
+              readerId:
+                type: string
+                description: Reader that detected the item
+                example: 'reader-storage-001'
+              rssi:
+                type: number
+                description: Signal strength (dBm)
+                example: -45
+              confidence:
+                type: number
+                description: Location confidence score
+                minimum: 0
+                maximum: 1
+                example: 0.92
+
+    # Item Details Schema (extended)
+    ItemDetails:
+      allOf:
+        - $ref: '#/components/schemas/Item'
+        - type: object
+          properties:
+            recentHistory:
+              type: array
+              description: Last 10 location movements
+              items:
+                type: object
+                properties:
+                  timestamp:
+                    type: string
+                    format: date-time
+                  zoneName:
+                    type: string
+                  rssi:
+                    type: number
+                  confidence:
+                    type: number
+            daysSinceLastSeen:
+              type: integer
+              nullable: true
+              description: Number of days since item was last detected
+              example: 2
+            isMissing:
+              type: boolean
+              description: Whether item is currently marked as missing
+              example: false
+            hasReliableLocation:
+              type: boolean
+              description: Whether current location has confidence >= 0.7
+              example: true
