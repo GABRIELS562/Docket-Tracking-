@@ -4,7 +4,7 @@
 **Branch:** `chore/sdlc-retrofit`
 **Owner:** Jaime
 **Methodology:** GitHub Spec Kit (Spec-Driven Development) + GitHub Actions CI/CD
-**Last updated:** 2026-04-19 (Phase 8b: /speckit.clarify complete, 19 questions answered)
+**Last updated:** 2026-04-19 (Phase 8b: /speckit.plan complete, Constitution Check with 41 violations)
 
 ---
 
@@ -101,22 +101,28 @@ Mark each phase as ⬜ Not started, 🟡 In progress, or ✅ Done. Add notes on 
   - `.specify/tasks/retrofit-tasks.md` — 16 ordered tasks across 5 sprints
   - `.specify/analysis/phase8-cross-check.md` — quality gate PASS
 
-### 🟡 Phase 8b — Feature Spec: Core Docket Tracking
+### ✅ Phase 8b — Feature Spec: Core Docket Tracking
 
 - [x] `/speckit.specify` — core docket tracking feature specified
 - [x] `/speckit.clarify` — 19 questions answered
-- [ ] `/speckit.plan` — create implementation plan
-- [ ] `/speckit.tasks` — generate ordered task list
-- [ ] `/speckit.analyze` — cross-check and validate
-- **Notes:** Feature specification at `specs/core-docket-tracking.md` (v1.3). Key clarifications:
-  - Active dockets: >200,000 (requires database partitioning)
-  - HID/iClass access card integration available
-  - Push notifications via PWA required
-  - Full PWA offline support required
-  - RPO/RTO: 1 hour each
-  - Pathfinding + Analytics engine required for v1
-  - i18n: Both English + Afrikaans required
-  - Retrofit tasks now in 8 appendix sections (A.1-A.8)
+- [x] `/speckit.plan` — implementation plan complete with Constitution Check
+- [x] `/speckit.tasks` — 55 tasks across 6 phases generated
+- [x] `/speckit.analyze` — cross-check complete, QUALITY GATE PASS
+- **Notes:** Feature specification at `specs/core-docket-tracking.md` (v1.4 scope-corrected). Artifacts:
+  - `.specify/specs/system-spec.md` — system-level specification
+  - `.specify/analysis/constitution-check.md` — 41 violations across 12 articles
+  - `.specify/plans/implementation-plan.md` — architecture, native wrapper, deployment
+  - `.specify/plans/tasks.md` — 55 tasks, 70-day estimate, critical path defined
+  - `.specify/contracts/rest-api.md`, `websocket-events.md`, `mqtt-topics.md`
+  - `.specify/data-model/data-model.md` — partitioning strategy for 200k+ items
+  - `.specify/plans/quickstart.md` — <10 min setup guide
+  - `.specify/analysis/phase8b-cross-check.md` — quality gate PASS
+
+  Key scope corrections in v1.4:
+  - HID/iClass, push notifications, PWA offline, analytics engine → Phase 2
+  - Native Android wrapper, MQTT via Mosquitto, ZD621R printer → v1 critical path
+  - Database partitioning by status (active/archived) for >200k items
+  - GAP-01 (docket decommissioning) → Phase 2 (R-G8)
 
 ### 🟡 Phase 9 — Final Review & Merge
 
@@ -131,23 +137,57 @@ Mark each phase as ⬜ Not started, 🟡 In progress, or ✅ Done. Add notes on 
 
 ## Retrofit Backlog (populated by Phase 8)
 
-Full details in `.specify/plans/constitution-check.md` and `.specify/tasks/retrofit-tasks.md`.
+Full details in `.specify/analysis/constitution-check.md` (41 violations) and `.specify/tasks/retrofit-tasks.md`.
 
-### Critical (Block Delivery)
+### Constitution Check Summary (41 violations)
+
+| Article                   | Violations | Severity     | Key Issue                            |
+| ------------------------- | ---------- | ------------ | ------------------------------------ |
+| I (Stack & Architecture)  | 3          | MEDIUM       | LLRP→MQTT migration needed           |
+| II (Hardware Integration) | 6          | HIGH         | Native wrapper, ZD621R, LLRP removal |
+| III (Data Integrity)      | 2          | LOW          | station_charge, tag_reads hypertable |
+| IV (Code Quality)         | 12         | HIGH         | 9 components >200 lines              |
+| V (Testing)               | 1          | **CRITICAL** | Coverage 5-10% vs required 80%       |
+| VI-XII                    | 17         | MEDIUM       | Docs, CI, observability, delivery    |
+
+**Article IV Component Breakdown:**
+
+- 5 GENUINE (need structural refactoring): ControlPanel, MobileNav, DocketDetailModal, ZoneFloorPlan, ItemList
+- 2 BORDERLINE (review before deciding): ReaderMonitorPanel, ForensicBuilding
+- 2 COSMETIC (quick wins): NotificationHistory, DocketEntryForm
+
+**Coverage Milestone Sequence:**
+| Milestone | Target | Scope | Blocked By |
+|-----------|--------|-------|------------|
+| M1 | 25% | Domain entities + value objects | — |
+| M2 | 60% | + Use cases + controllers | — |
+| M3 | 75% | + MQTT gateway + frontend | I-2 (MqttReaderGateway) |
+| M4 | 80% | + Proximity-find tests | II-3 (Native wrapper) |
+
+### Critical Path (dependency order)
+
+1. **I-2** MqttReaderGateway → blocks reader communication
+2. **II-3** Native Android wrapper → blocks proximity-find
+3. **II-4** ZD621R printer → blocks tag-binding
+4. **XII-4** Tag-binding workflow → blocks docket registration
+5. **XII-5** Alert system → blocks exit detection
+6. **II-6** LLRPGateway removal → cleanup after I-2
+7. **V-1** Test coverage 80% → final gate (depends on II-3)
+
+### Previous Retrofit Tasks (from Phase 8a)
 
 - [x] **T1-T4:** Fix backend tests, re-enable CI test job ✅
   - Fixed TagProcessor, RfidEpc, TagDeduplicator tests
   - Skipped 10 test files with structural mismatches (documented in jest.config.js)
   - 385 tests passing, 0 failing
   - Coverage baseline: ~10% (thresholds lowered to 9%)
-  - Coverage gaps: presentation layer (0%), infrastructure repos (0%), domain services (0%)
-- [ ] **T5:** Replace 116 console.log calls with Winston ILogger
+- [ ] **T5:** Replace 93 console.log calls with Winston ILogger
 
 ### High Priority
 
 - [ ] **T6:** Add Trivy container scan to CI
 - [ ] **T7-T9:** Create docs/adr/, specs/rfid/, hardware setup guide
-- [ ] **T10-T13:** Refactor 8 oversized React components (>200 lines)
+- [ ] **T10-T13:** Refactor 5 genuine oversized React components
 
 ### Medium Priority
 
@@ -170,6 +210,7 @@ Record any deviations from the master prompt, trade-offs made, or choices that n
 | 2026-04-18 | Skipped 10 test files with structural mismatches                                                                                                                                                      | Tests had API signature mismatches (missing tenantId, wrong method names). Skip now, fix incrementally.                                                                                                        |
 | 2026-04-18 | Lowered coverage thresholds to 9%                                                                                                                                                                     | Current baseline ~10%. Will increase thresholds as coverage improves. Documented in jest.config.js.                                                                                                            |
 | 2026-04-19 | Spec work (specify, clarify, scope correction) committed directly to main rather than feature branch. PR #1 already merged. Future feature work (plan/tasks/implement) will resume branch discipline. | Spec commits accidentally landed on main during session handoffs. Rewriting history on a solo retrofit project was not worth the risk. Clarify-induced scope creep was also caught and corrected in spec v1.4. |
+| 2026-04-19 | GAP-01 (docket decommissioning) deferred to Phase 2                                                                                                                                                   | v1 pilot window shorter than typical case lifecycle, so no decommissioning events expected during pilot. Added as R-G8 in spec.                                                                                |
 
 ---
 

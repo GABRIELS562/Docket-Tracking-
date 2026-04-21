@@ -1533,15 +1533,16 @@ This is a **non-negotiable architectural constraint**. DataWedge only provides k
 
 ### A.7 Phase 2 (Deferred from V1)
 
-| ID   | Task                               | Priority | Effort | Notes                                     |
-| ---- | ---------------------------------- | -------- | ------ | ----------------------------------------- |
-| R-G1 | HID/iClass access card integration | Phase 2  | M      | Correlate access swipes with docket entry |
-| R-G2 | Push notification infrastructure   | Phase 2  | M      | Service worker + Web Push API             |
-| R-G3 | Full PWA offline mode              | Phase 2  | L      | IndexedDB cache, background sync          |
-| R-G4 | WAL archiving (RPO 1h)             | Phase 2  | M      | PostgreSQL WAL to MinIO/S3                |
-| R-G5 | Hot standby (RTO 1h)               | Phase 2  | L      | Streaming replication                     |
-| R-G6 | Analytics engine deployment        | Phase 2  | M      | Python/Open3D for advanced analytics      |
-| R-G7 | Turn-by-turn pathfinding           | Phase 2  | M      | Real-time navigation guidance             |
+| ID   | Task                               | Priority | Effort | Notes                                                                                                                                                                        |
+| ---- | ---------------------------------- | -------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R-G1 | HID/iClass access card integration | Phase 2  | M      | Correlate access swipes with docket entry                                                                                                                                    |
+| R-G2 | Push notification infrastructure   | Phase 2  | M      | Service worker + Web Push API                                                                                                                                                |
+| R-G3 | Full PWA offline mode              | Phase 2  | L      | IndexedDB cache, background sync                                                                                                                                             |
+| R-G4 | WAL archiving (RPO 1h)             | Phase 2  | M      | PostgreSQL WAL to MinIO/S3                                                                                                                                                   |
+| R-G5 | Hot standby (RTO 1h)               | Phase 2  | L      | Streaming replication                                                                                                                                                        |
+| R-G6 | Analytics engine deployment        | Phase 2  | M      | Python/Open3D for advanced analytics                                                                                                                                         |
+| R-G7 | Turn-by-turn pathfinding           | Phase 2  | M      | Real-time navigation guidance                                                                                                                                                |
+| R-G8 | Docket decommissioning workflow    | Phase 2  | M      | When case closes: tag unbound, marked in DB, physically removed/destroyed, EPC never reissued. Out of scope for v1 pilot (pilot window shorter than typical case lifecycle). |
 
 ### A.8 V1 Features Confirmed
 
