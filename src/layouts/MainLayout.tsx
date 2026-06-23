@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Navigation from '../components/Navigation';
 import Scene3D from '../components/3d/Scene3D';
 import FloorPlan2D from '../components/FloorPlan2D';
@@ -13,6 +13,11 @@ import NotificationSystem from '../components/NotificationSystem';
 import NotificationHistory from '../components/NotificationHistory';
 import { ZoneDetailView } from '../components/detail';
 import { GlobalSearch } from '../components/shared';
+import { HeroSearch } from '../components/search';
+import { SimulationEngine } from '../components/simulation';
+import { AlertToast } from '../components/alerts';
+import MetricsPanel from '../components/dashboard/MetricsPanel';
+import { useZoneStore } from '../store/useZoneStore';
 import { useStore } from '../store/useStore';
 import { useGlobalSearch } from '../hooks/useGlobalSearch';
 import type { Docket } from '../lib/mockData';
@@ -29,6 +34,12 @@ interface MainLayoutProps {
 export default function MainLayout({ zones, readers, dockets, notifications }: MainLayoutProps) {
   const [detailZone, setDetailZone] = useState<Zone | null>(null);
   const { isSearchOpen, closeSearch } = useGlobalSearch();
+  const { setZones } = useZoneStore();
+
+  // Sync zones to the zone store for search functionality
+  useEffect(() => {
+    setZones(zones);
+  }, [zones, setZones]);
 
   const {
     isZonePanelOpen,
@@ -54,7 +65,35 @@ export default function MainLayout({ zones, readers, dockets, notifications }: M
     markAsRead,
     clearHistory,
     toggleSound,
+    warning,
+    error,
+    info,
   } = notifications;
+
+  // Simulation notification handler
+  const handleSimulationNotification = useCallback(
+    (
+      type: 'success' | 'warning' | 'error' | 'info',
+      title: string,
+      message: string,
+      metadata?: Record<string, unknown>
+    ) => {
+      switch (type) {
+        case 'warning':
+          warning(title, message, metadata);
+          break;
+        case 'error':
+          error(title, message, metadata);
+          break;
+        case 'info':
+          info(title, message, metadata);
+          break;
+        default:
+          info(title, message, metadata);
+      }
+    },
+    [warning, error, info]
+  );
 
   const handleZoneClick = useCallback(
     (zoneId: number) => {
@@ -83,6 +122,9 @@ export default function MainLayout({ zones, readers, dockets, notifications }: M
 
   return (
     <div className="w-full h-screen overflow-hidden bg-gray-900">
+      {/* Simulation Engine - runs background simulation */}
+      <SimulationEngine onNotification={handleSimulationNotification} />
+
       {/* Zone Detail View (overlay) */}
       {detailZone && <ZoneDetailView zone={detailZone} onBack={handleCloseDetailView} />}
 
@@ -98,6 +140,13 @@ export default function MainLayout({ zones, readers, dockets, notifications }: M
       )}
 
       <ControlPanel />
+
+      {/* Live Metrics Panel - positioned at bottom left */}
+      {!detailZone && (
+        <div className="absolute bottom-4 left-4 z-40 pointer-events-auto">
+          <MetricsPanel compact={false} className="w-72" />
+        </div>
+      )}
 
       {/* Sidebar Panels */}
       <ZoneListPanel
@@ -150,6 +199,9 @@ export default function MainLayout({ zones, readers, dockets, notifications }: M
         onClose={closeSearch}
         onZoneNavigate={handleSearchZoneNavigate}
       />
+
+      {/* Simulation Alert Toasts - positioned at bottom right */}
+      <AlertToast position="bottom-right" maxVisible={4} autoDismissMs={8000} />
     </div>
   );
 }
@@ -163,6 +215,13 @@ interface ViewModesProps {
 }
 
 function ViewModes({ mode, zones, dockets, readers, onZoneClick }: ViewModesProps) {
+  // Common HeroSearch component for all modes - the core "find any docket" experience
+  const heroSearch = (
+    <div className="absolute top-20 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
+      <HeroSearch onLocate={(_item, zoneId) => onZoneClick(zoneId)} />
+    </div>
+  );
+
   if (mode === '3d') {
     return (
       <>
@@ -173,6 +232,7 @@ function ViewModes({ mode, zones, dockets, readers, onZoneClick }: ViewModesProp
           onZoneClick={onZoneClick}
         />
         <Dashboard zones={zones} dockets={dockets} readers={readers} />
+        {heroSearch}
       </>
     );
   }
@@ -182,6 +242,7 @@ function ViewModes({ mode, zones, dockets, readers, onZoneClick }: ViewModesProp
       <>
         <FloorPlan2D zones={zones} dockets={dockets} />
         <Dashboard zones={zones} dockets={dockets} readers={readers} />
+        {heroSearch}
       </>
     );
   }
@@ -203,6 +264,7 @@ function ViewModes({ mode, zones, dockets, readers, onZoneClick }: ViewModesProp
         </div>
       </div>
       <Dashboard zones={zones} dockets={dockets} readers={readers} />
+      {heroSearch}
     </>
   );
 }

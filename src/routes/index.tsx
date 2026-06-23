@@ -3,6 +3,7 @@ import { MainLayout } from '../layouts';
 import { PageLayout } from '../layouts';
 import Analytics from '../pages/Analytics';
 import Settings from '../pages/Settings';
+import { WorkflowDemo } from '../components/workflow';
 import type { AppData } from '../hooks/useAppData';
 
 interface AppRoutesProps {
@@ -44,6 +45,16 @@ export default function AppRoutes({ zones, readers, dockets, notifications }: Ap
         element={
           <PageLayout>
             <Settings />
+          </PageLayout>
+        }
+      />
+
+      {/* Workflow Demo Page */}
+      <Route
+        path="/workflow"
+        element={
+          <PageLayout>
+            <WorkflowDemo />
           </PageLayout>
         }
       />

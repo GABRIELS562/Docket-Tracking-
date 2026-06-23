@@ -21,7 +21,10 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:report": "playwright show-report",
-    "prepare": "husky"
+    "prepare": "husky",
+    "demo:discover": "node scripts/demo/discover.cjs",
+    "demo:rehearse": "node scripts/demo/rehearse.cjs",
+    "demo:record": "node scripts/demo/record.cjs"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

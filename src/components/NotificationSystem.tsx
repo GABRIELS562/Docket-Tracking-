@@ -2,6 +2,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, AlertTriangle, XCircle, Info, X, Bell, BellOff } from 'lucide-react';
 import { Notification, NotificationType } from '@/hooks/useNotifications';
 
+/**
+ * UI POLISH - NotificationSystem
+ *
+ * ECC make-interfaces-feel-better principles applied:
+ * 1. Motion: Slide-in from right on enter, slide-out on exit (150ms)
+ * 2. Hit Areas: All buttons have 44px minimum touch targets
+ * 3. Transition Scope: specific properties only
+ * 4. Shadows: Toast shadows for depth
+ * 5. Tabular Numbers: timestamps use tabular-nums
+ */
+
 interface NotificationSystemProps {
   notifications: Notification[];
   soundEnabled: boolean;
@@ -19,19 +30,38 @@ export default function NotificationSystem({
 }: NotificationSystemProps) {
   return (
     <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none">
-      {/* Sound Toggle Button */}
+      {/* Action Buttons - 44px hit areas */}
       <div className="flex justify-end gap-2 pointer-events-auto">
         <button
           onClick={onViewHistory}
-          className="bg-gray-800/90 backdrop-blur-sm border border-gray-700 rounded-lg px-3 py-2 hover:bg-gray-700 transition-colors"
+          className="
+            min-w-[44px] min-h-[44px]
+            flex items-center justify-center
+            bg-gray-800/90 backdrop-blur-sm border border-gray-700 rounded-lg px-3 py-2
+            hover:bg-gray-700 hover:border-gray-600
+            focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900
+            transition-[background-color,border-color,transform] duration-150 ease-out
+            active:scale-[0.96]
+          "
           title="View notification history"
+          aria-label="View notification history"
         >
           <Bell className="w-4 h-4 text-gray-300" />
         </button>
         <button
           onClick={onToggleSound}
-          className="bg-gray-800/90 backdrop-blur-sm border border-gray-700 rounded-lg px-3 py-2 hover:bg-gray-700 transition-colors"
+          className="
+            min-w-[44px] min-h-[44px]
+            flex items-center justify-center
+            bg-gray-800/90 backdrop-blur-sm border border-gray-700 rounded-lg px-3 py-2
+            hover:bg-gray-700 hover:border-gray-600
+            focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900
+            transition-[background-color,border-color,transform] duration-150 ease-out
+            active:scale-[0.96]
+          "
           title={soundEnabled ? 'Mute notifications' : 'Unmute notifications'}
+          aria-label={soundEnabled ? 'Mute notifications' : 'Unmute notifications'}
+          aria-pressed={soundEnabled}
         >
           {soundEnabled ? (
             <Bell className="w-4 h-4 text-blue-400" />
@@ -60,19 +90,40 @@ interface NotificationToastProps {
   onRemove: (id: string) => void;
 }
 
+// Animation variants
+// Enter: slide from right with opacity and scale, 200ms
+// Exit: shorter (150ms), less movement
+const toastVariants = {
+  initial: { opacity: 0, x: 48, scale: 0.95 },
+  animate: { opacity: 1, x: 0, scale: 1 },
+  exit: { opacity: 0, x: 24, scale: 0.98 },
+};
+
+// Enter transition uses spring physics; exit is handled by variant
+const toastTransition = { type: 'spring', damping: 25, stiffness: 350 };
+
 function NotificationToast({ notification, onRemove }: NotificationToastProps) {
   const config = getNotificationConfig(notification.type);
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: 100, scale: 0.9 }}
-      animate={{ opacity: 1, x: 0, scale: 1 }}
-      exit={{ opacity: 0, x: 100, scale: 0.9 }}
-      transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+      variants={toastVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      transition={toastTransition}
       className="pointer-events-auto w-96"
     >
       <div
-        className={`bg-gray-800/95 backdrop-blur-sm border-l-4 ${config.borderColor} rounded-lg shadow-xl overflow-hidden`}
+        className={`bg-gray-800/95 backdrop-blur-sm border-l-4 ${config.borderColor} rounded-lg overflow-hidden`}
+        style={{
+          // Layered toast shadow
+          boxShadow: `
+            0 2px 4px 0 rgba(0, 0, 0, 0.3),
+            0 8px 16px -4px rgba(0, 0, 0, 0.25),
+            0 16px 32px -8px rgba(0, 0, 0, 0.2)
+          `,
+        }}
       >
         <div className="p-4">
           <div className="flex items-start gap-3">
@@ -81,7 +132,9 @@ function NotificationToast({ notification, onRemove }: NotificationToastProps) {
 
             {/* Content */}
             <div className="flex-1 min-w-0">
+              {/* Title with text-wrap: balance (applied globally) */}
               <h4 className="text-sm font-semibold text-white mb-1">{notification.title}</h4>
+              {/* Message with text-wrap: pretty (applied globally to p) */}
               <p className="text-sm text-gray-300">{notification.message}</p>
 
               {/* Metadata */}
@@ -95,16 +148,26 @@ function NotificationToast({ notification, onRemove }: NotificationToastProps) {
                 </div>
               )}
 
-              {/* Timestamp */}
-              <p className="text-xs text-gray-500 mt-2">
+              {/* Timestamp with tabular-nums for stable width */}
+              <p className="text-xs text-gray-500 mt-2 tabular-nums">
                 {notification.timestamp.toLocaleTimeString()}
               </p>
             </div>
 
-            {/* Close Button */}
+            {/* Close Button - 44px hit area via padding */}
             <button
               onClick={() => onRemove(notification.id)}
-              className="flex-shrink-0 text-gray-400 hover:text-white transition-colors"
+              className="
+                flex-shrink-0 p-2 -m-2
+                min-w-[44px] min-h-[44px]
+                flex items-center justify-center
+                text-gray-400 hover:text-white rounded-lg
+                hover:bg-gray-700/50
+                focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500
+                transition-[color,background-color,transform] duration-150 ease-out
+                active:scale-[0.96]
+              "
+              aria-label="Dismiss notification"
             >
               <X className="w-4 h-4" />
             </button>

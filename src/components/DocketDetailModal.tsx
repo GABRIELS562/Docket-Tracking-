@@ -6,6 +6,18 @@ import { useStore } from '@/store/useStore';
 import { formatDate, formatRelativeTime } from '@/lib/utils';
 import { api } from '@/lib/api';
 
+/**
+ * UI POLISH - DocketDetailModal
+ *
+ * ECC make-interfaces-feel-better principles applied:
+ * 1. Motion: Enter with opacity + scale + translateY; Exit shorter (150ms vs 200ms)
+ * 2. Shadows: Modal shadow for depth
+ * 3. Hit Areas: Close button and action buttons have 44px touch targets
+ * 4. Transition Scope: Framer Motion with explicit properties
+ * 5. Concentric Radius: Modal rounded-2xl (16px), inner elements rounded-xl (12px) or rounded-lg (8px)
+ * 6. Tabular Numbers: timestamps and metrics use tabular-nums
+ */
+
 interface LocationHistoryItem {
   timestamp: string;
   zoneName: string;
@@ -20,6 +32,25 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
 }
+
+// Animation variants following ECC principles
+// Enter: opacity + scale + translateY, 200ms
+// Exit: shorter (150ms), smaller movement
+const backdropVariants = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  exit: { opacity: 0 },
+};
+
+const modalVariants = {
+  initial: { opacity: 0, scale: 0.95, y: 16 },
+  animate: { opacity: 1, scale: 1, y: 0 },
+  exit: { opacity: 0, scale: 0.98, y: 8 }, // Exit: smaller movement, scale closer to 1
+};
+
+// Enter is 200ms, exit is 150ms (shorter and quieter)
+const enterTransition = { type: 'spring', damping: 28, stiffness: 350, duration: 0.2 };
+const exitTransition = { duration: 0.15, ease: 'easeIn' };
 
 export default function DocketDetailModal({ docket, isOpen, onClose }: Props) {
   const { setSelectedZone } = useStore();
@@ -61,28 +92,49 @@ export default function DocketDetailModal({ docket, isOpen, onClose }: Props) {
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop - faster exit */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            variants={backdropVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={{ duration: 0.15 }}
             onClick={onClose}
             className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 pointer-events-auto"
           />
 
-          {/* Modal */}
+          {/* Modal with layered shadow */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] max-h-[80vh] bg-gray-900 rounded-2xl border border-blue-500/30 shadow-2xl z-50 overflow-hidden pointer-events-auto"
+            variants={modalVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={isOpen ? enterTransition : exitTransition}
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] max-h-[80vh] bg-gray-900 rounded-2xl border border-blue-500/30 z-50 overflow-hidden pointer-events-auto"
+            style={{
+              // Layered modal shadow for depth
+              boxShadow: `
+                0 4px 8px 0 rgba(0, 0, 0, 0.4),
+                0 16px 32px -8px rgba(0, 0, 0, 0.3),
+                0 32px 64px -16px rgba(0, 0, 0, 0.2),
+                0 0 48px -12px rgba(59, 130, 246, 0.15)
+              `,
+            }}
           >
             {/* Header */}
             <div className="relative bg-gradient-to-r from-blue-600/20 to-purple-600/20 p-6 border-b border-gray-800">
+              {/* Close button with 44px hit area */}
               <button
                 onClick={onClose}
-                className="absolute top-4 right-4 p-2 hover:bg-gray-800/50 rounded-lg transition-colors"
+                className="
+                  absolute top-4 right-4 p-2 rounded-lg
+                  min-w-[44px] min-h-[44px]
+                  flex items-center justify-center
+                  hover:bg-gray-800/50
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900
+                  transition-[background-color,transform] duration-150 ease-out
+                  active:scale-[0.96]
+                "
               >
                 <X className="w-5 h-5 text-gray-400" />
               </button>
@@ -222,19 +274,39 @@ export default function DocketDetailModal({ docket, isOpen, onClose }: Props) {
               </section>
             </div>
 
-            {/* Footer Actions */}
+            {/* Footer Actions - buttons with proper hit areas and transitions */}
             <div className="border-t border-gray-800 p-4 bg-gray-900/50 flex items-center justify-between">
+              {/* Secondary action with expanded hit area */}
               <button
                 onClick={() => window.open('#', '_blank')}
-                className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
+                className="
+                  flex items-center gap-2 px-3 py-2 rounded-lg
+                  min-h-[44px]
+                  text-sm text-gray-400
+                  hover:text-white hover:bg-gray-800/50
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900
+                  transition-[color,background-color,transform] duration-150 ease-out
+                  active:scale-[0.96]
+                "
               >
                 <ExternalLink className="w-4 h-4" />
                 View Full History
               </button>
+              {/* Primary action button */}
               <button
                 onClick={handleTrackOnMap}
                 disabled={!docket.currentZone}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded-lg font-medium transition-colors"
+                className="
+                  flex items-center gap-2 px-4 py-2 rounded-lg
+                  min-h-[44px]
+                  bg-blue-600 text-white font-medium
+                  hover:bg-blue-700
+                  disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900
+                  transition-[background-color,transform,opacity] duration-150 ease-out
+                  active:scale-[0.96]
+                  disabled:active:scale-100
+                "
               >
                 <Navigation className="w-4 h-4" />
                 Track on Map

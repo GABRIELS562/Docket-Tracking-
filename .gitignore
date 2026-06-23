@@ -9,6 +9,9 @@ test-results/
 playwright-report/
 playwright/.cache/
 
+# Demo recordings
+scripts/demo/screenshots/
+
 # Production
 build
 dist
@@ -43,3 +46,4 @@ next-env.d.ts
 .claude.json
 .claude.json.*
 .claude*.backup
+ECC/

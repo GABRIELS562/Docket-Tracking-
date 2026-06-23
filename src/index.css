@@ -2,10 +2,253 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =============================================================================
+   UI POLISH - ECC make-interfaces-feel-better principles
+
+   Principles applied:
+   1. Font Smoothing - antialiased rendering on macOS
+   2. Image Outlines - subtle inset borders for images
+   3. Text Wrapping - balance/pretty utilities for text
+   4. Tabular Numbers - for counters/metrics
+   5. Transition Scope - never use transition: all
+   ============================================================================= */
+
 @layer base {
+  /* Font Smoothing - macOS antialiased rendering */
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
   body {
     @apply bg-gray-900 text-white;
     font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  /* Image Outlines - subtle inset borders so edges don't blur into surfaces */
+  img {
+    outline: 1px solid rgba(0, 0, 0, 0.1);
+    outline-offset: -1px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    img {
+      outline-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  /* Heading text wrapping - use balance for optical line distribution */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    text-wrap: balance;
+  }
+
+  /* Body text wrapping - use pretty to avoid orphans */
+  p,
+  li,
+  dd {
+    text-wrap: pretty;
+  }
+}
+
+@layer components {
+  /* ==========================================================================
+     BUTTON POLISH
+     - Specific transition properties (never transition: all)
+     - Press state with scale(0.96) for tactile feedback
+     - Minimum 44x44 hit area for accessibility
+     ========================================================================== */
+
+  .btn {
+    @apply relative inline-flex items-center justify-center;
+    @apply font-medium rounded-lg;
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900;
+    min-height: 44px;
+    min-width: 44px;
+    transition-property: transform, background-color, box-shadow, border-color, color;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .btn:active:not(:disabled) {
+    transform: scale(0.96);
+  }
+
+  .btn-primary {
+    @apply btn bg-blue-600 text-white;
+    @apply hover:bg-blue-700;
+    @apply focus-visible:ring-blue-500;
+    @apply disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply btn bg-gray-800 text-gray-300;
+    @apply hover:bg-gray-700 hover:text-white;
+    @apply focus-visible:ring-gray-500;
+    @apply disabled:bg-gray-800 disabled:text-gray-600 disabled:cursor-not-allowed;
+  }
+
+  .btn-ghost {
+    @apply btn bg-transparent text-gray-400;
+    @apply hover:bg-gray-800 hover:text-white;
+    @apply focus-visible:ring-gray-500;
+  }
+
+  .btn-icon {
+    @apply btn p-2;
+  }
+
+  /* ==========================================================================
+     CARD POLISH
+     - Layered subtle shadows for depth
+     - Border for separation
+     - Concentric radius: outer = inner + padding
+     ========================================================================== */
+
+  .card {
+    @apply bg-gray-900 rounded-xl border border-gray-800;
+    box-shadow:
+      0 1px 2px 0 rgba(0, 0, 0, 0.3),
+      0 4px 8px -2px rgba(0, 0, 0, 0.2),
+      0 12px 24px -4px rgba(0, 0, 0, 0.15);
+  }
+
+  .card-elevated {
+    @apply card;
+    box-shadow:
+      0 2px 4px 0 rgba(0, 0, 0, 0.4),
+      0 8px 16px -4px rgba(0, 0, 0, 0.3),
+      0 20px 40px -8px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Card with inner content - apply concentric radius */
+  .card-body {
+    @apply p-4;
+  }
+
+  /* Inner rounded elements should have radius = outer - padding
+     Example: card is rounded-xl (12px), padding is 16px
+     Inner elements should use rounded-lg (8px) for visual coherence */
+  .card-inner {
+    @apply rounded-lg;
+  }
+
+  /* ==========================================================================
+     MODAL / DIALOG POLISH
+     - Enter: opacity + translateY + blur
+     - Exit: shorter duration (150ms)
+     ========================================================================== */
+
+  .modal-backdrop {
+    @apply fixed inset-0 bg-black/70 backdrop-blur-sm;
+  }
+
+  .modal-content {
+    @apply bg-gray-900 rounded-2xl border border-gray-800;
+    box-shadow:
+      0 4px 8px 0 rgba(0, 0, 0, 0.4),
+      0 16px 32px -8px rgba(0, 0, 0, 0.3),
+      0 32px 64px -16px rgba(0, 0, 0, 0.2);
+  }
+
+  /* ==========================================================================
+     INTERACTIVE ELEMENT HIT AREAS
+     - Minimum 44x44px touch target
+     - Use pseudo-element to expand hit area without affecting layout
+     ========================================================================== */
+
+  .hit-area-expand {
+    @apply relative;
+  }
+
+  .hit-area-expand::before {
+    content: '';
+    @apply absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 44px;
+    min-height: 44px;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ==========================================================================
+     TABULAR NUMBERS
+     - For counters, timers, prices, tables, and updating numbers
+     ========================================================================== */
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ==========================================================================
+     FOCUS RING STYLES
+     - Visible focus rings for accessibility
+     - Use borders for focus, shadows for depth
+     ========================================================================== */
+
+  .focus-ring {
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900;
+  }
+}
+
+@layer utilities {
+  /* Text wrapping utilities */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  /* Transition utilities - specific properties only */
+  .transition-interactive {
+    transition-property: transform, background-color, box-shadow, border-color, opacity;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .transition-colors-only {
+    transition-property: color, background-color, border-color;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .transition-transform-only {
+    transition-property: transform;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .transition-opacity-only {
+    transition-property: opacity;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Press state for buttons */
+  .active-press:active {
+    transform: scale(0.96);
+  }
+
+  /* Optical alignment - small offsets for asymmetric icons */
+  .optical-align-play {
+    /* Play icons need slight right shift due to triangle shape */
+    transform: translateX(1px);
+  }
+
+  .optical-align-left-arrow {
+    transform: translateX(-0.5px);
+  }
+
+  .optical-align-right-arrow {
+    transform: translateX(0.5px);
   }
 }
 

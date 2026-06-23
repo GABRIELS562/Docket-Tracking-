@@ -76,7 +76,7 @@ export const useStore = create<AppState>((set) => ({
   isDocketModalOpen: false,
   isReaderPanelOpen: false,
   heatMapEnabled: false,
-  floorPlanMode: '3d',
+  floorPlanMode: '2d', // 2D floor plan is PRIMARY navigation, 3D is secondary
   isNotificationHistoryOpen: false,
   isDemoMode: true, // Start in demo mode by default
   docketLimit: 100, // Default to 100 dockets for better performance

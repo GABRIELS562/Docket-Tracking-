@@ -4,6 +4,7 @@ import { Text, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import type { Zone } from '@/lib/types';
 import { getOccupancyStatus, getOccupancyColor } from '@/lib/types';
+import { useSearchStore } from '@/store/useSearchStore';
 
 interface ZoneBlockProps {
   zone: Zone;
@@ -35,16 +36,41 @@ const ZoneBlock = memo(function ZoneBlock({
   showLabels,
 }: ZoneBlockProps) {
   const meshRef = useRef<THREE.Mesh>(null);
+  const ringRef = useRef<THREE.Mesh>(null);
+  const pulseRingRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
 
-  // Animate selected zone
+  // Get search highlight state
+  const highlightedZoneId = useSearchStore((state) => state.highlightedZoneId);
+  const isHighlighted = highlightedZoneId === zone.zoneId;
+
+  // Animate selected/highlighted zone
   useFrame((state) => {
     if (meshRef.current) {
-      if (isSelected) {
-        meshRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 2) * 0.3;
+      // Float animation for selected or highlighted zones
+      if (isSelected || isHighlighted) {
+        const floatSpeed = isHighlighted ? 3 : 2;
+        const floatAmount = isHighlighted ? 0.5 : 0.3;
+        meshRef.current.position.y =
+          position[1] + Math.sin(state.clock.elapsedTime * floatSpeed) * floatAmount;
       } else {
         meshRef.current.position.y = position[1];
       }
+    }
+
+    // Pulse ring animation for highlighted zones
+    if (pulseRingRef.current && isHighlighted) {
+      const pulse = (Math.sin(state.clock.elapsedTime * 4) + 1) / 2; // 0 to 1
+      pulseRingRef.current.scale.set(1 + pulse * 0.3, 1 + pulse * 0.3, 1);
+      const material = pulseRingRef.current.material as THREE.MeshBasicMaterial;
+      if (material) {
+        material.opacity = 0.8 - pulse * 0.5;
+      }
+    }
+
+    // Rotating ring for highlighted zones
+    if (ringRef.current && isHighlighted) {
+      ringRef.current.rotation.z += 0.02;
     }
   });
 
@@ -60,16 +86,22 @@ const ZoneBlock = memo(function ZoneBlock({
   const occupancyRatio = zone.currentOccupancy / Math.max(zone.capacity, 1);
   const height = 0.5 + occupancyRatio * 5.5;
 
-  // Determine glow intensity based on status
-  const emissiveIntensity = isSelected
-    ? 0.8
-    : hovered
-      ? 0.5
-      : status === 'full'
-        ? 0.4
-        : status === 'critical'
-          ? 0.3
-          : 0.15;
+  // Determine glow intensity based on status and highlight
+  const emissiveIntensity = isHighlighted
+    ? 1.2 // Brightest for search highlight
+    : isSelected
+      ? 0.8
+      : hovered
+        ? 0.5
+        : status === 'full'
+          ? 0.4
+          : status === 'critical'
+            ? 0.3
+            : 0.15;
+
+  // Color override for highlighted zones
+  const displayColor = isHighlighted ? '#3b82f6' : color;
+  const blockColor = isHighlighted || isSelected ? '#ffffff' : displayColor;
 
   return (
     <group position={position}>
@@ -94,22 +126,52 @@ const ZoneBlock = memo(function ZoneBlock({
       >
         <boxGeometry args={[baseWidth, height, baseDepth]} />
         <meshStandardMaterial
-          color={isSelected ? '#ffffff' : color}
-          emissive={color}
+          color={blockColor}
+          emissive={displayColor}
           emissiveIntensity={emissiveIntensity}
           transparent
-          opacity={0.9}
+          opacity={isHighlighted ? 0.95 : 0.9}
           roughness={0.3}
-          metalness={0.2}
+          metalness={isHighlighted ? 0.4 : 0.2}
         />
       </mesh>
 
       {/* Selection ring */}
-      {isSelected && (
+      {isSelected && !isHighlighted && (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]}>
           <ringGeometry args={[baseWidth * 0.7, baseWidth * 0.8, 32]} />
           <meshBasicMaterial color="#ffffff" transparent opacity={0.6} />
         </mesh>
+      )}
+
+      {/* Search highlight effects */}
+      {isHighlighted && (
+        <>
+          {/* Rotating inner ring */}
+          <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.1, 0]}>
+            <ringGeometry args={[baseWidth * 0.6, baseWidth * 0.7, 64]} />
+            <meshBasicMaterial color="#3b82f6" transparent opacity={0.8} />
+          </mesh>
+
+          {/* Pulsing outer ring */}
+          <mesh ref={pulseRingRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.08, 0]}>
+            <ringGeometry args={[baseWidth * 0.8, baseWidth * 0.95, 64]} />
+            <meshBasicMaterial color="#60a5fa" transparent opacity={0.6} />
+          </mesh>
+
+          {/* Vertical light beams */}
+          <mesh position={[0, height / 2 + 3, 0]}>
+            <cylinderGeometry args={[0.1, baseWidth * 0.5, 6, 16, 1, true]} />
+            <meshBasicMaterial color="#3b82f6" transparent opacity={0.3} side={THREE.DoubleSide} />
+          </mesh>
+
+          {/* "LOCATED" label */}
+          <Html position={[0, height / 2 + 4, 0]} center distanceFactor={8}>
+            <div className="bg-blue-500 text-white px-4 py-2 rounded-full font-bold text-sm shadow-lg shadow-blue-500/50 animate-bounce whitespace-nowrap">
+              DOCKET LOCATED
+            </div>
+          </Html>
+        </>
       )}
 
       {/* Labels */}

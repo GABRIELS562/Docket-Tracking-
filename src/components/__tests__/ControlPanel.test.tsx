@@ -389,8 +389,8 @@ describe('ControlPanel', () => {
       render(<ControlPanel />);
 
       const zonesButton = screen.getByText('Zones').closest('button');
-      // Active buttons should have the pulsing indicator
-      const indicator = zonesButton?.querySelector('.animate-pulse');
+      // Active buttons should have the pulsing indicator (subtle pulse animation)
+      const indicator = zonesButton?.querySelector('.animate-pulse-subtle');
       expect(indicator).toBeInTheDocument();
     });
 
@@ -398,7 +398,7 @@ describe('ControlPanel', () => {
       render(<ControlPanel />);
 
       const zonesButton = screen.getByText('Zones').closest('button');
-      const indicator = zonesButton?.querySelector('.animate-pulse');
+      const indicator = zonesButton?.querySelector('.animate-pulse-subtle');
       expect(indicator).not.toBeInTheDocument();
     });
   });

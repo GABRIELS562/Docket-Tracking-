@@ -1,22 +1,53 @@
 import { cn } from '@/lib/utils';
 
+/**
+ * UI POLISH - Loading Skeletons
+ *
+ * ECC make-interfaces-feel-better principles applied:
+ * 1. Shadows: Cards have layered shadows
+ * 2. Concentric Radius: Outer containers rounded-lg/xl, inner elements rounded-md
+ * 3. Motion: Subtle pulse animation (not distracting)
+ */
+
 interface SkeletonProps {
   className?: string;
 }
 
 /**
  * Animated skeleton placeholder for loading states
+ *
+ * Uses subtle pulse animation that doesn't distract
  */
 export function Skeleton({ className }: SkeletonProps) {
-  return <div className={cn('animate-pulse rounded-md bg-gray-700/50', className)} />;
+  return (
+    <div
+      className={cn(
+        'rounded-md bg-gray-700/50',
+        // Subtle pulse - not distracting
+        'animate-pulse',
+        className
+      )}
+    />
+  );
 }
 
 /**
  * Zone floor plan loading skeleton
+ *
+ * Concentric radius: container rounded-lg (8px), inner elements rounded or rounded-md
  */
 export function ZoneFloorPlanSkeleton() {
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
+    <div
+      className="bg-gray-900 border border-gray-800 rounded-lg p-4"
+      style={{
+        // Layered card shadow
+        boxShadow: `
+          0 1px 2px 0 rgba(0, 0, 0, 0.3),
+          0 4px 8px -2px rgba(0, 0, 0, 0.2)
+        `,
+      }}
+    >
       {/* Header skeleton */}
       <div className="flex items-center justify-between mb-4">
         <Skeleton className="h-6 w-32" />
@@ -109,10 +140,22 @@ export function ItemListSkeleton() {
 
 /**
  * Dashboard card skeleton
+ *
+ * Matches StatCard styling with layered shadows
  */
 export function DashboardCardSkeleton() {
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
+    <div
+      className="bg-gray-900 border border-gray-800 rounded-lg p-4"
+      style={{
+        // Layered card shadow
+        boxShadow: `
+          0 1px 2px 0 rgba(0, 0, 0, 0.3),
+          0 4px 8px -2px rgba(0, 0, 0, 0.2),
+          0 12px 24px -4px rgba(0, 0, 0, 0.15)
+        `,
+      }}
+    >
       <Skeleton className="h-3 w-20 mb-2" />
       <Skeleton className="h-8 w-24 mb-1" />
       <Skeleton className="h-3 w-28" />

@@ -3,6 +3,17 @@ import { Search, X, Package, MapPin, ArrowRight } from 'lucide-react';
 import { useItemSearch } from '@/hooks/useItems';
 import type { ItemSummary } from '@/lib/types';
 
+/**
+ * UI POLISH - GlobalSearch
+ *
+ * ECC make-interfaces-feel-better principles applied:
+ * 1. Motion: CSS animations for enter/exit (fade-in-scale, fade-out-scale)
+ * 2. Shadows: Layered modal shadow
+ * 3. Hit Areas: Clear button and result items have 44px touch targets
+ * 4. Transition Scope: specific properties only
+ * 5. Concentric Radius: Modal rounded-xl (12px), inner elements rounded-lg (8px)
+ */
+
 interface GlobalSearchProps {
   isOpen: boolean;
   onClose: () => void;
@@ -21,6 +32,7 @@ export default function GlobalSearch({
   onZoneNavigate,
 }: GlobalSearchProps) {
   const [query, setQuery] = useState('');
+  const [isClosing, setIsClosing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { results, total, isSearching, search, clearSearch } = useItemSearch();
@@ -29,6 +41,7 @@ export default function GlobalSearch({
   useEffect(() => {
     if (isOpen && inputRef.current) {
       inputRef.current.focus();
+      setIsClosing(false);
     }
   }, [isOpen]);
 
@@ -45,10 +58,16 @@ export default function GlobalSearch({
     return () => clearTimeout(timer);
   }, [query, search, clearSearch]);
 
+  // Handle close with exit animation
   const handleClose = useCallback(() => {
-    setQuery('');
-    clearSearch();
-    onClose();
+    setIsClosing(true);
+    // Wait for exit animation (150ms) before actually closing
+    setTimeout(() => {
+      setQuery('');
+      clearSearch();
+      onClose();
+      setIsClosing(false);
+    }, 150);
   }, [clearSearch, onClose]);
 
   const handleItemClick = useCallback(
@@ -83,11 +102,30 @@ export default function GlobalSearch({
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleClose} />
+      {/* Backdrop with fade animation */}
+      <div
+        className={`
+          absolute inset-0 bg-black/60 backdrop-blur-sm
+          ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}
+        `}
+        onClick={handleClose}
+      />
 
-      {/* Search modal */}
-      <div className="relative w-full max-w-2xl mx-4 bg-gray-900 rounded-xl shadow-2xl border border-gray-700 overflow-hidden">
+      {/* Search modal with scale animation and layered shadow */}
+      <div
+        className={`
+          relative w-full max-w-2xl mx-4 bg-gray-900 rounded-xl border border-gray-700 overflow-hidden
+          ${isClosing ? 'animate-fade-out-scale' : 'animate-fade-in-scale'}
+        `}
+        style={{
+          // Layered modal shadow
+          boxShadow: `
+            0 4px 8px 0 rgba(0, 0, 0, 0.4),
+            0 16px 32px -8px rgba(0, 0, 0, 0.3),
+            0 32px 64px -16px rgba(0, 0, 0, 0.2)
+          `,
+        }}
+      >
         {/* Search input */}
         <div className="flex items-center px-4 border-b border-gray-800">
           <Search className="w-5 h-5 text-gray-500" />
@@ -100,7 +138,19 @@ export default function GlobalSearch({
             className="flex-1 px-4 py-4 bg-transparent text-white placeholder-gray-500 focus:outline-none text-lg"
           />
           {query && (
-            <button onClick={() => setQuery('')} className="p-1 text-gray-500 hover:text-gray-300">
+            // Clear button with 44px hit area
+            <button
+              onClick={() => setQuery('')}
+              className="
+                p-2 min-w-[44px] min-h-[44px]
+                flex items-center justify-center
+                text-gray-500 hover:text-gray-300 rounded-lg
+                transition-[color,background-color,transform] duration-150 ease-out
+                hover:bg-gray-800
+                active:scale-[0.96]
+              "
+              aria-label="Clear search"
+            >
               <X className="w-5 h-5" />
             </button>
           )}
@@ -169,29 +219,60 @@ interface SearchResultProps {
   onZoneClick?: () => void;
 }
 
+/**
+ * SearchResult - Individual result item
+ *
+ * Polish: 44px hit areas, specific transition properties
+ */
 function SearchResult({ item, onItemClick, onZoneClick }: SearchResultProps) {
   return (
-    <div className="flex items-center justify-between p-4 hover:bg-gray-800/50 transition-colors">
-      <button onClick={onItemClick} className="flex-1 text-left">
+    <div
+      className="
+        flex items-center justify-between p-4
+        hover:bg-gray-800/50
+        transition-[background-color] duration-150 ease-out
+      "
+    >
+      {/* Item click area with minimum 44px height */}
+      <button
+        onClick={onItemClick}
+        className="
+          flex-1 text-left min-h-[44px]
+          flex items-center
+          rounded-lg
+          focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900
+        "
+      >
         <div className="flex items-center gap-3">
+          {/* Icon container - concentric radius (outer p-4, this is p-2, so rounded-lg is appropriate) */}
           <div className="p-2 bg-blue-500/20 rounded-lg">
             <Package className="w-4 h-4 text-blue-400" />
           </div>
           <div>
-            <p className="font-mono text-white">{item.itemNumber}</p>
+            {/* tabular-nums for item numbers */}
+            <p className="font-mono text-white tabular-nums">{item.itemNumber}</p>
             <p className="text-sm text-gray-400">{item.referenceId}</p>
           </div>
         </div>
       </button>
 
       {item.currentZoneName && onZoneClick && (
+        // Zone navigation button with 44px hit area
         <button
           onClick={onZoneClick}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+          className="
+            flex items-center gap-2 px-3 py-2 min-h-[44px]
+            text-sm text-gray-400 rounded-lg
+            hover:text-white hover:bg-gray-700
+            focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900
+            transition-[color,background-color,transform] duration-150 ease-out
+            active:scale-[0.96]
+          "
         >
           <MapPin className="w-4 h-4" />
           <span>{item.currentZoneName}</span>
-          <ArrowRight className="w-4 h-4" />
+          {/* Arrow icon with optical alignment (slight right shift) */}
+          <ArrowRight className="w-4 h-4 translate-x-[0.5px]" />
         </button>
       )}
     </div>

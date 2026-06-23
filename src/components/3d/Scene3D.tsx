@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Environment, Stars } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
@@ -6,6 +6,7 @@ import Canvas3DErrorBoundary from './Canvas3DErrorBoundary';
 import ZoneOverview3D from './ZoneOverview3D';
 import HeatMapOverlay from './HeatMapOverlay';
 import FloorPlanOverlay from './FloorPlanOverlay';
+import CameraController from './CameraController';
 import type { Zone } from '@/lib/types';
 import { useStore } from '@/store/useStore';
 import { useUIStore } from '@/store/useUIStore';
@@ -14,6 +15,25 @@ import { useUIStore } from '@/store/useUIStore';
 const ForensicBuilding = lazy(() => import('./ForensicBuilding'));
 const RfidParticles = lazy(() => import('./RfidParticles'));
 import type { Docket } from '@/lib/api';
+
+/**
+ * Calculate grid layout for zones based on count
+ */
+function calculateGridLayout(count: number): { cols: number } {
+  const cols = Math.ceil(Math.sqrt(count));
+  return { cols };
+}
+
+/**
+ * Calculate zone position in grid (matches ZoneOverview3D logic)
+ */
+function getZonePosition(index: number, cols: number, spacing: number): [number, number, number] {
+  const row = Math.floor(index / cols);
+  const col = index % cols;
+  const offsetX = ((cols - 1) * spacing) / 2;
+  const offsetZ = ((Math.ceil(index / cols) - 1) * spacing) / 2;
+  return [col * spacing - offsetX, 0.5, row * spacing - offsetZ];
+}
 
 interface Scene3DProps {
   zones: Zone[];
@@ -33,6 +53,23 @@ export default function Scene3D({
 
   // Use custom click handler if provided, otherwise use store action
   const handleZoneClick = onZoneClick || setSelectedZone;
+
+  // Calculate zone positions for camera controller (must match ZoneOverview3D logic)
+  const zonePositions = useMemo(() => {
+    const positions = new Map<number, [number, number, number]>();
+    if (!useZoneCentricView || zones.length === 0) return positions;
+
+    // Sort zones by occupancy (same as ZoneOverview3D)
+    const sortedZones = [...zones].sort((a, b) => b.currentOccupancy - a.currentOccupancy);
+    const { cols } = calculateGridLayout(zones.length);
+    const spacing = 12;
+
+    sortedZones.forEach((zone, index) => {
+      positions.set(zone.zoneId, getZonePosition(index, cols, spacing));
+    });
+
+    return positions;
+  }, [zones, useZoneCentricView]);
 
   return (
     <div className="absolute inset-0">
@@ -106,6 +143,15 @@ export default function Scene3D({
             {/* Heat map overlay */}
             {heatMapEnabled && <HeatMapOverlay zones={zones} />}
           </Suspense>
+
+          {/* Camera controller for search fly-to animations */}
+          {useZoneCentricView && (
+            <CameraController
+              zonePositions={zonePositions}
+              defaultPosition={[50, 40, 50]}
+              flyDuration={1.5}
+            />
+          )}
 
           {/* Post-processing */}
           <EffectComposer>
