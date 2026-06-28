@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Radio, X } from 'lucide-react';
 import { useStore } from '@/store/useStore';
@@ -37,10 +37,10 @@ export default function TimelinePlayback() {
     isPlaybackMode
   );
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setPlaybackMode(false);
     setIsPlaying(false);
-  };
+  }, [setPlaybackMode, setIsPlaying]);
 
   // ESC key to close timeline
   useEffect(() => {
@@ -51,7 +51,7 @@ export default function TimelinePlayback() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPlaybackMode]);
+  }, [isPlaybackMode, handleClose]);
 
   return (
     <AnimatePresence>
@@ -61,7 +61,7 @@ export default function TimelinePlayback() {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
           transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-          className="fixed bottom-32 left-1/2 -translate-x-1/2 w-[90%] max-w-5xl pointer-events-auto z-40"
+          className="fixed bottom-32 left-1/2 -translate-x-1/2 w-[90%] max-w-5xl pointer-events-auto z-30"
         >
           <div className="bg-gray-900/95 backdrop-blur-md rounded-2xl border border-blue-500/30 shadow-2xl p-6">
             {/* Header */}

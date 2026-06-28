@@ -1,4 +1,4 @@
-import { useRef, useMemo, useEffect } from 'react';
+import { useRef, useMemo, useEffect, useCallback } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { Zone } from '@/lib/api';
@@ -47,7 +47,7 @@ export default function HeatMapOverlay({ zones }: Props) {
   };
 
   // Draw heat map on canvas
-  const updateHeatMap = () => {
+  const updateHeatMap = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -108,12 +108,12 @@ export default function HeatMapOverlay({ zones }: Props) {
     if (textureRef.current) {
       textureRef.current.needsUpdate = true;
     }
-  };
+  }, [zones]);
 
   // Update heat map when zones change
   useEffect(() => {
     updateHeatMap();
-  }, [zones]);
+  }, [updateHeatMap]);
 
   // Pulse animation for high-occupancy zones
   useFrame((state) => {

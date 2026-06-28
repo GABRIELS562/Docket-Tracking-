@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 
 interface QRScannerProps {
@@ -15,22 +15,26 @@ interface QRScannerProps {
  */
 export function QRScanner({ onScan, onError, isActive }: QRScannerProps) {
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const isScanningRef = useRef(false);
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const stopScanner = useCallback(async () => {
+    if (scannerRef.current && isScanningRef.current) {
+      try {
+        await scannerRef.current.stop();
+        isScanningRef.current = false;
+        setIsScanning(false);
+      } catch {
+        // Scanner may already be stopped
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (!isActive) {
       // Stop scanning when not active
-      if (scannerRef.current && isScanning) {
-        scannerRef.current
-          .stop()
-          .then(() => {
-            setIsScanning(false);
-          })
-          .catch((err) => {
-            console.error('Error stopping scanner:', err);
-          });
-      }
+      stopScanner();
       return;
     }
 
@@ -50,17 +54,18 @@ export function QRScanner({ onScan, onError, isActive }: QRScannerProps) {
           // QR code successfully scanned
           onScan(decodedText);
           // Optionally stop after successful scan
-          scanner.stop().then(() => setIsScanning(false));
+          scanner.stop().then(() => {
+            isScanningRef.current = false;
+            setIsScanning(false);
+          });
         },
-        (errorMessage) => {
+        () => {
           // QR code scan error (usually just "no code detected")
-          // We don't want to show these continuous errors
-          if (!errorMessage.includes('NotFoundException')) {
-            console.warn('QR scan error:', errorMessage);
-          }
+          // Silently ignore - continuous scanning produces many of these
         }
       )
       .then(() => {
+        isScanningRef.current = true;
         setIsScanning(true);
         setError(null);
       })
@@ -74,13 +79,9 @@ export function QRScanner({ onScan, onError, isActive }: QRScannerProps) {
 
     // Cleanup on unmount
     return () => {
-      if (scannerRef.current && isScanning) {
-        scannerRef.current
-          .stop()
-          .catch((err) => console.error('Error stopping scanner on cleanup:', err));
-      }
+      stopScanner();
     };
-  }, [isActive, onScan, onError]);
+  }, [isActive, onScan, onError, stopScanner]);
 
   return (
     <div className="qr-scanner-container">

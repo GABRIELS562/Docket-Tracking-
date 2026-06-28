@@ -9,7 +9,7 @@ export interface Notification {
   message: string;
   timestamp: Date;
   read: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 const MAX_HISTORY = 50;
@@ -19,6 +19,9 @@ export function useNotifications() {
   const [history, setHistory] = useState<Notification[]>([]);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Ref to hold removeNotification to avoid circular dependency
+  const removeNotificationRef = useRef<(id: string) => void>();
 
   // Initialize audio
   useEffect(() => {
@@ -41,7 +44,10 @@ export function useNotifications() {
       const frequency = frequencies[type];
 
       // Generate beep using Web Audio API
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const audioContext = new AudioContextClass();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
 
@@ -61,7 +67,12 @@ export function useNotifications() {
   );
 
   const addNotification = useCallback(
-    (type: NotificationType, title: string, message: string, metadata?: Record<string, any>) => {
+    (
+      type: NotificationType,
+      title: string,
+      message: string,
+      metadata?: Record<string, unknown>
+    ) => {
       const notification: Notification = {
         id: `${Date.now()}-${Math.random()}`,
         type,
@@ -86,7 +97,7 @@ export function useNotifications() {
 
       // Auto-dismiss after 5 seconds
       setTimeout(() => {
-        removeNotification(notification.id);
+        removeNotificationRef.current?.(notification.id);
       }, 5000);
 
       return notification.id;
@@ -97,6 +108,9 @@ export function useNotifications() {
   const removeNotification = useCallback((id: string) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   }, []);
+
+  // Keep ref updated
+  removeNotificationRef.current = removeNotification;
 
   const markAsRead = useCallback((id: string) => {
     setHistory((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
@@ -112,25 +126,25 @@ export function useNotifications() {
 
   // Notification shortcuts
   const success = useCallback(
-    (title: string, message: string, metadata?: Record<string, any>) =>
+    (title: string, message: string, metadata?: Record<string, unknown>) =>
       addNotification('success', title, message, metadata),
     [addNotification]
   );
 
   const error = useCallback(
-    (title: string, message: string, metadata?: Record<string, any>) =>
+    (title: string, message: string, metadata?: Record<string, unknown>) =>
       addNotification('error', title, message, metadata),
     [addNotification]
   );
 
   const warning = useCallback(
-    (title: string, message: string, metadata?: Record<string, any>) =>
+    (title: string, message: string, metadata?: Record<string, unknown>) =>
       addNotification('warning', title, message, metadata),
     [addNotification]
   );
 
   const info = useCallback(
-    (title: string, message: string, metadata?: Record<string, any>) =>
+    (title: string, message: string, metadata?: Record<string, unknown>) =>
       addNotification('info', title, message, metadata),
     [addNotification]
   );

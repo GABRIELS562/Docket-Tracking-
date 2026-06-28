@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { subHours } from 'date-fns';
 
 interface PlaybackState {
@@ -37,20 +37,30 @@ export function usePlaybackAnimation(
   const animationFrameRef = useRef<number>();
   const sliderRef = useRef<HTMLDivElement>(null);
 
-  // Time range: Last 24 hours
-  const now = Date.now();
-  const startTime = subHours(now, 24).getTime();
-  const endTime = now;
+  // Time range: Last 24 hours (memoized to prevent recalculation on every render)
+  const { startTime, endTime } = useMemo(() => {
+    const now = Date.now();
+    return {
+      startTime: subHours(now, 24).getTime(),
+      endTime: now,
+    };
+  }, []);
 
   // Calculate slider position (0-100%)
-  const getSliderPosition = (time: number): number => {
-    return ((time - startTime) / (endTime - startTime)) * 100;
-  };
+  const getSliderPosition = useCallback(
+    (time: number): number => {
+      return ((time - startTime) / (endTime - startTime)) * 100;
+    },
+    [startTime, endTime]
+  );
 
   // Calculate time from slider position (0-100%)
-  const getTimeFromPosition = (position: number): number => {
-    return startTime + (position / 100) * (endTime - startTime);
-  };
+  const getTimeFromPosition = useCallback(
+    (position: number): number => {
+      return startTime + (position / 100) * (endTime - startTime);
+    },
+    [startTime, endTime]
+  );
 
   const currentPosition = getSliderPosition(playbackTime);
 
@@ -126,20 +136,23 @@ export function usePlaybackAnimation(
     handleSliderClick(e);
   };
 
-  const handleSliderDrag = (e: MouseEvent) => {
-    if (!isDragging || !sliderRef.current) return;
+  const handleSliderDrag = useCallback(
+    (e: MouseEvent) => {
+      if (!sliderRef.current) return;
 
-    const rect = sliderRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const position = (x / rect.width) * 100;
-    const newTime = getTimeFromPosition(Math.max(0, Math.min(100, position)));
+      const rect = sliderRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const position = (x / rect.width) * 100;
+      const newTime = getTimeFromPosition(Math.max(0, Math.min(100, position)));
 
-    setPlaybackTime(newTime);
-  };
+      setPlaybackTime(newTime);
+    },
+    [setPlaybackTime, getTimeFromPosition]
+  );
 
-  const handleSliderDragEnd = () => {
+  const handleSliderDragEnd = useCallback(() => {
     setIsDragging(false);
-  };
+  }, []);
 
   useEffect(() => {
     if (isDragging) {
@@ -150,7 +163,7 @@ export function usePlaybackAnimation(
         window.removeEventListener('mouseup', handleSliderDragEnd);
       };
     }
-  }, [isDragging]);
+  }, [isDragging, handleSliderDrag, handleSliderDragEnd]);
 
   return {
     startTime,

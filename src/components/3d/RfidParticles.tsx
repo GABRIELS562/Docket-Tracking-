@@ -1,5 +1,5 @@
 import { useRef, useMemo } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useFrame, useThree, ThreeEvent } from '@react-three/fiber';
 import * as THREE from 'three';
 import { Docket } from '@/lib/api';
 import { useStore } from '@/store/useStore';
@@ -60,7 +60,7 @@ export default function RfidParticles({ dockets, selectedZoneId }: Props) {
   });
 
   // Handle particle clicks
-  const handleClick = (event: any) => {
+  const handleClick = (event: ThreeEvent<MouseEvent>) => {
     event.stopPropagation();
 
     if (!pointsRef.current) return;

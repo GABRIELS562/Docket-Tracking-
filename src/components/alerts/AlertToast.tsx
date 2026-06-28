@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, Info, LogOut, Clock, Radio, Activity, X } from 'lucide-react';
 import { useSimulationStore, SimulationAlert, AlertType } from '@/store/useSimulationStore';
@@ -23,24 +23,32 @@ export default function AlertToast({
   position = 'bottom-right',
   autoDismissMs = 8000,
 }: AlertToastProps) {
-  const alerts = useSimulationStore((state) => state.getActiveAlerts());
+  // Select raw alerts array (stable reference) instead of calling getActiveAlerts()
+  const allAlerts = useSimulationStore((state) => state.alerts);
   const dismissAlert = useSimulationStore((state) => state.dismissAlert);
-  const [localAlerts, setLocalAlerts] = useState<SimulationAlert[]>([]);
 
-  // Sync with store and limit visible alerts
-  useEffect(() => {
-    setLocalAlerts(alerts.slice(0, maxVisible));
-  }, [alerts, maxVisible]);
+  // Filter and limit alerts with useMemo to avoid creating new arrays on every render
+  const visibleAlerts = useMemo(() => {
+    return allAlerts.filter((a) => !a.dismissed).slice(0, maxVisible);
+  }, [allAlerts, maxVisible]);
 
-  // Auto-dismiss logic
+  // Track which alerts we've already set timers for
+  const dismissedTimersRef = useRef<Set<string>>(new Set());
+
+  // Auto-dismiss logic - only set timer once per alert
   useEffect(() => {
     if (autoDismissMs <= 0) return;
 
     const timers: ReturnType<typeof setTimeout>[] = [];
 
-    localAlerts.forEach((alert) => {
+    visibleAlerts.forEach((alert) => {
+      // Skip if we already have a timer for this alert
+      if (dismissedTimersRef.current.has(alert.id)) return;
+
+      dismissedTimersRef.current.add(alert.id);
       const timer = setTimeout(() => {
         dismissAlert(alert.id);
+        dismissedTimersRef.current.delete(alert.id);
       }, autoDismissMs);
       timers.push(timer);
     });
@@ -48,7 +56,7 @@ export default function AlertToast({
     return () => {
       timers.forEach(clearTimeout);
     };
-  }, [localAlerts, autoDismissMs, dismissAlert]);
+  }, [visibleAlerts, autoDismissMs, dismissAlert]);
 
   // Position classes
   const positionClasses = {
@@ -63,7 +71,7 @@ export default function AlertToast({
       className={`fixed ${positionClasses[position]} z-[90] flex flex-col gap-2 pointer-events-none max-h-[60vh] overflow-hidden`}
     >
       <AnimatePresence mode="popLayout">
-        {localAlerts.map((alert) => (
+        {visibleAlerts.map((alert) => (
           <Toast key={alert.id} alert={alert} onDismiss={() => dismissAlert(alert.id)} />
         ))}
       </AnimatePresence>
