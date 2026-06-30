@@ -57,6 +57,14 @@ export default function SimulationEngine({ onNotification }: SimulationEnginePro
   const alertIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const metricsIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Refs for callbacks to avoid re-creating intervals when callbacks change
+  const generateMovementRef = useRef<() => ItemMovementEvent | null>();
+  const simulateOccupancyChangeRef = useRef<() => void>();
+  const simulateReaderChangeRef = useRef<() => void>();
+  const generateRandomAlertRef = useRef<() => void>();
+  const updateSimulationMetricsRef = useRef<() => void>();
+  const addMovementRef = useRef(addMovement);
+
   // Helper to generate random item movement
   const generateMovement = useCallback((): ItemMovementEvent | null => {
     const sourceZones = zones.length > 0 ? zones : mockZones;
@@ -251,6 +259,14 @@ export default function SimulationEngine({ onNotification }: SimulationEnginePro
     });
   }, [zones, readers, updateMetrics]);
 
+  // Keep refs updated with latest callback versions
+  generateMovementRef.current = generateMovement;
+  simulateOccupancyChangeRef.current = simulateOccupancyChange;
+  simulateReaderChangeRef.current = simulateReaderChange;
+  generateRandomAlertRef.current = generateRandomAlert;
+  updateSimulationMetricsRef.current = updateSimulationMetrics;
+  addMovementRef.current = addMovement;
+
   // Start/stop simulation based on demo mode
   useEffect(() => {
     if (isDemoMode && !isRunning) {
@@ -258,7 +274,7 @@ export default function SimulationEngine({ onNotification }: SimulationEnginePro
     }
   }, [isDemoMode, isRunning, startSimulation]);
 
-  // Main simulation loop
+  // Main simulation loop - uses refs to avoid recreating intervals when callbacks change
   useEffect(() => {
     if (!isRunning) {
       // Clear all intervals
@@ -272,29 +288,29 @@ export default function SimulationEngine({ onNotification }: SimulationEnginePro
 
     const speedMultiplier = 1 / simulationSpeed;
 
-    // Item movements: every 3-5 seconds (adjusted by speed)
+    // Item movements: every 5-8 seconds (adjusted by speed)
     movementIntervalRef.current = setInterval(
       () => {
-        const movement = generateMovement();
+        const movement = generateMovementRef.current?.();
         if (movement) {
-          addMovement(movement);
+          addMovementRef.current(movement);
         }
       },
-      (3000 + Math.random() * 2000) * speedMultiplier
+      (5000 + Math.random() * 3000) * speedMultiplier
     );
 
-    // Occupancy changes: every 5-8 seconds
+    // Occupancy changes: every 8-12 seconds
     occupancyIntervalRef.current = setInterval(
       () => {
-        simulateOccupancyChange();
+        simulateOccupancyChangeRef.current?.();
       },
-      (5000 + Math.random() * 3000) * speedMultiplier
+      (8000 + Math.random() * 4000) * speedMultiplier
     );
 
     // Reader status: every 20-30 seconds
     readerIntervalRef.current = setInterval(
       () => {
-        simulateReaderChange();
+        simulateReaderChangeRef.current?.();
       },
       (20000 + Math.random() * 10000) * speedMultiplier
     );
@@ -304,19 +320,19 @@ export default function SimulationEngine({ onNotification }: SimulationEnginePro
       () => {
         // Only 30% chance to generate an alert each interval
         if (Math.random() < 0.3) {
-          generateRandomAlert();
+          generateRandomAlertRef.current?.();
         }
       },
       (15000 + Math.random() * 15000) * speedMultiplier
     );
 
-    // Update metrics: every 2 seconds
+    // Update metrics: every 4 seconds
     metricsIntervalRef.current = setInterval(() => {
-      updateSimulationMetrics();
-    }, 2000 * speedMultiplier);
+      updateSimulationMetricsRef.current?.();
+    }, 4000 * speedMultiplier);
 
     // Initial metrics update
-    updateSimulationMetrics();
+    updateSimulationMetricsRef.current?.();
 
     // Cleanup
     return () => {
@@ -326,16 +342,7 @@ export default function SimulationEngine({ onNotification }: SimulationEnginePro
       if (alertIntervalRef.current) clearInterval(alertIntervalRef.current);
       if (metricsIntervalRef.current) clearInterval(metricsIntervalRef.current);
     };
-  }, [
-    isRunning,
-    simulationSpeed,
-    generateMovement,
-    addMovement,
-    simulateOccupancyChange,
-    simulateReaderChange,
-    generateRandomAlert,
-    updateSimulationMetrics,
-  ]);
+  }, [isRunning, simulationSpeed]);
 
   // This component doesn't render anything visible
   return null;
