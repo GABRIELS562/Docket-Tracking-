@@ -1,6 +1,6 @@
 # Multi-stage build for optimized production image
 # Stage 1: Build
-FROM node:20-alpine AS builder
+FROM node:26-alpine AS builder
 
 # Install pnpm
 RUN npm install -g pnpm@8
@@ -25,7 +25,7 @@ RUN pnpm run build
 RUN pnpm prune --prod
 
 # Stage 2: Production
-FROM node:20-alpine AS production
+FROM node:26-alpine AS production
 
 # Install dumb-init for proper signal handling
 RUN apk add --no-cache dumb-init
